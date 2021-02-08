@@ -123,9 +123,11 @@
 	.st115{fill:none;stroke:#E56B00;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;}
 	.st116{fill:none;stroke:#993398;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;}
 	.st117{fill:#009900;}
-	.st118{opacity:0.5;}
+	.st118{fill:#393434;}
 	.st119{fill:#3D3D3D;}
-	.st120{fill:#404040;}
+	.st120{fill:#666161;}
+	.st121{fill:none;stroke:#8C8C8C;stroke-width:2;stroke-miterlimit:10;}
+	.st122{fill:none;stroke:#000000;stroke-width:0.7438;stroke-miterlimit:10;}
 </style>
 <g id="breadboard">
 	<g>
@@ -3806,15 +3808,22 @@
 <line class="st114" x1="104.4" y1="145.8" x2="104.2" y2="177.5"/>
 <polyline class="st114" points="32.3,145.8 35.6,141.8 35.6,120.9 39.6,117.1 "/>
 <g>
-	<polyline class="st118" points="24.5,62.4 54.5,62.4 54.5,92.4 24.5,92.4 24.5,62.4 	"/>
-	<polyline class="st26" points="38.6,67.5 38.6,65.5 40.7,65.5 40.7,67.5 38.6,67.5 	"/>
-	<polyline class="st26" points="38.6,89.1 38.6,87.1 40.7,87.1 40.7,89.1 38.6,89.1 	"/>
-	<polyline class="st26" points="45.8,89.1 45.8,87.1 47.9,87.1 47.9,89.1 45.8,89.1 	"/>
-	<polyline class="st26" points="31.4,67.5 31.4,65.5 33.5,65.5 33.5,67.5 31.4,67.5 	"/>
-	<polyline class="st26" points="45.8,67.5 45.8,65.5 47.9,65.5 47.9,67.5 45.8,67.5 	"/>
-	<polyline class="st26" points="31.4,89.1 31.4,87.1 33.5,87.1 33.5,89.1 31.4,89.1 	"/>
+	<polyline class="st118" points="26,63.9 53,63.9 53,90.9 26,90.9 26,63.9 	"/>
+	<polyline class="st74" points="38.6,67.5 38.6,58.5 40.7,58.5 40.7,67.5 38.6,67.5 	"/>
+	<polyline class="st74" points="38.6,96.1 38.6,87.1 40.7,87.1 40.7,96.1 38.6,96.1 	"/>
+	<polyline class="st74" points="45.8,96.1 45.8,87.1 47.9,87.1 47.9,96.1 45.8,96.1 	"/>
+	<polyline class="st74" points="31.4,67.5 31.4,58.5 33.5,58.5 33.5,67.5 31.4,67.5 	"/>
+	<polyline class="st74" points="45.8,67.5 45.8,58.5 47.9,58.5 47.9,67.5 45.8,67.5 	"/>
+	<polyline class="st74" points="31.4,96.1 31.4,87.1 33.5,87.1 33.5,96.1 31.4,96.1 	"/>
 	<path class="st119" d="M40.7,82.5c-0.1,0-0.3,0-0.4,0.1C40.5,82.5,40.6,82.5,40.7,82.5"/>
-	<polyline points="31.5,69.4 47.5,69.4 47.5,85.4 31.5,85.4 31.5,69.4 	"/>
-	<polyline class="st120" points="35,72.9 44,72.9 44,81.9 35,81.9 35,72.9 	"/>
+</g>
+<rect x="31.4" y="70.2" class="st120" width="16.3" height="14.3"/>
+<g>
+	<line class="st121" x1="37.7" y1="75.2" x2="41.7" y2="75.2"/>
+	<line class="st121" x1="35.1" y1="79.2" x2="44.1" y2="79.2"/>
+	<line class="st121" x1="39.6" y1="79.2" x2="39.6" y2="75.2"/>
+</g>
+<g>
+	<path class="st122" d="M41.3,82.4"/>
 </g>
 </svg>
