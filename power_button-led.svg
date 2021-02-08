@@ -3804,8 +3804,8 @@
 <polyline class="st115" points="61,177.7 57.2,174.1 57.2,57.6 46.8,52.2 "/>
 <polyline class="st116" points="162,117 158.4,120.5 158.4,174 161.8,177.5 "/>
 <text transform="matrix(1 0 0 1 35.6306 166.1338)" class="st117 st8 st10">5</text>
-<text transform="matrix(1 0 0 1 105.9711 166.1337)" class="st2 st8 st10">G</text>
-<line class="st114" x1="104.4" y1="145.8" x2="104.2" y2="177.5"/>
+<text transform="matrix(1 0 0 1 92.9711 166.1337)" class="st2 st8 st10">G</text>
+<line class="st114" x1="90.2" y1="145.8" x2="90" y2="177.5"/>
 <polyline class="st114" points="32.3,145.8 35.6,141.8 35.6,120.9 39.6,117.1 "/>
 <g>
 	<polyline class="st118" points="26,63.9 53,63.9 53,90.9 26,90.9 26,63.9 	"/>
