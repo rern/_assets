@@ -72,9 +72,9 @@
 	.st64{fill:#CCC9C9;}
 	.st65{fill:#BFBFBF;}
 	.st66{fill:#383838;}
-	.st67{fill:none;stroke:#0000FF;stroke-width:0.5;stroke-miterlimit:10;}
-	.st68{fill:none;stroke:#FF0000;stroke-width:0.5;stroke-miterlimit:10;}
-	.st69{fill:none;stroke:#8C8C8C;stroke-width:0.75;stroke-miterlimit:10;}
+	.st67{fill:none;stroke:#0000FF;stroke-width:0.4946;stroke-miterlimit:10;}
+	.st68{fill:none;stroke:#FF0000;stroke-width:0.4946;stroke-miterlimit:10;}
+	.st69{fill:none;stroke:#8C8C8C;stroke-width:0.742;stroke-miterlimit:10;}
 	.st70{fill:none;stroke:#8C8C8C;stroke-width:3;stroke-linecap:round;stroke-miterlimit:4.7619;}
 	.st71{fill:#D9B477;}
 	.st72{fill:#AD9F4E;}
@@ -898,9 +898,9 @@
 	<rect x="33" y="440.6" class="st25" width="6.1" height="2.2"/>
 	<rect x="50.7" y="440.6" class="st25" width="6.1" height="2.2"/>
 	
-		<rect x="27.5" y="457" transform="matrix(0.7069 -0.7073 0.7073 0.7069 -315.3547 155.0421)" class="st24" width="3.8" height="2.1"/>
+		<rect x="27.5" y="457" transform="matrix(0.7069 -0.7073 0.7073 0.7069 -315.3579 155.049)" class="st24" width="3.8" height="2.1"/>
 	
-		<rect x="57.9" y="456.3" transform="matrix(0.7074 -0.7068 0.7068 0.7074 -306.6006 175.7391)" class="st24" width="2.1" height="3.8"/>
+		<rect x="57.9" y="456.3" transform="matrix(0.7074 -0.7068 0.7068 0.7074 -306.6114 175.7381)" class="st24" width="2.1" height="3.8"/>
 	<circle class="st26" cx="265.4" cy="245.3" r="5.9"/>
 	<circle class="st27" cx="265.4" cy="245.3" r="3.5"/>
 	<path class="st28" d="M249.3,265.3c2,0,3.5,1.5,3.5,3.5s-1.5,3.5-3.5,3.5s-3.5-1.5-3.5-3.5S247.3,265.3,249.3,265.3z"/>
@@ -1882,9 +1882,9 @@
 	<rect x="188.2" y="320.1" class="st16" width="1.6" height="4.1"/>
 	<rect x="188.2" y="321.3" class="st42" width="1.6" height="1.7"/>
 	
-		<rect x="176.4" y="344.7" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -192.0349 227.3718)" class="st16" width="4.1" height="1.6"/>
+		<rect x="176.4" y="344.7" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -192.0335 227.3758)" class="st16" width="4.1" height="1.6"/>
 	
-		<rect x="177.5" y="344.8" transform="matrix(0.7069 -0.7073 0.7073 0.7069 -192.1577 227.4381)" class="st42" width="1.7" height="1.6"/>
+		<rect x="177.5" y="344.8" transform="matrix(0.7069 -0.7073 0.7073 0.7069 -192.1659 227.4476)" class="st42" width="1.7" height="1.6"/>
 	<rect x="171.9" y="336.3" class="st16" width="4.1" height="1.6"/>
 	<rect x="173.1" y="336.3" class="st42" width="1.7" height="1.6"/>
 	<rect x="173.7" y="324.1" class="st16" width="4.1" height="1.6"/>
@@ -1954,9 +1954,8 @@
 	<rect x="83.7" y="385.9" class="st15" width="2" height="4.4"/>
 	<rect x="83.7" y="387.1" class="st34" width="2" height="2.1"/>
 	
-		<rect x="83.1" y="400.3" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -258.7549 177.5081)" class="st16" width="3.6" height="1.6"/>
-	
-		<rect x="83.9" y="400.4" transform="matrix(0.7073 -0.7069 0.7069 0.7073 -258.6923 177.4106)" class="st42" width="2" height="1.4"/>
+		<rect x="83.1" y="400.3" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -258.7503 177.5078)" class="st16" width="3.6" height="1.6"/>
+	<rect x="83.9" y="400.4" transform="matrix(0.7073 -0.7069 0.7069 0.7073 -258.687 177.41)" class="st42" width="2" height="1.4"/>
 	<rect x="90.8" y="362.6" class="st15" width="2" height="4.4"/>
 	<rect x="90.8" y="364" class="st34" width="2" height="2.1"/>
 	<rect x="141.1" y="355.6" class="st15" width="2" height="4.4"/>
@@ -2263,8 +2262,8 @@
 	</g>
 </g>
 <g id="breadboard">
-	<polyline class="st63" points="6.5,4.1 330.8,4.1 330.8,213.9 6.5,213.9 6.5,4.1 	"/>
-	<polyline class="st64" points="6.5,102.8 330.8,102.8 330.8,112.8 6.5,112.8 6.5,102.8 	"/>
+	<polyline class="st63" points="11,4 328,4 328,214 11,214 11,4 	"/>
+	<polyline class="st64" points="11,102.8 328,102.8 328,112.8 11,112.8 11,102.8 	"/>
 	<path class="st65" d="M21.6,164c0-1.7,1.5-3.4,3.4-3.4c1.7,0,3.4,1.5,3.4,3.4"/>
 	<path class="st4" d="M28.4,164c0,1.7-1.5,3.4-3.4,3.4c-1.7,0-3.4-1.5-3.4-3.4"/>
 	<circle class="st66" cx="25" cy="164" r="1.6"/>
@@ -3465,12 +3464,12 @@
 	<path class="st65" d="M311.6,54c0-1.7,1.5-3.4,3.4-3.4c1.7,0,3.4,1.5,3.4,3.4"/>
 	<path class="st4" d="M318.4,54c0,1.7-1.5,3.4-3.4,3.4c-1.7,0-3.4-1.5-3.4-3.4"/>
 	<circle class="st66" cx="315" cy="54" r="1.6"/>
-	<line class="st67" x1="6.5" y1="30" x2="330.4" y2="30"/>
-	<line class="st68" x1="6.5" y1="8" x2="330.4" y2="8"/>
-	<line class="st69" x1="6.5" y1="34" x2="330.4" y2="34"/>
-	<line class="st68" x1="6.5" y1="188" x2="330.4" y2="188"/>
-	<line class="st67" x1="6.5" y1="210" x2="330.4" y2="210"/>
-	<line class="st69" x1="6.5" y1="184" x2="330.4" y2="184"/>
+	<line class="st67" x1="11" y1="30" x2="328" y2="30"/>
+	<line class="st68" x1="11" y1="8" x2="328" y2="8"/>
+	<line class="st69" x1="11" y1="34" x2="328" y2="34"/>
+	<line class="st68" x1="11" y1="188" x2="328" y2="188"/>
+	<line class="st67" x1="11" y1="210" x2="328" y2="210"/>
+	<line class="st69" x1="11" y1="184" x2="328" y2="184"/>
 </g>
 <g id="resister">
 	<line class="st70" x1="235" y1="164" x2="235" y2="204"/>
