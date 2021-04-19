@@ -1,0 +1,59 @@
+%!Adobe-FontList 1.22
+%Locale:0x41e
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:TrueType
+FontName:AGARasheeqV.2-Bold
+FamilyName:AGA Rasheeq V.2 رشيق
+StyleName:Bold
+FullName:AGA Rasheeq V.2 رشيق Bold
+MenuName:AGA Rasheeq V.2 رشيق
+StyleBits:0
+FamilyNameNative:AGA Rasheeq V.2 رشيق
+StyleNameNative:Bold
+FullNameNative:AGA Rasheeq V.2 رشيق Bold
+WritingScript:Arabic
+OutlineFileName:D:\RPi\Git\_assets\Radio Paradise\Font\aga-rasheeq-bold.ttf
+DataFormat:sfntData
+hasSVG:no
+VariableFontType:NonVariableFont
+FileLength:107984
+FileModTime:1497415528
+WeightClass:700
+WidthClass:5
+AngleClass:0
+NameArray:0,Mac,18,AGA Rasheeq V.2 ัิํ Bold
+NameArray:0,Mac,4,AGA Rasheeq V.2 ัิํ Bold
+NameArray:0,Win,1,AGA Rasheeq V.2 رشيق
+NameArray:0,Win,16,AGA Rasheeq V.2 رشيق
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:TrueType
+FontName:AGARasheeqV.2
+FamilyName:AGA Rasheeq V.2 رشيق
+StyleName:Regular
+FullName:AGA Rasheeq V.2 رشيق
+MenuName:AGA Rasheeq V.2 رشيق
+StyleBits:0
+FamilyNameNative:AGA Rasheeq V.2 رشيق
+StyleNameNative:Regular
+FullNameNative:AGA Rasheeq V.2 رشيق Regular
+WritingScript:Arabic
+OutlineFileName:D:\RPi\Git\_assets\Radio Paradise\Font\aga-rasheeq-regular.ttf
+DataFormat:sfntData
+hasSVG:no
+VariableFontType:NonVariableFont
+FileLength:110588
+FileModTime:1497415528
+WeightClass:400
+WidthClass:5
+AngleClass:0
+NameArray:0,Mac,18,AGA Rasheeq V.2 ัิํ
+NameArray:0,Mac,4,AGA Rasheeq V.2 ัิํ
+NameArray:0,Win,1,AGA Rasheeq V.2 رشيق
+NameArray:0,Win,16,AGA Rasheeq V.2 رشيق
+%EndFont
+
