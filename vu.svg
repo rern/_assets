@@ -1,86 +1,60 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Generator: Adobe Illustrator 24.2.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
-<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
-	 viewBox="0 0 230 230" style="enable-background:new 0 0 230 230;" xml:space="preserve">
+<svg xmlns="http://www.w3.org/2000/svg" width="230px" height="230px" viewBox="0 0 230 230">
 <style type="text/css">
-	.st0{fill:#FFFFFF;}
-	.st1{fill:none;stroke:#FF0000;stroke-width:4.5;}
-	.st2{stroke:#000000;}
-	.st3{font-family:'ArialMT';}
-	.st4{font-size:12px;}
-	.st5{stroke:#FF0000;}
-	.st6{fill:#FF0000;}
-	.st7{stroke:#000000;stroke-width:0.5;}
-	.st8{stroke:#FF0000;stroke-width:0.5;}
-	.st9{stroke:#000000;stroke-width:3;stroke-linecap:round;}
-	.st10{font-size:9px;}
-	.st11{stroke:#000000;stroke-width:2;stroke-linecap:round;}
-	.st12{fill:none;}
-	.st13{fill:#5E5E5E;}
-	.st14{fill:#414042;}
+.cls-8,.cls-9,.cls-10,.cls-11,.cls-12,.cls-15,.cls-16 { font-family: Arial; }
+.cls-8,.cls-9,.cls-10,.cls-11,.cls-12 { font-size:12px; }
+.cls-15,.cls-16 { font-size: 9px; }
+.cls-3,.cls-4,.cls-19,.cls-20,.cls-21,.cls-22 { fill: none; }
+.cls-1 { fill: hsl(0,0%,90%); }
+.cls-11,.cls-12 { fill: #ff0000; }
+.cls-21 { fill: hsl(200,3%,20%); }
+.cls-22 { fill: hsl(200,3%,10%); }
+.cls-3,.cls-4,.cls-5,.cls-6 { stroke: #ff0000; }
+.cls-2,.cls-7,.cls-14,.cls-17,.cls-18,.cls-19,.cls-20,.cls-21,.cls-22,.cls-24 { stroke: #000000; }
+.cls-18 { opacity: 0.3; }
+.cls-20 { fill: none; stroke-width: 5px; filter:url(#vushadow); }
+.cls-3 { stroke-width: 4px; }
+.cls-14 { stroke-width: 3px; }
+.cls-17 { stroke-width: 2px; }
+.cls-5,.cls-7 { stroke-width: 1.3px; }
+.cls-18,.cls-19 { stroke-width: 1px; }
+.cls-2,.cls-4 { stroke-width: 0.5px; }
+.cls-21,.cls-22,.cls-24 { stroke-width: 0.2px; }
+.cls-14,.cls-17 { stroke-linecap: round; }
+.cls-23 { fill:hsl(200,3%,60%) }
 </style>
-<g id="Layer_5">
-	<rect class="st0" width="230" height="125"/>
-</g>
-<g id="Layer_1">
-	<g>
-		<path class="st1" d="M147.2,53.3c18,3.6,35.3,10,51.2,18.9"/>
-		<path class="st2" d="M33.1,73.6l-4.6-8.1"/>
-		<text transform="matrix(0.8725 -0.4886 0.4886 0.8725 20.8045 65.2685)" class="st3 st4">20</text>
-		<path class="st2" d="M58.9,61.9l-3.1-8.8"/>
-		<text transform="matrix(0.9425 -0.3341 0.3341 0.9425 46.2779 52.1054)" class="st3 st4">10</text>
-		<path class="st2" d="M75.2,57.1l-2.2-9"/>
-		<text transform="matrix(0.9707 -0.2402 0.2402 0.9707 68.7146 44.7929)" class="st3 st4">7</text>
-		<path class="st2" d="M90.1,54.2L88.7,45"/>
-		<text transform="matrix(0.9887 -0.1499 0.1499 0.9887 84.4942 41.3718)" class="st3 st4">5</text>
-		<path class="st2" d="M109.1,52.4l-0.3-9.3"/>
-		<text transform="matrix(0.9996 -2.998651e-02 2.998651e-02 0.9996 105.0938 39.2113)" class="st3 st4">3</text>
-		<path class="st2" d="M120.4,52.4l0.3-9.3"/>
-		<text transform="matrix(0.9994 3.472507e-02 -3.472507e-02 0.9994 117.712 38.9388)" class="st3 st4">2</text>
-		<path class="st2" d="M133,53.4l1-9.2"/>
-		<text transform="matrix(0.9938 0.1108 -0.1108 0.9938 131.0747 39.6373)" class="st3 st4">1</text>
-		<path class="st2" d="M147.1,55.5l1.8-9.1"/>
-		<text transform="matrix(0.9808 0.1951 -0.1951 0.9808 146.4101 41.644)" class="st3 st4">0</text>
-		<path class="st5" d="M162.6,59.4l2.7-8.9"/>
-		<text transform="matrix(0.9573 0.2892 -0.2892 0.9573 163.4595 45.6345)" class="st6 st3 st4">1</text>
-		<path class="st5" d="M179.5,65.5l3.6-8.5"/>
-		<text transform="matrix(0.9207 0.3903 -0.3903 0.9207 182.2698 52.1054)" class="st6 st3 st4">2</text>
-		<path class="st5" d="M197.5,74.4l4.6-8.1"/>
-		<text transform="matrix(0.8676 0.4973 -0.4973 0.8676 201.3176 61.2549)" class="st6 st3 st4">3</text>
-		<path class="st7" d="M82.2,55.5l-1.3-6.8"/>
-		<path class="st7" d="M99,53.1l-0.7-6.9"/>
-		<path class="st7" d="M139.9,54.3l1.1-6.8"/>
-		<path class="st7" d="M154.7,57.3l1.7-6.8"/>
-		<path class="st8" d="M154.7,57.3l1.7-6.8"/>
-		<path class="st9" d="M46.7,71.9L46.7,71.9"/>
-		<text transform="matrix(0.908 -0.4191 0.4191 0.908 46.8439 83.4406)" class="st3 st10">20</text>
-		<path class="st9" d="M70.6,63.1L70.6,63.1"/>
-		<text transform="matrix(0.9627 -0.2707 0.2707 0.9627 68.7146 74.3986)" class="st3 st10">40</text>
-		<path class="st9" d="M95.5,58.1L95.5,58.1"/>
-		<text transform="matrix(0.9931 -0.1175 0.1175 0.9931 92.1439 68.9068)" class="st3 st10">60</text>
-		<path class="st9" d="M120.9,57.1L120.9,57.1"/>
-		<text transform="matrix(0.9992 3.925982e-02 -3.925982e-02 0.9992 115.6239 67.2723)" class="st3 st10">80</text>
-		<path class="st9" d="M146.2,60.1L146.2,60.1"/>
-		<text transform="matrix(0.9808 0.1951 -0.1951 0.9808 135.8877 68.6125)" class="st3 st10">100</text>
-		<path class="st11" d="M35.4,77.6L35.4,77.6"/>
-		<path class="st11" d="M58.4,67L58.4,67"/>
-		<path class="st11" d="M82.9,60.1L82.9,60.1"/>
-		<path class="st11" d="M108.2,57.1L108.2,57.1"/>
-		<path class="st11" d="M133.6,58.1L133.6,58.1"/>
-		<text transform="matrix(1 0 0 1 98.0542 97.23)" class="st3 st4">rAudio</text>
-	</g>
-	<rect x="10" y="10" class="st12" width="210.1" height="105"/>
-</g>
-<g id="Layer_3">
-	
-		<image style="overflow:visible;enable-background:new    ;" width="239" height="135" xlink:href="946E6902.png"  transform="matrix(0.9582 0 0 0.9333 -1.4469 2)">
-	</image>
-</g>
-<g id="Layer_4">
-	<polygon class="st13" points="220,115 10,115 10,10 14,14 14,111 216,111 	"/>
-	<polygon class="st14" points="220,115 216,111 216,14 14,14 10,10 220,10 	"/>
-</g>
-<g id="Layer_2">
-	<path d="M0,0v230h230V0H0z M220,115H10V10h210V115z"/>
-</g>
+<filter id="vushadow"><feDropShadow dx="-3" dy="3" stdDeviation="4"/></filter>
+<rect class="cls-1" width="230" height="125"/>
+
+<path class="cls-3" d="M147.19,53.55a168.5,168.5,0,0,1,50.93,18.7" transform="translate(0 0)"/>
+
+<line class="cls-7" x1="32.97" y1="73.93" x2="28.32" y2="65.64"/><line class="cls-7" x1="58.68" y1="62.2" x2="55.49" y2="53.25"/><line class="cls-7" x1="74.94" y1="57.32" x2="72.67" y2="48.09"/><line class="cls-2" x1="81.98" y1="55.75" x2="80.6" y2="48.89"/><line class="cls-7" x1="89.81" y1="54.38" x2="88.38" y2="44.99"/><line class="cls-2" x1="98.71" y1="53.19" x2="98.04" y2="46.31"/><line class="cls-7" x1="108.81" y1="52.66" x2="108.46" y2="43.12"/><line class="cls-7" x1="120.11" y1="52.58" x2="120.4" y2="43.08"/><line class="cls-7" x1="132.7" y1="53.42" x2="133.71" y2="43.98"/><line class="cls-2" x1="139.63" y1="54.3" x2="140.66" y2="47.37"/><line class="cls-7" x1="146.81" y1="55.52" x2="148.62" y2="46.19"/>
+<line class="cls-4" x1="154.41" y1="57.16" x2="156.09" y2="50.37"/><line class="cls-5" x1="162.44" y1="59.31" x2="165.13" y2="50.2"/><line class="cls-5" x1="179.48" y1="65.36" x2="183" y2="56.53"/><line class="cls-5" x1="197.04" y1="73.93" x2="201.7" y2="65.65"/>
+
+<path class="cls-14" d="M30,80h0" transform="translate(0 0)"/>
+<path class="cls-17" d="M39,75h0" transform="translate(0 0)"/>
+<path class="cls-14" d="M49,71h0" transform="translate(0 0)"/>
+<path class="cls-17" d="M59,67h0" transform="translate(0 0)"/>
+<path class="cls-14" d="M70.26,63.06h0" transform="translate(0 0)"/>
+<path class="cls-17" d="M82.65,60.09h0" transform="translate(0 0)"/>
+<path class="cls-14" d="M95.2,58.1h0" transform="translate(0 0)"/>
+<path class="cls-17" d="M107.89,57.13h0" transform="translate(0 0)"/>
+<path class="cls-14" d="M120.63,57.13h0" transform="translate(0 0)"/>
+<path class="cls-17" d="M133.32,58.1h0" transform="translate(0 0)"/>
+<path class="cls-14" d="M145.92,60.09h0" transform="translate(0 0)"/>
+
+<text class="cls-8" transform="translate(20.51 65.27) rotate(-29.25)">20</text><text class="cls-8" transform="translate(45.98 52.11) rotate(-19.52)">10</text><text class="cls-9" transform="matrix(0.97, -0.24, 0.24, 0.97, 68.42, 44.79)">7</text><text class="cls-8" transform="translate(84.2 41.37) rotate(-8.62)">5</text><text class="cls-10" transform="matrix(1, -0.03, 0.03, 1, 104.8, 39.21)">3</text><text class="cls-8" transform="translate(117.42 38.94) rotate(1.99)">2</text><text class="cls-8" transform="translate(130.78 39.64) rotate(6.36)">1</text><text class="cls-8" transform="translate(146.12 41.64) rotate(11.25)">0</text>
+<text class="cls-11" transform="matrix(0.96, 0.29, -0.29, 0.96, 163.17, 45.63)">1</text><text class="cls-12" transform="translate(181.98 52.11) rotate(22.97)">2</text><text class="cls-12" transform="translate(201.02 61.25) rotate(29.82)">3</text>
+<text class="cls-15" transform="translate(49.5 82.2) rotate(-24.78)">20</text><text class="cls-16" transform="matrix(0.96, -0.27, 0.27, 0.96, 68.42, 74.4)">40</text><text class="cls-15" transform="translate(91.85 68.91) rotate(-6.75)">60</text><text class="cls-15" transform="translate(115.33 67.27) rotate(2.25)">80</text><text class="cls-15" transform="translate(135.59 68.61) rotate(11.25)">100</text>
+
+<path class="cls-23" d="M108.3,85.9h13.5c0.4,0,0.8,0.3,0.8,0.8v13.5c0,0.4-0.3,0.8-0.8,0.8h-13.5c-0.4,0-0.8-0.3-0.8-0.8V86.7C107.5,86.3,107.8,85.9,108.3,85.9z"/>
+<path class="cls-1" d="M116.5,93.9c2.1-0.8,3.1-3.2,2.3-5.4c-0.6-1.6-2.1-2.6-3.8-2.6v6.8h-3v-3h-1.5v3h-3v1.5h3v3h1.5v-3h3v6.8h1.5V96l4.9,4.9h0.3c0.4,0,0.8-0.3,0.8-0.8v-0.3L116.5,93.9z M116.5,87.9c1.2,0.8,1.5,2.5,0.7,3.7c-0.2,0.3-0.4,0.5-0.7,0.7V87.9z"/>
+
+<g id="vuneedle"><line class="cls-18" x1="114" y1="221" x2="22" y2="69"/><line class="cls-19" x1="115" y1="220" x2="23" y2="68"/></g>
+
+<rect x="10" y="10" class="cls-20" width="210" height="105"/>
+<polygon class="cls-21" points="220.06 115.02 10 115.02 10 9.99 14.03 14 14.03 111 216.03 111 220.06 115.02"/><polygon class="cls-22" points="220.06 115.02 216.03 111 216.03 14 14.03 14 10 9.99 220.06 9.99 220.06 115.02"/>
+
+<line class="cls-24" x1="216" y1="14" x2="220" y2="10"/><line class="cls-24" x1="10" y1="115" x2="14" y2="111"/>
+
+<path d="M0,0V230H230V0ZM220,115H10V10H220Z"/>
 </svg>
