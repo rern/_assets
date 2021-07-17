@@ -2,7 +2,7 @@
 <!-- Generator: Adobe Illustrator 24.2.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
 <svg version="1.1"
 	 id="svg" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:svg="http://www.w3.org/2000/svg"
-	 xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 350 470" width="350" height="470"
+	 xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 350 470"
 	 style="enable-background:new 0 0 350 470;" xml:space="preserve">
 <style type="text/css">
 	.st0{fill:#037E3F;}
@@ -891,9 +891,9 @@
 	<rect x="33" y="440.6" class="st25" width="6.1" height="2.2"/>
 	<rect x="50.7" y="440.6" class="st25" width="6.1" height="2.2"/>
 	
-		<rect x="27.5" y="457" transform="matrix(0.7069 -0.7073 0.7073 0.7069 -315.3638 155.0488)" class="st24" width="3.8" height="2.1"/>
+		<rect x="27.5" y="457" transform="matrix(0.7069 -0.7073 0.7073 0.7069 -315.3654 155.0446)" class="st24" width="3.8" height="2.1"/>
 	
-		<rect x="57.9" y="456.3" transform="matrix(0.7074 -0.7068 0.7068 0.7074 -306.6138 175.7302)" class="st24" width="2.1" height="3.8"/>
+		<rect x="57.9" y="456.3" transform="matrix(0.7074 -0.7068 0.7068 0.7074 -306.6089 175.7262)" class="st24" width="2.1" height="3.8"/>
 	<circle class="st26" cx="265.4" cy="245.3" r="5.9"/>
 	<circle class="st27" cx="265.4" cy="245.3" r="3.5"/>
 	<path class="st28" d="M249.3,265.3c2,0,3.5,1.5,3.5,3.5s-1.5,3.5-3.5,3.5s-3.5-1.5-3.5-3.5S247.3,265.3,249.3,265.3z"/>
@@ -1875,9 +1875,9 @@
 	<rect x="188.2" y="320.1" class="st16" width="1.6" height="4.1"/>
 	<rect x="188.2" y="321.3" class="st42" width="1.6" height="1.7"/>
 	
-		<rect x="176.4" y="344.7" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -192.0359 227.378)" class="st16" width="4.1" height="1.6"/>
+		<rect x="176.4" y="344.7" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -192.0382 227.3769)" class="st16" width="4.1" height="1.6"/>
 	
-		<rect x="177.5" y="344.8" transform="matrix(0.7069 -0.7073 0.7073 0.7069 -192.175 227.4446)" class="st42" width="1.7" height="1.6"/>
+		<rect x="177.5" y="344.8" transform="matrix(0.7069 -0.7073 0.7073 0.7069 -192.1756 227.4372)" class="st42" width="1.7" height="1.6"/>
 	<rect x="171.9" y="336.3" class="st16" width="4.1" height="1.6"/>
 	<rect x="173.1" y="336.3" class="st42" width="1.7" height="1.6"/>
 	<rect x="173.7" y="324.1" class="st16" width="4.1" height="1.6"/>
@@ -1947,9 +1947,9 @@
 	<rect x="83.7" y="385.9" class="st15" width="2" height="4.4"/>
 	<rect x="83.7" y="387.1" class="st34" width="2" height="2.1"/>
 	
-		<rect x="83.1" y="400.3" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -258.7487 177.5109)" class="st16" width="3.6" height="1.6"/>
+		<rect x="83.1" y="400.3" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -258.7504 177.513)" class="st16" width="3.6" height="1.6"/>
 	
-		<rect x="83.9" y="400.4" transform="matrix(0.7073 -0.7069 0.7069 0.7073 -258.685 177.4136)" class="st42" width="2" height="1.4"/>
+		<rect x="83.9" y="400.4" transform="matrix(0.7073 -0.7069 0.7069 0.7073 -258.687 177.4161)" class="st42" width="2" height="1.4"/>
 	<rect x="90.8" y="362.6" class="st15" width="2" height="4.4"/>
 	<rect x="90.8" y="364" class="st34" width="2" height="2.1"/>
 	<rect x="141.1" y="355.6" class="st15" width="2" height="4.4"/>
@@ -3488,8 +3488,8 @@
 	</g>
 	<polyline class="st79" points="225,163.7 220,168.7 220,231.4 156.7,231.4 145,243.7 	"/>
 </g>
-<polyline class="st80" points="225,254.3 245.2,226.7 245.2,203.7 "/>
-<text transform="matrix(1 0 0 1 250.1135 228.6279)" class="st62 st81 st82">G</text>
+<polyline class="st80" points="55.3,243.8 24.9,216.7 24.9,203.7 "/>
+<text transform="matrix(1 0 0 1 16.7499 228.9007)" class="st62 st81 st82">G</text>
 <g>
 	<g id="resister_1_">
 		<line class="st70" x1="205" y1="163.7" x2="205" y2="203.7"/>
