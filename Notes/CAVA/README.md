@@ -1,14 +1,13 @@
 ### CAVA - ALSA Loopback
-- Create audio loopback
-	- `modprobe snd-aloop`
-	- Auto load on startup `echo snd-aloop >> /etc/modules-load.d/raspberrypi.conf`
+
+- `modprobe snd-aloop` audio loopback
 - `mpd_oled.service`
 ```
 ...
 ExecStart=/usr/bin/mpd_oled -o 6 -c alsa,hw:Loopback,1
 ...
 ```
-- `/etc/asound.conf` - Output both device and loopback
+- `/etc/asound.conf` - output both device and loopback
 ```
 pcm.!default {
 	type plug
