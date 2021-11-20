@@ -1,4 +1,4 @@
-```
+```sh
 pcm.!default mono
 
 pcm.mono {
