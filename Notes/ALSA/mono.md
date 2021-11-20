@@ -1,12 +1,14 @@
 ```
-pcm.!default makemono
+pcm.!default mono
 
-pcm.makemono {
+pcm.mono {
     type route
     slave.pcm "hw:0"
     ttable {
-        0.0 1    # in-channel 0, out-channel 0, 100% volume
-        1.0 1    # in-channel 1, out-channel 0, 100% volume
+		0.0 0.5 # in ch0, out ch0, vol 50%
+		0.1 0.5 # in ch0, out ch1, vol 50%
+		1.0 0.5
+		1.1 0.5
     }
 }
 ```
