@@ -1,7 +1,7 @@
 GitHub API
 ---
 
-- Upload files to release assets
+- Info / Upload files to release assets
 - Require accesss token: https://github.com/settings/tokens > `Generate new token` > `Select scopes` - check `repo`
 
 ```sh
