@@ -1,7 +1,7 @@
 GitHub API
 ---
 
-Create accesss token
+Require accesss token:
 - `User` > `Settings` > `Developer settings` > `Personal access tokens`
 - `Generate new token` > `Select scopes` - check `repo`
 
