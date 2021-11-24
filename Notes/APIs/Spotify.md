@@ -1,7 +1,7 @@
 Spotify API
 ---
 
-- Required: (from https://developer.spotify.com/dashboard/applications)
+- Require: (from https://developer.spotify.com/dashboard/applications)
 	- `CLIENT_ID`
 	- `CLIENT_SECRET`
 
