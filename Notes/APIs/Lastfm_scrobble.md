@@ -3,7 +3,7 @@
 `bash`
 
 - API:
-	- Required [API keys](https://www.last.fm/api)
+	- Require [API keys](https://www.last.fm/api)
 		- `apikey`
 		- `sharedsecret`
 	- Signature `apisig`:
