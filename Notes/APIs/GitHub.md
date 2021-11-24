@@ -18,7 +18,7 @@ id=$( curl -sH "Authorization: token $token" \
 	
 curl \
 	-H "Authorization: token $token" \
-	-H "Content-Type: application/octet-stream" \
+	-H "Content-Type: $( file -b --mime-type $file )" \
 	--data-binary @"$file" \
 	"https://uploads.github.com/repos/$user/$repo/releases/$id/assets?name=$( basename $file )" \
 	| jq
