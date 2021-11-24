@@ -13,13 +13,13 @@ token=TOKEN
 file=FILE
 
 id=$( curl -sH "Authorization: token $token" \
-			https://api.github.com/repos/$user/$repo/releases/tags/$tag \
-			| jq .id )
+		https://api.github.com/repos/$user/$repo/releases/tags/$tag \
+		| jq .id )
 	
 curl \
-	--data-binary @"$file" \
 	-H "Authorization: token $token" \
 	-H "Content-Type: application/octet-stream" \
+	--data-binary @"$file" \
 	"https://uploads.github.com/repos/$user/$repo/releases/$id/assets?name=$( basename $file )" \
 	| jq
 ```
