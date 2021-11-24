@@ -10,11 +10,13 @@ repo=REPO
 tag=TAG
 token=TOKEN
 file=FILE
-id=$( curl -sH "Authorization: token $token" \
-		https://api.github.com/repos/$user/$repo/releases/tags/$tag \
-		| jq .id )
 
-# upload
+# release info
+info=$( curl -sH "Authorization: token $token" \
+		https://api.github.com/repos/$user/$repo/releases/tags/$tag )
+
+# upload file
+id=$( echo $info | jq .id )
 curl -H "Authorization: token $token" \
 	-H "Content-Type: $( file -b --mime-type $file )" \
 	--data-binary @"$file" \
