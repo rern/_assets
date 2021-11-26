@@ -17,14 +17,15 @@ npm install pica
 echo "    pica = require('pica')();" > entry.js
 
 # browserify entry.js to pica.js
-browserify entry.js -o /root/node_modules/pica/dist/pica.js
+browserify entry.js -o node_modules/pica/dist/pica.js
+rm entry.js
+mv node_modules/pica/dist/pica.js .
 
 # !important: 
-#   - DON'T use /root/node_modules/pica/dist/pica.min.js
-#   - manually minify with /root/node_modules/pica/dist/pica.js
+#   - DON'T use node_modules/pica/dist/pica.min.js
+#   - manually minify with pica.js
 
 # remove temp file
-rm entry.js
 ```
 
 ## Usage
