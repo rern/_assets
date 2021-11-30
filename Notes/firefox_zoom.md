@@ -3,6 +3,8 @@
 ### Zoom
 `user.js`
 ```sh
+timeout 1 firefox --headless # init to create /root/.mozilla
+
 dirfirefox=/root/.mozilla/firefox
 profile=$( grep -m1 Default $dirfirefox/profiles.ini | cut -d= -f2 )
 echo 'user_pref("layout.css.devPixelsPerPx", "1");' > $dirfirefox/$profile/user.js
