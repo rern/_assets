@@ -10,12 +10,24 @@ devinput=$( ls -1d /dev/input/event* 2> /dev/null | tail -1 )
 evtest $devinput
 
 # detect input
-evtest $devinput \
-  | grep --line-buffered 'EV_KEY.*value 0' \
-  | sed 's/.*code \(.*\) (.*/\1/' \
-  | while read code; do
-    case $changed in
-      CODE ) CMD;;
-    esac
-  done
- 
+next='*(EV_KEY), code 163*value 1*'
+prev='*(EV_KEY), code 165*value 1*'
+stop='*(EV_KEY), code 166*value 1*'
+play='*(EV_KEY), code 200*value 1*'
+pause='*(EV_KEY), code 201*value 1*'
+
+getcode() {
+	sudo evtest $devinput | while read line; do
+		case $line in
+			$next )  echo next && break;;
+			$prev )  echo prev && break;;
+			$stop )  echo stop && break;;
+			$play )  echo play && break;;
+			$pause ) echo pause && break;;
+		esac
+	done
+	killall evtest
+	getcode
+}
+getcode
+
