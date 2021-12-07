@@ -17,7 +17,7 @@ play='*(EV_KEY), code 200*value 1*'
 pause='*(EV_KEY), code 201*value 1*'
 
 getcode() {
-	sudo evtest $devinput | while read line; do
+	evtest $devinput | while read line; do
 		case $line in
 			$next )  echo next && break;;
 			$prev )  echo prev && break;;
