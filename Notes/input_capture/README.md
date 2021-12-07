@@ -11,7 +11,7 @@ evtest $devinput
 
 # detect input
 evtest $devinput \
-  | grep --line-buffered 'EV_KEY.*code 0' \
+  | grep --line-buffered 'EV_KEY.*value 0' \
   | sed 's/.*code \(.*\) (/\1/' \
   | while read code; do
     case $changed in
