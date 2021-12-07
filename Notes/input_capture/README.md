@@ -1,4 +1,4 @@
-### Input Capture
+### Input Capture Without Display
 
 `evtest`
 ```
