@@ -4,20 +4,25 @@
 - List kepmap: `evtest /dev/input/eventX`
 ```sh
 devinput=$( ls -1d /dev/input/event* 2> /dev/null | tail -1 ) # latest connected
-next='*(EV_KEY), code 163*value 1*'
-prev='*(EV_KEY), code 165*value 1*'
-stop='*(EV_KEY), code 166*value 1*'
-play='*(EV_KEY), code 200*value 1*'
-pause='*(EV_KEY), code 201*value 1*'
+pause='*EV_KEY*KEY_PAUSE*1*'
+pausecd='*EV_KEY*KEY_PAUSECD*1*'
+play='*EV_KEY*KEY_PLAY*1*'
+playcd='*EV_KEY*KEY_PLAYCD*1*'
+playpause='*EV_KEY*KEY_PLAYPAUSE*1*'
+stop='*EV_KEY*KEY_STOP*1*'
+stopcd='*EV_KEY*KEY_STOPCD*1*'
+
+next='*EV_KEY*KEY_NEXTSONG*1*'
+prev='*EV_KEY*KEY_PREVIOUSSONG*1*'
 
 capture() {
 	evtest $devinput | while read line; do
 		case $line in
-			$next )  echo next && break;;
-			$prev )  echo prev && break;;
-			$stop )  echo stop && break;;
-			$play )  echo play && break;;
-			$pause ) echo pause && break;;
+			$next )           echo next && break;;
+			$prev )           echo prev && break;;
+			$stop|$stopcd )   echo stop && break;;
+			$play|$playcd )   echo play && break;;
+			$pause|$pausecd ) echo pause && break;;
 		esac
 	done
 	capture
