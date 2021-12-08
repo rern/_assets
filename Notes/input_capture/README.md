@@ -6,6 +6,9 @@
 ```sh
 #!/bin/bash
 
+set -e
+
+sleep 3 # wait for eventX added to /dev/input/
 devinput=$( ls -1d /dev/input/event* 2> /dev/null | tail -1 ) # latest connected
 
     pause='*EV_KEY*KEY_PAUSE*1*'
