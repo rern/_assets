@@ -1,7 +1,7 @@
 ### Input Capture Without Display
 
 - Install: `pacman -S evtest`
-- List kepmap: `evtest /dev/input/eventX`
+- List keymap: `evtest /dev/input/eventX`
 ```sh
 devinput=$( ls -1d /dev/input/event* 2> /dev/null | tail -1 ) # latest connected
 
