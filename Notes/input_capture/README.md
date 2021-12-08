@@ -3,6 +3,10 @@
 - Install: `pacman -S evtest`
 - List keymap: `evtest /dev/input/eventX`
 ```sh
+#!/bin/bash
+
+trap exit INT
+
 devinput=$( ls -1d /dev/input/event* 2> /dev/null | tail -1 ) # latest connected
 
     pause='*EV_KEY*KEY_PAUSE*1*'
