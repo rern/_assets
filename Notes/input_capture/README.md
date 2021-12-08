@@ -2,10 +2,9 @@
 
 - Install: `pacman -S evtest`
 - List keymap and capture: `evtest /dev/input/eventX`
+- Capture media player buttons:
 ```sh
 #!/bin/bash
-
-trap exit INT
 
 devinput=$( ls -1d /dev/input/event* 2> /dev/null | tail -1 ) # latest connected
 
@@ -20,17 +19,24 @@ playpause='*EV_KEY*KEY_PLAYPAUSE*1*'
      next='*EV_KEY*KEY_NEXTSONG*1*'
      prev='*EV_KEY*KEY_PREVIOUSSONG*1*'
 
-capture() {
-	evtest $devinput | while read line; do
-		case $line in
-			$next )           echo next && break;;
-			$prev )           echo prev && break;;
-			$stop|$stopcd )   echo stop && break;;
-			$play|$playcd )   echo play && break;;
-			$pause|$pausecd ) echo pause && break;;
-		esac
-	done
-	capture
-}
-capture
+evtest $devinput | while read line; do
+	case $line in
+		$next )
+			mpc -q next
+			exec $0
+			;;
+		$prev )
+			mpc -q prev
+			exec $0
+			;;
+		$stop|$stopcd )
+			mpc -q stop
+			exec $0
+			;;
+		$pause|$pausecd|$play|$playcd )
+			mpc -q toggle
+			exec $0
+			;;
+	esac
+done
 ```
