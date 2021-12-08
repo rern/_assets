@@ -6,17 +6,15 @@ pacman -S evtest
 
 devinput=$( ls -1d /dev/input/event* 2> /dev/null | tail -1 )
 
-# list kepmap
-evtest $devinput
+# list kepmap: evtest $devinput
 
-# detect input
 next='*(EV_KEY), code 163*value 1*'
 prev='*(EV_KEY), code 165*value 1*'
 stop='*(EV_KEY), code 166*value 1*'
 play='*(EV_KEY), code 200*value 1*'
 pause='*(EV_KEY), code 201*value 1*'
 
-getcode() {
+capture() {
 	evtest $devinput | while read line; do
 		case $line in
 			$next )  echo next && break;;
@@ -26,7 +24,7 @@ getcode() {
 			$pause ) echo pause && break;;
 		esac
 	done
-	getcode
+	capture
 }
-getcode
+capture
 
