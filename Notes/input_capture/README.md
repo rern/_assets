@@ -1,7 +1,7 @@
 ### Input Capture Without Display
 
 - Install: `pacman -S evtest`
-- List keymap: `evtest /dev/input/eventX`
+- List keymap and capture: `evtest /dev/input/eventX`
 ```sh
 #!/bin/bash
 
