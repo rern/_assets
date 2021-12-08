@@ -1,13 +1,9 @@
 ### Input Capture Without Display
 
-`evtest`
-```
-pacman -S evtest
-
-devinput=$( ls -1d /dev/input/event* 2> /dev/null | tail -1 )
-
-# list kepmap: evtest $devinput
-
+- Install: `pacman -S evtest`
+- List kepmap: `evtest /dev/input/eventX`
+```sh
+devinput=$( ls -1d /dev/input/event* 2> /dev/null | tail -1 ) # latest connected
 next='*(EV_KEY), code 163*value 1*'
 prev='*(EV_KEY), code 165*value 1*'
 stop='*(EV_KEY), code 166*value 1*'
@@ -27,4 +23,4 @@ capture() {
 	capture
 }
 capture
-
+```
