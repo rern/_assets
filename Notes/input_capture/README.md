@@ -26,7 +26,6 @@ getcode() {
 			$pause ) echo pause && break;;
 		esac
 	done
-	killall evtest
 	getcode
 }
 getcode
