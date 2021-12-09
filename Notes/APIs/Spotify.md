@@ -79,25 +79,12 @@ window.location = 'https://accounts.spotify.com/authorize?'+ $.param( data );
 </html>
 ```
 
-- Extract `CODE` and `error` on redirect back from `REDIRECT_URI`
-```php
-<?php
-if ( isset( $_GET[ 'code' ] ) ) {
-	$code = $_GET[ 'code' ];
-	if ( $code ) exec( 'GET_TOKENS.sh '.$code );
-	echo '<a id="spotifycode" style="display: none">'.$_GET[ 'error' ].'</a>';
-}
-```
-
-- `HOSTNAME` page response
+- Extract `CODE` and `error` (if any) on redirect back from `REDIRECT_URI` (not run on Firefox)
 ```js
 // js
-var spotifycode = getElementById( 'spotifycode' );
-if ( spotifycode.length ) {
-	window.history.replaceState( 'page', 'normal', 'HOSTNAME' ); // reset URL with parameters to HOSTNAME
-	var error = spotifycode.textContent;
-	if ( error ) alert( error )
-}
+var url = new URL( window.location.href );
+var code = url.searchParams.get( 'code' );
+var error = url.searchParams.get( 'error' );
 ```
 
 - Get `TOKEN` and `REFRESH_TOKEN`
