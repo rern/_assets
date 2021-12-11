@@ -5,11 +5,11 @@ List D-Bus data
 # list nodes
 dbus-send --system --print-reply --dest=org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.ListNames
 
-# interfaces and nodes
-gdbus introspect -y -d "org.NODE" -o /
-gdbus introspect -y -d "org.NODE" -o /org
-gdbus introspect -y -d "org.NODE" -o /org/NODE
-gdbus introspect -y -d "org.NODE" -o /org/NODE/NODE
+# data: interfaces and nodes
+gdbus introspect -y -d "org.bluez" -o /
+gdbus introspect -y -d "org.bluez" -o /org
+gdbus introspect -y -d "org.bluez" -o /org/bluez
+gdbus introspect -y -d "org.bluez" -o /org/bluez/hci0
 ```
 
 Get MAC of connected device
