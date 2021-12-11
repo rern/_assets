@@ -1,12 +1,16 @@
 ## Bluetooth
 
-List all D-Bus
+List all D-Bus nodes
 ```sh
 dbus-send --system --print-reply --dest=org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.ListNames
 ```
 List D-Bus data
 ```sh
-gdbus introspect -y -d "org.bluez" -o /org/bluez/hci0
+# interfaces and nodes
+gdbus introspect -y -d "org.NODE" -o /
+gdbus introspect -y -d "org.NODE" -o /org
+gdbus introspect -y -d "org.NODE" -o /org/NODE
+gdbus introspect -y -d "org.NODE" -o /org/NODE/NODE
 ```
 Get MAC of connected device
 ```sh
