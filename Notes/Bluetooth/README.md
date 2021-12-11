@@ -1,5 +1,9 @@
 ## Bluetooth
 
+List all D-Bus
+```sh
+dbus-send --system --print-reply --dest=org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.ListNames
+```
 List D-Bus data
 ```sh
 gdbus introspect -y -d "org.bluez" -o /org/bluez/hci0
