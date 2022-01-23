@@ -19,8 +19,8 @@ ascii_max_range = 42
 channels = mono
 mono_option = average
 ```
-- Play: `aplay -D plughw:Loopback,0 FILE.wav`
-- ASCII output: `cava -p /etc/cava.conf`
+- #1 terminal: `aplay -D plughw:Loopback,0 FILE.wav`
+- #2 terminal: `cava -p /etc/cava.conf`
 
 ### mpd_oled
 - `mpd_oled.service`
