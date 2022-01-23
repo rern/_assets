@@ -4,7 +4,7 @@
 - `mpd_oled.service`
 ```
 ...
-ExecStart=/usr/bin/mpd_oled -o 6 -c alsa,hw:Loopback,1
+ExecStart=/usr/bin/mpd_oled -o 6 -c alsa,plughw:Loopback,1
 ...
 ```
 - `/etc/asound.conf` - output both device and loopback
@@ -14,8 +14,8 @@ pcm.!default {
 	slave.pcm {
 		type multi
 		slaves {
-			a { channels 2 pcm "hw:0,0" }  # the real device
-			b { channels 2 pcm "hw:Loopback,1" }  # the loopback driver
+			a { channels 2 pcm "hw:0,0" }        # the real device
+			b { channels 2 pcm "hw:Loopback,1" } # the loopback driver
 		}
 	}
 }
