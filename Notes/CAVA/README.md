@@ -1,6 +1,28 @@
 ### CAVA - ALSA Loopback
 
+
 - `modprobe snd-aloop` audio loopback
+
+### `cava.conf`
+```
+[general]
+bars = 1
+
+[input]
+method = alsa
+source = plughw:Loopback,1
+
+[output]
+method = raw
+data_format = ascii
+ascii_max_range = 42
+channels = mono
+mono_option = average
+```
+- Play: `aplay -D plughw:Loopback,0 FILE.wav`
+- ASCII output: `cava -p /etc/cava.conf`
+
+### mpd_oled
 - `mpd_oled.service`
 ```
 ...
