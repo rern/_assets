@@ -4,7 +4,7 @@
 - `mpd_oled.service`
 ```
 ...
-ExecStart=/usr/bin/mpd_oled -o 6 -c alsa,plughw:Loopback,1
+ExecStart=/usr/bin/mpd_oled -o 6 -b 16 -f 25 -c alsa,plughw:Loopback,1
 ...
 ```
 - `/etc/asound.conf` - output both device and loopback
