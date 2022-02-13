@@ -57,6 +57,7 @@
 ```java
 package com.raudio;
 
+import android.graphics.Color;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.webkit.WebSettings;
@@ -71,9 +72,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         WebView webView = findViewById(R.id.webview);
-        // to load all the web page in app itself use this
+		webView.setBackgroundColor(Color.BLACK);
         webView.setWebViewClient(new WebViewClient());
-
         webView.loadUrl("http://192.168.1.3/");
 
         WebSettings webSettings = webView.getSettings();
