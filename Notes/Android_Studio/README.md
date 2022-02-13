@@ -8,7 +8,7 @@
 - Maximum SDK: `Android 22`
 
 ### `rAudio/app/src/main/AndroidManifest.xml`
-```
+```xml
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.raudio">
@@ -36,7 +36,7 @@
 ```
 
 ### `rAudio/app/src/main/res/layout/activity_main.xml`
-```
+```xml
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -54,7 +54,7 @@
 ```
 
 ### `rAudio/app/src/main/java/com/raudio/MainActivity.java`
-```
+```java
 package com.raudio;
 
 import androidx.appcompat.app.AppCompatActivity;
