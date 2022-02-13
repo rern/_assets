@@ -57,25 +57,52 @@
 ```java
 package com.raudio;
 
-import android.graphics.Color;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.annotation.SuppressLint;
+import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.EditText;
+
 
 public class MainActivity extends AppCompatActivity {
 
+    @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         WebView webView = findViewById(R.id.webview);
-		webView.setBackgroundColor(Color.BLACK);
+        webView.setBackgroundColor(Color.BLACK);
         webView.setWebViewClient(new WebViewClient());
-        webView.loadUrl("http://192.168.1.3/");
-
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        String ip = sharedPreferences.getString("ip", null);
+        if (ip == null) {
+            AlertDialog.Builder alert = new AlertDialog.Builder(this);
+            alert.setTitle("IP Address");
+            alert.setMessage("IP:");
+            final EditText input = new EditText(this);
+            alert.setView(input);
+            alert.setPositiveButton("Ok", (dialog, whichButton) -> {
+                String ipnew = input.getText().toString();
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putString("ip", ipnew);
+                editor.apply();
+                webView.loadUrl("http://" + ipnew);
+            });
+            alert.setNegativeButton("Cancel",
+                    (dialog, which) -> finish());
+            alert.show();
+        } else {
+            webView.loadUrl("http://" + ip);
+        }
         WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
     }
