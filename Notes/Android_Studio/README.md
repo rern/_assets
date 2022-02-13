@@ -1,6 +1,13 @@
 ## Android Studio
 
-`/app/src/main/res/layout/activity_main.xml`
+### Project
+- New Project > Phone and Tablet > Empty Activitiy
+- Name: `rAudio`
+- Package Name: `com.raudio`
+- Language: `Java`
+- Maximum SDK: `Android 22`
+
+### `rAudio/app/src/main/res/layout/activity_main.xml`
 ```
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -17,7 +24,7 @@
 
 </LinearLayout>
 ```
-`/app/src/main/java/com/raudio/MainActivity.java`
+### `rAudio/app/src/main/java/com/raudio/MainActivity.java`
 ```
 package com.raudio;
 
@@ -45,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
     }
 }
 ```
-`/app/src/main/AndroidManifest.xml`
+### `rAudio/app/src/main/AndroidManifest.xml`
 ```
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
