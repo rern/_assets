@@ -65,7 +65,6 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.view.Gravity;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -88,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
         if (ipSaved == null) ipSaved = "192.168.1.";
 
         EditText editText = new EditText(this);
-        editText.setGravity(Gravity.CENTER);
+        editText.setTextAlignment(WebView.TEXT_ALIGNMENT_CENTER);
         editText.setSingleLine();
         editText.setText(ipSaved);
 
