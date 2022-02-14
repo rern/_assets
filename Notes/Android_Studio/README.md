@@ -90,6 +90,7 @@ public class MainActivity extends AppCompatActivity {
         editText.setTextAlignment(WebView.TEXT_ALIGNMENT_CENTER);
         editText.setSingleLine();
         editText.setText(ipSaved);
+		editText.requestFocus();
 
         AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
         alertDialog.setIcon(R.mipmap.ic_launcher)
