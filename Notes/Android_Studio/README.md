@@ -81,13 +81,11 @@ public class MainActivity extends AppCompatActivity {
         webView.setWebViewClient(new WebViewClient());
         AlertDialog.Builder alert = new AlertDialog.Builder(this);
         alert.setTitle("IP Address");
-        alert.setMessage("IP:");
         final EditText input = new EditText(this);
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         String ip = sharedPreferences.getString("ip", null);
         if (ip == null) ip = "192.168.1.";
         input.setText(ip);
-        //input.requestFocus();
         alert.setView(input);
         alert.setPositiveButton("Ok", (dialog, whichButton) -> {
             String ipnew = input.getText().toString();
