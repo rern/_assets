@@ -46,7 +46,7 @@
     tools:context=".MainActivity">
 
     <WebView
-        android:id="@+id/webview"
+        android:id="@+id/webView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
@@ -57,12 +57,15 @@
 ```java
 package com.raudio;
 
+import static com.raudio.R.*;
+
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.view.Gravity;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -74,29 +77,36 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(layout.activity_main);
 
-        WebView webView = findViewById(R.id.webview);
+        WebView webView = findViewById(id.webView);
         webView.setBackgroundColor(Color.BLACK);
         webView.setWebViewClient(new WebViewClient());
-        AlertDialog.Builder alert = new AlertDialog.Builder(this);
-        alert.setTitle("IP Address");
-        final EditText input = new EditText(this);
+
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        String ip = sharedPreferences.getString("ip", null);
-        if (ip == null) ip = "192.168.1.";
-        input.setText(ip);
-        alert.setView(input);
-        alert.setPositiveButton("Ok", (dialog, whichButton) -> {
-            String ipnew = input.getText().toString();
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putString("ip", ipnew);
-            editor.apply();
-            webView.loadUrl("http://" + ipnew);
-        });
-        alert.setNegativeButton("Cancel",
-                (dialog, which) -> finish());
-        alert.show();
+        String ipSaved = sharedPreferences.getString("ip", null);
+        if (ipSaved == null) ipSaved = "192.168.1.";
+
+        EditText editText = new EditText(this);
+        editText.setGravity(Gravity.CENTER);
+        editText.setSingleLine();
+        editText.setText(ipSaved);
+
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
+        alertDialog.setIcon(R.mipmap.ic_launcher)
+                   .setTitle("IP Address")
+                   .setView(editText)
+                   .setPositiveButton("Ok",
+                        (dialog, whichButton) -> {
+                            String ipNew = editText.getText().toString();
+                            SharedPreferences.Editor editor = sharedPreferences.edit();
+                            editor.putString("ip", ipNew);
+                            editor.apply();
+                            webView.loadUrl("http://" + ipNew);
+                        })
+                   .setNegativeButton("Cancel",
+                        (dialog, which) -> finish())
+                   .show();
         WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
     }
