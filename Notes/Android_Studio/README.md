@@ -102,3 +102,11 @@ public class MainActivity extends AppCompatActivity {
     }
 }
 ```
+
+### Icons
+- `rAudio/app` > New > Image Asset
+- Source > 512 x 512 `icon.png`
+- Delete all existing `*.wepp`s
+
+### APK
+- Build > Generate APK
