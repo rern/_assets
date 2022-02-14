@@ -118,4 +118,4 @@ public class MainActivity extends AppCompatActivity {
 - Delete all existing `*.wepp`s
 
 ### APK
-- Build > Generate APK
+- Build > Generate Signed Bubled > APK
