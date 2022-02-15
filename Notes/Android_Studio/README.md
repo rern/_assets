@@ -2,10 +2,13 @@
 
 ### Project
 - New Project > Phone and Tablet > Empty Activitiy
-- Name: `rAudio`
-- Package Name: `com.raudio`
-- Language: `Java`
-- Maximum SDK: `Android 22`
+	- Name: `rAudio`
+	- Package Name: `com.raudio`
+	- Language: `Java`
+	- Maximum SDK: `Android 22`
+- Device Manager > Virtual > Create device
+	- Phone: `Pixel 2`
+	- Release Name: `S` > Download
 
 ### `rAudio/app/src/main/AndroidManifest.xml`
 ```xml
