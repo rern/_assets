@@ -5,6 +5,7 @@ import static com.raudio.R.*;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.annotation.SuppressLint;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -20,6 +21,7 @@ import android.widget.EditText;
 
 public class MainActivity extends AppCompatActivity {
 
+    @SuppressLint( "SetJavaScriptEnabled" )
     @Override
     protected void onCreate( Bundle savedInstanceState ) {
         super.onCreate( savedInstanceState );
@@ -37,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
         if ( ipSaved == null ) ipSaved = "192.168.1.";
         // input text
         EditText editText = new EditText( this );
-        editText.setImeOptions(EditorInfo.IME_ACTION_DONE); // for enter key
+        editText.setImeOptions( EditorInfo.IME_ACTION_DONE ); // for enter key
         editText.setInputType( InputType.TYPE_CLASS_NUMBER );
         editText.setInputType( InputType.TYPE_NUMBER_FLAG_DECIMAL );
         editText.setKeyListener( DigitsKeyListener.getInstance( "0123456789." ) );
@@ -60,12 +62,12 @@ public class MainActivity extends AppCompatActivity {
                         } )
                 .setNegativeButton( "cancel",
                         ( dialog, which ) -> finish() );
-        // enter key - omit alertDialog.show();
-        AlertDialog createDialog = alertDialog.create();
-        createDialog.show();
-        editText.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_DONE) {
-                createDialog.getButton( DialogInterface.BUTTON_POSITIVE).performClick();
+        // for enter key - must create() dialog object for show() and getButton()
+        AlertDialog dialog = alertDialog.create();
+        dialog.show();
+        editText.setOnEditorActionListener( ( v, actionId, event ) -> {
+            if ( actionId == EditorInfo.IME_ACTION_DONE ) {
+                dialog.getButton( DialogInterface.BUTTON_POSITIVE ).performClick();
                 return true;
             }
             return false;
