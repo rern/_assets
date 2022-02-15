@@ -61,54 +61,60 @@ import static com.raudio.R.*;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.text.InputType;
+import android.text.method.DigitsKeyListener;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.EditText;
 
-
 public class MainActivity extends AppCompatActivity {
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(layout.activity_main);
+    protected void onCreate( Bundle savedInstanceState ) {
+        super.onCreate( savedInstanceState );
+        setContentView( layout.activity_main );
 
-        WebView webView = findViewById(id.webView);
-        webView.setBackgroundColor(Color.BLACK);
-        webView.setWebViewClient(new WebViewClient());
+        WebView webView = findViewById( id.webView );
+        webView.setBackgroundColor( Color.BLACK );
+        webView.setWebViewClient( new WebViewClient() );
 
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        String ipSaved = sharedPreferences.getString("ip", null);
-        if (ipSaved == null) ipSaved = "192.168.1.";
+        WebSettings webSettings = webView.getSettings();
+        webSettings.setJavaScriptEnabled( true );
 
-        EditText editText = new EditText(this);
-        editText.setTextAlignment(WebView.TEXT_ALIGNMENT_CENTER);
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences( this );
+        String ipSaved = sharedPreferences.getString( "ip", null );
+        if ( ipSaved == null ) ipSaved = "192.168.1.";
+
+        EditText editText = new EditText( this );
+        editText.setInputType( InputType.TYPE_CLASS_NUMBER );
+        editText.setInputType( InputType.TYPE_NUMBER_FLAG_DECIMAL );
+        editText.setKeyListener( DigitsKeyListener.getInstance( "0123456789." ) );
         editText.setSingleLine();
-        editText.setText(ipSaved);
-		editText.requestFocus();
+        editText.setTextAlignment( WebView.TEXT_ALIGNMENT_CENTER );
+        editText.setText( ipSaved );
+        editText.requestFocus();
 
-        AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
-        alertDialog.setIcon(R.mipmap.ic_launcher)
-                   .setTitle("IP Address")
-                   .setView(editText)
-                   .setPositiveButton("Ok",
-                        (dialog, whichButton) -> {
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder( this );
+        alertDialog.setIcon( R.mipmap.ic_launcher )
+                .setTitle( "IP Address" )
+                .setView( editText )
+                .setPositiveButton( "ok",
+                        ( dialog, whichButton ) -> {
                             String ipNew = editText.getText().toString();
                             SharedPreferences.Editor editor = sharedPreferences.edit();
-                            editor.putString("ip", ipNew);
+                            editor.putString( "ip", ipNew );
                             editor.apply();
-                            webView.loadUrl("http://" + ipNew);
-                        })
-                   .setNegativeButton("Cancel",
-                        (dialog, which) -> finish())
-                   .show();
-        WebSettings webSettings = webView.getSettings();
-        webSettings.setJavaScriptEnabled(true);
+                            webView.loadUrl( "http://" + ipNew );
+                        } )
+                .setNegativeButton( "cancel",
+                        ( dialog, which ) -> finish() )
+                .show();
     }
 }
 ```
