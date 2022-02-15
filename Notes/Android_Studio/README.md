@@ -21,3 +21,5 @@
 	- Delete all existing `*.wepp`s
 - Install file
 	- Build > Generate Signed Bubled / APK > APK
+	- Key store path > Create new > ... > Remember passwords
+	- Destination folder > release
