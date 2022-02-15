@@ -7,8 +7,8 @@
 	- Language: `Java`
 	- Maximum SDK: `Android 22`
 - Device Manager > Virtual > Create device
-	- Phone: `Pixel 2`
-	- Release Name: `S` > Download
+	- Select Hardware > Phone > `Pixel 2`
+	- System Image > Release Name > `S` (x86_64) > Download
 
 ### `rAudio/app/src/main/AndroidManifest.xml`
 ```xml
