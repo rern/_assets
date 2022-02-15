@@ -1,4 +1,4 @@
-## Android Studio
+## Android Studio - rAudio app
 
 ### Project
 - New Project > Phone and Tablet > Empty Activitiy
