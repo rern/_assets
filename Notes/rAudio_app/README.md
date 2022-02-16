@@ -15,6 +15,7 @@
 	- `rAudio/app/src/main/AndroidManifest.xml`
 	- `rAudio/app/src/main/res/layout/activity_main.xml`
 	- `rAudio/app/src/main/java/com/raudio/MainActivity.java`
+	- `rAudio/app/build.gradle` - minifyEnabled `true`
 - Icons
 	- `rAudio/app` > New > Image Asset
 	- Source > 512 x 512 `icon.png`
