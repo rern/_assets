@@ -24,3 +24,7 @@
 	- Build > Generate Signed Bubled / APK > APK
 	- Key store path > Create new > ... > Remember passwords
 	- Destination folder > release
+
+### Upload
+- Google Play Console
+- `rAudio/app/build.gradle (Module: ...)` - versionCode `N`, versionName "`N.0`"
