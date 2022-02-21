@@ -10,7 +10,7 @@
 	- Name: `rAudio`
 	- Package Name: `com.raudio`
 	- Language: `Java`
-	- Maximum SDK: `Android 22`
+	- Maximum SDK: `Android 23`
 - Files
 	- `rAudio/app/src/main/AndroidManifest.xml`
 	- `rAudio/app/src/main/res/layout/activity_main.xml`
@@ -27,4 +27,6 @@
 
 ### Upload
 - Google Play Console
-- `rAudio/app/build.gradle (Module: ...)` - versionCode `N`, versionName "`N.0`"
+- Set newer version in `rAudio/app/build.gradle (Module: ...)`
+	- versionCode `N`
+	- versionName "`N.0`"
