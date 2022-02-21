@@ -2,6 +2,9 @@
 
 ### Setup
 - Device Manager > Virtual > Create device
+	- File > Settings
+		- Appearance > Use custom font: Inconsolata, Size: 14
+		- Editor > Font: Inconsolata, Size: 14
 	- Select Hardware > Phone > `Pixel 2`
 	- System Image > Release Name > `S` (x86_64) > Download
 
