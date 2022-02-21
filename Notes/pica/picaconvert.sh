@@ -3,9 +3,9 @@
 ## install browserify
 pacman -Sy --needed --noconfirm npm
 npm install -g browserify
+npm install -g uglify-js
 npm install --save-dev babelify
 npm install --save-dev @babel/core @babel/preset-env
-npm install uglify-js -g
 npm install pica
 
 ## convert
