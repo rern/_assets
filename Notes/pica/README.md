@@ -23,7 +23,7 @@ mv node_modules/pica/dist/pica.js .
 
 # !important: 
 #   - DON'T use node_modules/pica/dist/pica.min.js
-#   - manually minify with pica.js
+#   - Use manually minify pica.js
 
 # remove temp file
 ```
