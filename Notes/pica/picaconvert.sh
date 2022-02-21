@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## install browserify
-pacman -Sy --needed --no-confirm npm
+pacman -Sy --needed --noconfirm npm
 npm install -g browserify
 npm install --save-dev babelify
 npm install --save-dev @babel/core @babel/preset-env
