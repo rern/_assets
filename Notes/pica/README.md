@@ -1,31 +1,10 @@
 ## pica.js
 [**pica**](https://github.com/nodeca/pica) - high quality image resize in browser
 
-### Browserify - Convert node pica.js to browser pica.js
+### Convert node pica.js to browser pica.js
 - [**Browserify**](browserify.org) - Let you require('modules') in the browser by bundling up all dependencies.
-
 ```sh
-## install browserify
-pacman -Sy npm
-npm install -g browserify
-npm install --save-dev babelify
-npm install --save-dev @babel/core @babel/preset-env
-npm install pica
-
-## convert
-# create require line in a temp file
-echo "    pica = require('pica')();" > entry.js
-
-# browserify entry.js to pica.js
-browserify entry.js -o node_modules/pica/dist/pica.js
-rm entry.js
-mv node_modules/pica/dist/pica.js .
-
-# !important: 
-#   - DON'T use node_modules/pica/dist/pica.min.js
-#   - Use manually minify pica.js
-
-# remove temp file
+bash <( curl -L https://github.com/rern/_assets/raw/master/Notes/pica/picaconvert.sh )
 ```
 
 ## Usage
