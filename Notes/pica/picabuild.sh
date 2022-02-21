@@ -13,11 +13,9 @@ echo "    pica = require('pica')();" > entry.js
 
 # browserify entry.js to pica.js
 browserify entry.js -o node_modules/pica/dist/pica.js
-rm entry.js
 mv node_modules/pica/dist/pica.js .
+rm entry.js node_modules/pica/dist/* # node_modules/pica/dist/pica.min.js cannot be used
 
 echo "
-Important: 
-   - DON'T use node_modules/pica/dist/pica.min.js
-   - Use manually minify pica.js
+Converted file: pica.js
 "
