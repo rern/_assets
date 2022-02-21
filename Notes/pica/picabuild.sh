@@ -16,6 +16,11 @@ browserify entry.js -o node_modules/pica/dist/pica.js
 mv node_modules/pica/dist/pica.js .
 rm entry.js node_modules/pica/dist/* # node_modules/pica/dist/pica.min.js cannot be used
 
+# minify
+version=$( npm v pica version )
+output=pica-$version.min.js
+curl -X POST -s --data-urlencode 'input@pica.js' https://www.toptal.com/developers/javascript-minifier/raw > $output
+
 echo "
-Converted file: pica.js
+File: $output
 "
