@@ -2,11 +2,21 @@
 
 ## install browserify
 pacman -Sy --needed --noconfirm npm
-npm install -g browserify
-npm install -g uglify-js
-npm install --save-dev babelify
-npm install --save-dev @babel/core @babel/preset-env
 npm install pica
+version=$( npm v pica version )
+
+optbox=( --colors --no-shadow --no-collapse )
+
+dialog "${optbox[@]}" --yesno "
+\Z1pica $version\Z0
+
+Continue?
+
+" 0 0
+[[ $? != 0 ]] && exit
+
+npm install -g browserify uglify-js
+npm install --save-dev babelify @babel/core @babel/preset-env
 
 ## convert
 # create require line in a temp file
@@ -17,7 +27,6 @@ browserify entry.js -o node_modules/pica/dist/pica.js
 rm entry.js
 
 # minify - node_modules/pica/dist/pica.min.js cannot be used
-version=$( npm v pica version )
 output=pica-$version.min.js
 uglifyjs node_modules/pica/dist/pica.js -o $output --compress --mangle
 
