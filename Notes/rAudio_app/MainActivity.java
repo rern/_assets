@@ -20,7 +20,6 @@ import android.webkit.WebViewClient;
 import android.widget.EditText;
 
 public class MainActivity extends AppCompatActivity {
-
     @SuppressLint( "SetJavaScriptEnabled" )
     @Override
     protected void onCreate( Bundle savedInstanceState ) {
@@ -35,8 +34,12 @@ public class MainActivity extends AppCompatActivity {
         webSettings.setJavaScriptEnabled( true );
         // get saved data
         SharedPreferences sharedPreferences = getSharedPreferences( "com.raudio_preferences", MODE_PRIVATE );
+<<<<<<< Updated upstream
         String ipSaved = sharedPreferences.getString( "ip", null );
         if ( ipSaved == null ) ipSaved = "192.168.1.";
+=======
+        String ipSaved = sharedPreferences.getString( "ip", "192.168.1." );
+>>>>>>> Stashed changes
         // setup input text for dialog box
         EditText editText = new EditText( this );
         editText.setImeOptions( EditorInfo.IME_ACTION_DONE ); // for enter key
@@ -52,19 +55,23 @@ public class MainActivity extends AppCompatActivity {
         alertDialog.setIcon( R.mipmap.ic_launcher )
                 .setTitle( "IP Address" )
                 .setView( editText )
-                .setPositiveButton( "go",
+                .setPositiveButton( "Go",
                         ( dialog, whichButton ) -> {
                             String ipNew = editText.getText().toString();
+                            // save data
                             SharedPreferences.Editor editor = sharedPreferences.edit();
                             editor.putString( "ip", ipNew );
                             editor.apply();
                             webView.loadUrl( "http://" + ipNew );
                         } )
-                .setNegativeButton( "cancel",
+                .setNegativeButton( "Cancel",
                         ( dialog, which ) -> finish() );
         // show keyboard and enter key press - must create() dialog object
         AlertDialog dialog = alertDialog.create();
+<<<<<<< Updated upstream
         // force show keyboard
+=======
+>>>>>>> Stashed changes
         dialog.getWindow().setSoftInputMode( WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
         dialog.show();
         // enter key press
