@@ -1,6 +1,5 @@
 #!/bin/bash
 
-## install browserify
 pacman -Sy --needed --noconfirm npm
 npm install pica
 version=$( npm v pica version )
