@@ -10,9 +10,9 @@ import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.text.InputType;
 import android.text.method.DigitsKeyListener;
+import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -26,18 +26,18 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate( Bundle savedInstanceState ) {
         super.onCreate( savedInstanceState );
         setContentView( layout.activity_main );
-
+        // setup WebView
         WebView webView = findViewById( id.webView );
         webView.setBackgroundColor( Color.BLACK );
         webView.setWebViewClient( new WebViewClient() );
-
+        // enable javascript
         WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled( true );
-
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences( this );
+        // get saved data
+        SharedPreferences sharedPreferences = getSharedPreferences( "com.raudio_preferences", MODE_PRIVATE );
         String ipSaved = sharedPreferences.getString( "ip", null );
         if ( ipSaved == null ) ipSaved = "192.168.1.";
-        // input text
+        // setup input text for dialog box
         EditText editText = new EditText( this );
         editText.setImeOptions( EditorInfo.IME_ACTION_DONE ); // for enter key
         editText.setInputType( InputType.TYPE_CLASS_NUMBER );
@@ -62,11 +62,15 @@ public class MainActivity extends AppCompatActivity {
                         } )
                 .setNegativeButton( "cancel",
                         ( dialog, which ) -> finish() );
-        // for enter key - must create() dialog object for show() and getButton()
+        // show keyboard and enter key press - must create() dialog object
         AlertDialog dialog = alertDialog.create();
+        // force show keyboard
+        dialog.getWindow().setSoftInputMode( WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
         dialog.show();
+        // enter key press
         editText.setOnEditorActionListener( ( v, actionId, event ) -> {
             if ( actionId == EditorInfo.IME_ACTION_DONE ) {
+                // trigger setPositiveButton()
                 dialog.getButton( DialogInterface.BUTTON_POSITIVE ).performClick();
                 return true;
             }
