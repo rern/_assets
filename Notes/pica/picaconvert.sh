@@ -2,7 +2,7 @@
 
 pacman -Sy --needed --noconfirm npm
 
-# uninstall to fix errors
+# uninstall to get latest and fix errors
 npm uninstall -g pica browserify uglify-js babelify @babel/core @babel/preset-env
 
 npm install pica
