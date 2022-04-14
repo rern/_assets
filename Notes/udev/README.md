@@ -1,7 +1,7 @@
 UDEV Rules
 ---
 
-- Get `ACTION` and device `path` - `udevadm monitor` (on connect / disconnect)
+- Get `ACTION` and device `path` - `udevadm monitor --kernal` (on connect / disconnect)
 ```
 KERNEL[358.863713] add   /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/net/wlp1s0u1u3/queues/rx-3 (queues)
 ...
@@ -20,7 +20,12 @@ looking at parent device '/devices/...
     ...
 ```
 
-- Rules: `KEY=="VALUE"` - action > parent device > ... > device > run
+- Filter by `KEY` (no `SUBSYSTEMS`, only `SUBSYSTEM`)
+```
+udevadm monitor --kernel --property --subsystem-match=net
+```
+
+- Rules: [action], [parent device], ..., [device], [run]
 ```
 ACTION=="add", SUBSYSTEMS=="usb", SUBSYSTEM=="net", RUN+="/srv/http/bash/networks.sh wldevice"
 ```
