@@ -1,3 +1,22 @@
+## Compile
+- `PKGBUILD` - replace
+```sh
+...
+build() {
+  cd $pkgname-$pkgver
+  meson . build \
+	--buildtype=debugoptimized \
+	-Db_ndebug=true \
+	-Dsysconfdir=/etc \
+	-Dadplug=disabled \
+	-Dsndio=disabled \
+	-Dshine=disabled \
+	-Dtremor=disabled
+  ninja -C build
+}
+...
+```
+
 ## MPD 0.22
 - `*.cue` data is included in database.
 	- No separate `cuedb.php` needed.
