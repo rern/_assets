@@ -1,4 +1,7 @@
-## kid3-cli 
+Metadata
+---
+
+### Universal - `kid3-cli`
 
 [**Kid3**](https://kid3.sourceforge.io/)
 ```sh
@@ -44,3 +47,7 @@ kid3-cli -c "select \"$FILE\"" \
 | picture     | METADATA_BLOCK_PICTURE | APIC   | APIC      |
 
 `METADATA_BLOCK_PICTURE` - Vorbis comments 
+
+### Specific type
+- MP3 - `mid3v2`
+- FLAC - `metaflac`
