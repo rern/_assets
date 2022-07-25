@@ -14,7 +14,7 @@ UDEV Rules
 
 - While connected 
 	- Device path > symlink: `/sys/class` + last 2 from path `/bluetooth/hci1` = `/sys/class/bluetooth/hci1`
-	- Witn symlink, get `KERNEL`, `SUBSYSTEM`, `SUBSYSTEMS`, `ATTR{XXX}`
+	- With symlink, get `KERNEL`, `SUBSYSTEM`, `SUBSYSTEMS`, `ATTR{XXX}` - option `-ap`
 	```sh
 	# udevadm info -ap /sys/class/bluetooth/hci1
 	looking at device '/devices/...
