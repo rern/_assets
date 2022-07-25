@@ -47,6 +47,7 @@ KERNEL[358.863713] add   /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:
 	- USB = `host`; connected devices = `link`
 ```sh
 ACTION=="add", SUBSYSTEM=="bluetooth", ENV{DEVTYPE}=="host", RUN+="/srv/http/bash/bluetoothcommand.sh Ready"
+ACTION=="remove", SUBSYSTEM=="bluetooth", ENV{DEVTYPE}=="host", RUN+="/srv/http/bash/bluetoothcommand.sh Removed"
 ```
 - Activate new rules: `udevadm control --reload-rules && udevadm trigger`
 - Test rules: `udevadm test $( udevadm info --query=PATH --name=DEVICENAME ) 2>&1`
