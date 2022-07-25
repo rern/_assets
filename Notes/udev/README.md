@@ -52,7 +52,7 @@ UDEV Rules
 	```sh
 	ACTION=="add", SUBSYSTEM=="bluetooth", ENV{DEVTYPE}=="host", RUN+="/srv/http/bash/bluetoothcommand.sh Ready"
 	ACTION=="remove", SUBSYSTEM=="bluetooth", ENV{DEVTYPE}=="host", RUN+="/srv/http/bash/bluetoothcommand.sh Removed"
-```
+	```
 - Activate new rules: `udevadm control --reload-rules && udevadm trigger`
 - Test rules: `udevadm test $( udevadm info --query=PATH --name=DEVICENAME ) 2>&1`
 - Trigger rules: `udevadm trigger --verbose --type=subsystems --action=ACTION --subsystem-match=TYPE --attr-match="idVendor=ID"`
