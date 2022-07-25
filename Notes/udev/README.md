@@ -1,16 +1,19 @@
 UDEV Rules
 ---
 
-- Get `ACTION` and device `path` - `udevadm monitor --kernel` (on connect / disconnect)
-```
+- On connect / disconnect - Get `ACTION` and device path
+	- To filter: `udevadm monitor --kernel --property=VALUE --subsystem-match=VALUE`
+```sh
+# udevadm monitor
 ...
 KERNEL[358.863713] add   /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/net/wlp1s0u1u3
 ...
 ```
 
-- Get `ATTRIBUTE=="VALUE"` - `udevadm info -a -p /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/net/wlp1s0u1u3`
-	- or: `udevadm info -a -p /class/net/wlp1s0u1u3`
-```
+- While connected - Get info: `KERNEL`, `SUBSYSTEM`, `SUBSYSTEMS`, `ATTRIBUTE`
+	- Device path > symlink: `/sys/class` + last 2 from path `/net/wlp1s0u1u3` = `/sys/class/net/wlp1s0u1u3`
+```sh
+# udevadm info -ap /sys/class/net/wlp1s0u1u3
 looking at device '/devices/...
     KERNEL=="wlp1s0u1u3"
     SUBSYSTEM=="net"
@@ -20,10 +23,9 @@ looking at parent device '/devices/...
     SUBSYSTEMS=="usb"
     ...
 ```
-	- Filter by `ATTRIBUTE`: `udevadm monitor --kernel --property --subsystem-match=net` (no `SUBSYSTEMS`, only `SUBSYSTEM`)
 
 - `/etc/udev/rules.d/NAME.rules`: [action], [parent device], ..., [device], [run]
-```
+```sh
 ACTION=="add", SUBSYSTEMS=="usb", SUBSYSTEM=="net", RUN+="/srv/http/bash/networks.sh wldevice"
 ```
 
