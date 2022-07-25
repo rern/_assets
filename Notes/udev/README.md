@@ -42,12 +42,12 @@ KERNEL[358.863713] add   /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:
 	E: TAGS=:systemd:
 	E: CURRENT_TAGS=:systemd:
 	```
-
-- `/etc/udev/rules.d/NAME.rules`: [action], [parent device], ..., [device], [env], [run]
+- Set rules
+	- `/etc/udev/rules.d/NAME.rules`: [action], [parent device], ..., [device], [env], [run]
+	- USB = `host`; connected devices = `link`
 ```sh
 ACTION=="add", SUBSYSTEM=="bluetooth", ENV{DEVTYPE}=="host", RUN+="/srv/http/bash/bluetoothcommand.sh Ready"
 ```
-
-- Reload rules: `udevadm control --reload-rules && udevadm trigger`
+- Activate new rules: `udevadm control --reload-rules && udevadm trigger`
 - Test rules: `udevadm test $( udevadm info --query=PATH --name=DEVICENAME ) 2>&1`
 - Trigger rules: `udevadm trigger --verbose --type=subsystems --action=ACTION --subsystem-match=TYPE --attr-match="idVendor=ID"`
