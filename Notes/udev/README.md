@@ -1,8 +1,8 @@
 UDEV Rules
 ---
 
-- On connect / disconnect
-- 	- Get `ACTION` and device path
+- On connect / disconnect USB Bluetooth
+ 	- Get `ACTION` and device path
 ```sh
 # udevadm monitor
 ...
