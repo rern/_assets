@@ -29,8 +29,11 @@ UDEV Rules
 	- Get `ENV{DEVTYPE}`
 	```sh
 	# udevadm info -p /sys/class/bluetooth/hci1
-	# P: path
-	# E: property
+	# P: path in /sys
+	# N: name
+	# L: link priority (default: 0)
+	# S: symlink
+	# E: environment - ENV{XXX}
 	P: /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1
 	M: hci1
 	R: 1
