@@ -45,12 +45,20 @@ UDEV Rules
 	E: TAGS=:systemd:
 	E: CURRENT_TAGS=:systemd:
 	```
-- Set rules
-	- `/etc/udev/rules.d/NAME.rules`: [action], [device], ..., [parent_device], [env], [run]
+- Set rules - `/etc/udev/rules.d/NAME.rules`
 	```sh
 	ACTION=="add", SUBSYSTEM=="bluetooth", ENV{DEVTYPE}=="host", RUN+="/srv/http/bash/bluetoothcommand.sh Ready"
 	ACTION=="remove", SUBSYSTEM=="bluetooth", ENV{DEVTYPE}=="host", RUN+="/srv/http/bash/bluetoothcommand.sh Removed"
 	```
-- Activate new rules: `udevadm control --reload-rules && udevadm trigger`
-- Test rules: `udevadm test $path`
-- Trigger rules: `udevadm trigger --verbose --type=subsystems --action=ACTION --subsystem-match=TYPE --attr-match="idVendor=ID"`
+- Activate new rules
+	```sh
+	udevadm control --reload-rules && udevadm trigger
+	```
+- Test rules
+	```sh
+	udevadm test $path
+	```
+- Trigger rules
+	```sh
+	udevadm trigger --verbose --type=subsystems --action=ACTION --subsystem-match=TYPE --attr-match="idVendor=ID"
+	```
