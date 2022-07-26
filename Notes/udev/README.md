@@ -25,7 +25,7 @@ UDEV Rules
 		SUBSYSTEMS=="usb"
 		...
 	```
-	- Get `ENV{DEVTYPE}`
+	- Get `ENV{DEVTYPE}` - local host/usb: `host`, remote devices: `link`
 	```sh
 	# udevadm info -p /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1
 	# P: path in /sys
@@ -40,7 +40,7 @@ UDEV Rules
 	T: host
 	E: DEVPATH=/devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1
 	E: SUBSYSTEM=bluetooth
-	E: DEVTYPE=host # host / usb: host, remote devices: link
+	E: DEVTYPE=host
 	E: USEC_INITIALIZED=855584461
 	E: SYSTEMD_ALIAS=/sys/subsystem/bluetooth/devices/hci1
 	E: SYSTEMD_WANTS=bluetooth.target
@@ -50,7 +50,7 @@ UDEV Rules
 	E: CURRENT_TAGS=:systemd:
 	```
 - Set rules
-	- `/etc/udev/rules.d/NAME.rules`: [action], [parent device], ..., [device], [env], [run]
+	- `/etc/udev/rules.d/NAME.rules`: [action], [device], ..., [parent_device], [env], [run]
 	```sh
 	ACTION=="add", SUBSYSTEM=="bluetooth", ENV{DEVTYPE}=="host", RUN+="/srv/http/bash/bluetoothcommand.sh Ready"
 	ACTION=="remove", SUBSYSTEM=="bluetooth", ENV{DEVTYPE}=="host", RUN+="/srv/http/bash/bluetoothcommand.sh Removed"
