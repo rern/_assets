@@ -11,28 +11,24 @@ UDEV Rules
 	```
 
 - While connected 
-	- path: /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1
+	- path: `/devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1`
 		- or path: `/sys/class/bluetooth/hci1` (from `.../bluetooth/hci1`)
-	- With symlink, get `KERNEL`, `SUBSYSTEM`, `SUBSYSTEMS`, `ATTR{XXX}` - option `-ap`
+	- Get `SUBSYSTEM` - option `-ap`
 	```sh
 	# udevadm info -ap /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1
 	looking at device '/devices/...
 		KERNEL=="hci1"
 		SUBSYSTEM=="bluetooth"
 		...
-	looking at parent device '/devices/...
-		KERNELS=="1-1.3:1.0"
-		SUBSYSTEMS=="usb"
-		...
 	```
-	- Get `ENV{DEVTYPE}` - local host/usb: `host`, remote devices: `link`
+	- Get `DEVTYPE` - local on-board/usb: `host`, remote devices: `link`
 	```sh
 	# udevadm info -p /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1
 	# P: path in /sys
 	# N: name
 	# L: link priority (default: 0)
 	# S: symlink
-	# E: environment - ENV{key}="value"
+	# E: environment > ENV{key}=="value"
 	P: /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1
 	M: hci1
 	R: 1
