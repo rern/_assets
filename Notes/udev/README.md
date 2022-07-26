@@ -15,7 +15,8 @@ UDEV Rules
 		- or path: `/sys/class/bluetooth/hci1` (from `.../bluetooth/hci1`)
 	- Get `SUBSYSTEM` - option `-ap`
 	```sh
-	# udevadm info -ap /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1
+	# path=/devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1
+	# udevadm info -ap $path
 	looking at device '/devices/...
 		KERNEL=="hci1"
 		SUBSYSTEM=="bluetooth"
@@ -23,7 +24,7 @@ UDEV Rules
 	```
 	- Get `DEVTYPE` - local on-board/usb: `host`, remote devices: `link`
 	```sh
-	# udevadm info -p /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1
+	# udevadm info -p $path
 	# P: path in /sys
 	# N: name
 	# L: link priority (default: 0)
@@ -52,5 +53,5 @@ UDEV Rules
 	ACTION=="remove", SUBSYSTEM=="bluetooth", ENV{DEVTYPE}=="host", RUN+="/srv/http/bash/bluetoothcommand.sh Removed"
 	```
 - Activate new rules: `udevadm control --reload-rules && udevadm trigger`
-- Test rules: `udevadm test $( udevadm info --query=PATH --name=DEVICENAME ) 2>&1`
+- Test rules: `udevadm test $path`
 - Trigger rules: `udevadm trigger --verbose --type=subsystems --action=ACTION --subsystem-match=TYPE --attr-match="idVendor=ID"`
