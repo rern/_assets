@@ -12,7 +12,7 @@ UDEV Rules
 
 - While connected 
 	- path: /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1
-		- or path: `class/bluetooth/hci1` (from `.../bluetooth/hci1`)
+		- or path: `/sys/class/bluetooth/hci1` (from `.../bluetooth/hci1`)
 	- With symlink, get `KERNEL`, `SUBSYSTEM`, `SUBSYSTEMS`, `ATTR{XXX}` - option `-ap`
 	```sh
 	# udevadm info -ap /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1
