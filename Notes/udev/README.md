@@ -6,17 +6,16 @@ UDEV Rules
 	```sh
 	# udevadm monitor
 	...
-	KERNEL[358.863713] add    /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1
-	...
-	               ... remove ...	               
+	KERNEL[81.520399] add      /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1 (bluetooth)
 	...
 	```
 
 - While connected 
-	- Device path > symlink: `/sys/class` + last 2 from path `/bluetooth/hci1` = `/sys/class/bluetooth/hci1`
+	- path: /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1
+		- or path: `class/bluetooth/hci1` (from `.../bluetooth/hci1`)
 	- With symlink, get `KERNEL`, `SUBSYSTEM`, `SUBSYSTEMS`, `ATTR{XXX}` - option `-ap`
 	```sh
-	# udevadm info -ap /sys/class/bluetooth/hci1
+	# udevadm info -ap /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1
 	looking at device '/devices/...
 		KERNEL=="hci1"
 		SUBSYSTEM=="bluetooth"
@@ -28,12 +27,12 @@ UDEV Rules
 	```
 	- Get `ENV{DEVTYPE}`
 	```sh
-	# udevadm info -p /sys/class/bluetooth/hci1
+	# udevadm info -p /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1
 	# P: path in /sys
-	# N: node name
-	# L: symlink priority (default: 0)
-	# S: node symlink
-	# E: environment - ENV{XXX}
+	# N: name
+	# L: link priority (default: 0)
+	# S: symlink
+	# E: environment - ENV{key}="value"
 	P: /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1
 	M: hci1
 	R: 1
