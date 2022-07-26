@@ -11,9 +11,8 @@ UDEV Rules
 	```
 
 - While connected 
-	- path: `/devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1`
-		- or path: `/sys/class/bluetooth/hci1` (from `.../bluetooth/hci1`)
 	- Get `SUBSYSTEM` - option `-ap`
+		- path can be: `/sys/class/bluetooth/hci1` (from `.../bluetooth/hci1`)
 	```sh
 	# path=/devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1
 	# udevadm info -ap $path
