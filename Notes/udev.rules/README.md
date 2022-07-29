@@ -1,10 +1,10 @@
 UDEV Rules
 ---
-
+**`udevadm`**
 - On connect / disconnect
  	- Get `ACTION` and device path
 	```sh
-	# udevadm monitor
+	# udevadm monitor -k
 	...
 	# Bluetooth
 	KERNEL[81.520399] add    /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1 (bluetooth)
