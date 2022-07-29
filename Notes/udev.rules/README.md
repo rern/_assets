@@ -3,33 +3,31 @@ UDEV Rules
 **`udevadm`**
 - On connect / disconnect
  	- Get `ACTION` and device path
+ 	- `udevadm monitor -k`
 	```sh
-	# udevadm monitor -k
 	...
-	# Bluetooth
-	KERNEL[81.520399] add    /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1 (bluetooth)
+	#KERNEL[3851.510961] add  /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0 (usb)
+	KERNEL[81.520399]    add  /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1 (bluetooth)
+	#KERNEL[3851.511115] add  /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1/rfkill3 (rfkill)
 	...
 	```
 
 - While connected 
-	- Get `SUBSYSTEM` - option `-ap`
-		- path can be: `/sys/class/bluetooth/hci1` (from `.../bluetooth/hci1`)
+	- Get info - path can be symlink: `/sys/class/bluetooth/hci1` (from `.../bluetooth/hci1`)
+	- `udevadm info -ap /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1`
 	```sh
-	# path=/devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1
-	# udevadm info -ap $path
-	looking at device '/devices/...
+	looking at device '/devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1':
 		KERNEL=="hci1"
 		SUBSYSTEM=="bluetooth"
 		...
 	```
-	- Get `DEVTYPE` - local on-board/usb: `host`, remote devices: `link`
+	- Get `SUBSYSTEM`, `DEVTYPE` (local on-board/usb: `host`, remote devices: `link`)
+	- `udevadm info -p /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1`
+		- P: path in /sys
+		- U: subsystem
+		- T: type
+		- E: environment > ENV{key}=="value"
 	```sh
-	# udevadm info -p $path
-	# P: path in /sys
-	# N: name
-	# L: link priority (default: 0)
-	# S: symlink
-	# E: environment > ENV{key}=="value"
 	P: /devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb1/1-1/1-1.3/1-1.3:1.0/bluetooth/hci1
 	M: hci1
 	R: 1
