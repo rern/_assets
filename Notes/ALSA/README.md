@@ -11,6 +11,28 @@ cat /proc/asound/cards
 # device names
 aplay -L
 ```
+```sh
+# cat /proc/asound/cards
+ 0 [Headphones     ]: bcm2835_headpho - bcm2835 Headphones
+                      bcm2835 Headphones
+ 1 [Device         ]: USB-Audio - Generic USB Audio Device
+                      Generic USB Audio Device at usb-0000:01:00.0-1.3, full speed
+# cat /proc/asound/devices
+  0: [ 0]   : control
+ 16: [ 0- 0]: digital audio playback
+ 32: [ 1]   : control
+ 33:        : timer
+ 48: [ 1- 0]: digital audio playback
+ 56: [ 1- 0]: digital audio capture
+ 
+# cat /proc/asound/modules
+ 0 snd_bcm2835
+ 1 snd_usb_audio
+ 
+# cat /proc/asound/pcm
+00-00: bcm2835 Headphones : bcm2835 Headphones : playback 8
+01-00: USB Audio : USB Audio : playback 1 : capture 1
+```
 
 ### Volume
 ```sh
