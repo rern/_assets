@@ -11,12 +11,53 @@ cat /proc/asound/cards
 # device names
 aplay -L
 ```
+
+- card number, aplay -L default:CARD=XXXX, aplay -l name
 ```sh
 # cat /proc/asound/cards
  0 [Headphones     ]: bcm2835_headpho - bcm2835 Headphones
                       bcm2835 Headphones
  1 [Device         ]: USB-Audio - Generic USB Audio Device
                       Generic USB Audio Device at usb-0000:01:00.0-1.3, full speed
+```
+
+- aplay -L default:CARD=XXXX
+```sh
+# cat /proc/asound/card0/id
+Headphones
+
+# cat /proc/asound/card0/id
+Device
+```
+
+- card number, device number, aplay -L default:CARD=XXXX, aplay -l name
+```sh
+# cat /proc/asound/card0/pcm0p/info
+card: 0
+device: 0
+subdevice: 0
+stream: PLAYBACK
+id: bcm2835 Headphones
+name: bcm2835 Headphones
+subname: subdevice #0
+class: 0
+subclass: 0
+subdevices_count: 8
+subdevices_avail: 8
+
+# cat /proc/asound/card1/pcm0p/info
+card: 1
+device: 0
+subdevice: 0
+stream: PLAYBACK
+id: USB Audio
+name: USB Audio
+subname: subdevice #0
+class: 0
+subclass: 0
+subdevices_count: 1
+subdevices_avail: 1
+
 # cat /proc/asound/devices
   0: [ 0]   : control
  16: [ 0- 0]: digital audio playback
