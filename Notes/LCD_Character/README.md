@@ -68,7 +68,7 @@ cols = 20
 rows = 4
 
 ### i2c
-address = 0x27 # can be integer 39
+address = 0x27 # either hex 0x27 or decimal 39
 chip = 'PCF8574'
 
 from RPLCD.i2c import CharLCD
