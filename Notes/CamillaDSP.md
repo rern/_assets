@@ -1,5 +1,6 @@
 **CamillaDSP**
-- Directory tree:
+- Command: `camilladsp ./camilladsp/configs/camilladsp.yml -p 1234 -o /var/log/camilladsp.log`
+- GUI directory tree:
 ```sh
 ./
 	camilladsp/
@@ -11,7 +12,19 @@
 		default_config.yml
 	camillagui/
 		backend/
+			filemanagement.py
+			filters.py
+			filters_test.py
+			routes.py
+			settings.py
+			version.py
+			views.py
 		build/
+			static/
+				css/
+				js/
+				media/
+			index.html
 		config/
 			camillagui.yml
 			gui-config.yml
