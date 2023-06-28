@@ -1,6 +1,7 @@
 **CamillaDSP**
-- Command: `camilladsp ./camilladsp/configs/camilladsp.yml -p 1234 -o /var/log/camilladsp.log`
-- GUI directory tree:
+- Binary: `https://github.com/HEnquist/camilladsp/releases/download/RELEASE/camilladsp-linux-ARC.tar.gz`
+- GUI: `https://github.com/HEnquist/camillagui-backend/releases/download/RELEASE/camillagui.zip`
+- Directory tree:
 ```sh
 ./
 	camilladsp/
@@ -30,6 +31,7 @@
 			gui-config.yml
 		main.py
 ```
+- Command: `camilladsp ./camilladsp/configs/camilladsp.yml -p 1234 -o /var/log/camilladsp.log`
 - Loopback - ALSA card N
 - Runtime options: audio backend `alsa`, output_device `hw:N,1`
 ```sh
