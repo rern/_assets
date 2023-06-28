@@ -31,7 +31,11 @@
 			gui-config.yml
 		main.py
 ```
-- Command: `camilladsp ./camilladsp/configs/camilladsp.yml -p 1234 -o /var/log/camilladsp.log`
+- Run
+	- CamillaDSP: `camilladsp ./camilladsp/configs/camilladsp.yml -p 1234 -o /var/log/camilladsp.log`
+	- HTML Server: `python camillagui/main.py`
+
+### ALSA
 - Loopback - ALSA card N
 - Runtime options: audio backend `alsa`, output_device `hw:N,1`
 ```sh
