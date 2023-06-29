@@ -7,10 +7,10 @@
 	camilladsp/
 		coeffs/
 		configs/
+			active_config.txt (ln - 1.0.3)
+			active_config.yml (ln)
 			camilladsp.yml
-		active_config.txt
-		active_config.yml
-		default_config.yml
+			default_config.yml
 	camillagui/
 		backend/
 			filemanagement.py
