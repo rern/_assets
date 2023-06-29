@@ -34,6 +34,19 @@
 - Run
 	- CamillaDSP: `camilladsp ./camilladsp/configs/camilladsp.yml -p 1234 -o /var/log/camilladsp.log`
 	- HTML Server: `python camillagui/main.py`
+- Get / Set volume
+```py
+#!/usr/bin/python
+
+from camilladsp import CamillaConnection
+import os.path
+import sys
+
+cdsp = CamillaConnection( '127.0.0.1', 1234 )
+cdsp.connect()
+cdsp.set_volume( float( GAIN ) )
+gain = cdsp.get_volume()
+```
 
 ### ALSA
 - Loopback - ALSA card N
