@@ -44,8 +44,19 @@ import sys
 
 cdsp = CamillaConnection( '127.0.0.1', 1234 )
 cdsp.connect()
-cdsp.set_volume( float( GAIN ) )
-gain = cdsp.get_volume()
+
+### views.py
+# cdsp.is_connected()
+# cdsp.get_KEY()
+# cdsp.set_KEY( VALUE )
+# KEY:
+#   version : version
+#	volume  : mute, capture_signal_rms, capture_signal_peak, volume, playback_signal_rms, playback_signal_peak
+#	status  : state().name, capture_rate, rate_adjust, clipped_samples, buffer_level
+#   config  : config_name, config, config_raw
+#	param   : capture_rate_raw, signal_range, signal_range_dB, update_interval 
+cdsp.get_volume()
+cdsp.set_volume( -10.0 )
 ```
 
 ### ALSA
