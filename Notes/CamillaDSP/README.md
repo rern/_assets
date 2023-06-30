@@ -99,7 +99,7 @@ pacman -Sy --needed --noconfirm npm
 curl -L https://github.com/HEnquist/camillagui/archive/refs/heads/master.zip | bsdtar xf -
 
 cd camillagui-master
-sed -i 's/5000/3000/' ./src/setupProxy.js
+sed -i 's/5000/3000/' src/setupProxy.js
 npm install reactjs
 
 # customized version
