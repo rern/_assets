@@ -106,6 +106,7 @@ npm install reactjs
 curl -LO https://github.com/rern/_assets/raw/master/Notes/CamillaDSP/postbuild.sh
 chmod +x postbuild.sh
 ln -s /srv/http/assets public/static
+sed -i -E 's/ start| build/ --openssl-legacy-provider&/' package.json # 1.0.0
 ```
 	
 - Start Development server
