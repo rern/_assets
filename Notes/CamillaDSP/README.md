@@ -63,7 +63,7 @@ ctl.camilladsp {
 - Run
 	- CamillaDSP: `camilladsp ./camilladsp/configs/camilladsp.yml -p 1234 -o /var/log/camilladsp.log`
 	- HTML Server: `python camillagui/main.py`
-- Get / Set volume
+- Get / Set: [pyCamillaDSP](https://github.com/HEnquist/pycamilladsp#communicating-with-the-camilladsp-process)
 ```py
 #!/usr/bin/python
 
@@ -73,9 +73,6 @@ import sys
 
 cdsp = CamillaConnection( '127.0.0.1', 1234 )
 cdsp.connect()
-
-### views.py
-# cdsp.is_connected()
 # cdsp.get_KEY()
 # cdsp.set_KEY( VALUE )
 # KEY:
@@ -83,9 +80,7 @@ cdsp.connect()
 #	volume  : mute, capture_signal_rms, capture_signal_peak, volume, playback_signal_rms, playback_signal_peak
 #	status  : state().name, capture_rate, rate_adjust, clipped_samples, buffer_level
 #   config  : config_name, config, config_raw
-#	param   : capture_rate_raw, signal_range, signal_range_dB, update_interval 
-cdsp.get_volume()
-cdsp.set_volume( -10.0 )
+#	param   : capture_rate_raw, signal_range, signal_range_dB, update_interval
 ```
 
 ### Build GUI Frontend
