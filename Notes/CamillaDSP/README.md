@@ -102,9 +102,10 @@ cd camillagui-master
 sed -i 's/5000/3000/' src/setupProxy.js
 npm install reactjs
 
-# customized version
-ln -s /srv/http/assets public/static
+# for customized version
+curl -LO https://github.com/rern/_assets/raw/master/Notes/CamillaDSP/postbuild.sh
 chmod +x postbuild.sh
+ln -s /srv/http/assets public/static
 ```
 	
 - Start Development server
