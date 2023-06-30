@@ -102,6 +102,7 @@ cd camillagui-master
 sed -i 's/5000/3000/' ./src/setupProxy.js
 npm install reactjs
 
+# customized version
 ln -s /srv/http/assets public/static
 chmod +x postbuild.sh
 ```
@@ -113,7 +114,7 @@ systemctl start camilladsp
 npm start
 
 > Starting the development server...
-# (wait for compiling ...)
+# (wait a few minutes for initial compiling ...)
 > Compiled successfully!
 # You can now view camillagui in the browser.
 # Local:            http://localhost:3000
