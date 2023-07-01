@@ -63,7 +63,7 @@ ctl.camilladsp {
 - Run
 	- CamillaDSP: `camilladsp ./camilladsp/configs/camilladsp.yml -p 1234 -o /var/log/camilladsp.log`
 	- HTML Server: `python camillagui/main.py`
-- Get / Set: [pyCamillaDSP](https://github.com/HEnquist/pycamilladsp#communicating-with-the-camilladsp-process)
+- Get / Set volume
 ```py
 #!/usr/bin/python
 
@@ -73,6 +73,9 @@ import sys
 
 cdsp = CamillaConnection( '127.0.0.1', 1234 )
 cdsp.connect()
+
+### views.py
+# cdsp.is_connected()
 # cdsp.get_KEY()
 # cdsp.set_KEY( VALUE )
 # KEY:
@@ -80,34 +83,40 @@ cdsp.connect()
 #	volume  : mute, capture_signal_rms, capture_signal_peak, volume, playback_signal_rms, playback_signal_peak
 #	status  : state().name, capture_rate, rate_adjust, clipped_samples, buffer_level
 #   config  : config_name, config, config_raw
-#	param   : capture_rate_raw, signal_range, signal_range_dB, update_interval
+#	param   : capture_rate_raw, signal_range, signal_range_dB, update_interval 
+cdsp.get_volume()
+cdsp.set_volume( -10.0 )
 ```
 
 ### Build GUI Frontend
 - Install `camilladsp`
-- `camillagui` - Frontend requires `React` (minimum 2GB RAM - only RPi 4 has more than 1GB)
+- Clone `camillagui` (library `reactjs` - minimum 2GB RAM - RPi4 only)
 ```sh
 su
 cd
-pacman -Sy --needed --noconfirm npm
-
+pacman -Sy --needed camilladsp npm
 curl -L https://github.com/HEnquist/camillagui/archive/refs/heads/master.zip | bsdtar xf -
-
 cd camillagui-master
-sed -i 's/5000/3000/' src/setupProxy.js
 npm install reactjs
-
-# for customized version
-curl -LO https://github.com/rern/_assets/raw/master/Notes/CamillaDSP/postbuild.sh
-chmod +x postbuild.sh
-ln -s /srv/http/assets public/static
-sed -i -E 's/ start| build/ --openssl-legacy-provider&/' package.json # 1.0.0
 ```
-	
-- Start Development server
+
+### Customized GUI environment
+```sh
+sed -i 's/5000/3000/' src/setupProxy.js
+mv src/index.css{,.original}
+cat /srv/http/assets/css/{colors,camillagui}.css > src/index.css
+ln -s /srv/http/assets/fonts .
+
+# src/utilities/ui-components.tsx
+#	Box: id, class
+#	MdiButton: id
+# src/index.tsx
+
+```
+
+- Start development server
 ```sh
 systemctl start camilladsp
-
 npm start
 
 > Starting the development server...
@@ -117,7 +126,7 @@ npm start
 # Local:            http://localhost:3000
 # On Your Network:  http://192.168.1.4:3000
 ```
-- On browser: http://192.168.1.4:3000
+- Start browser: `http://192.168.1.4:3000`
 - Any changes to files recompile and refresh browser immediately
 - `public/...` for custom css, font-face, js, image
 	- img: `src="%PUBLIC_URL%/assets/img/camillagui.svg"`
@@ -126,9 +135,9 @@ npm start
 		- @font-face: `../fonts/rern.woff2` - relative path
 	- js: `<script defer="defer" src="%PUBLIC_URL%/assets/js/camillagui.js"></script>`
 	
-- Build
-	- `npm run build`
-	- Deployment files: `./build` (copied to `/srv/http/settings/camillagui/build` by `postbuild.sh`)
+### Build
+- `npm run build`
+- Deployment files: `./build` (copied to `/srv/http/settings/camillagui/build` by `postbuild.sh`)
 
 ### Tips
 - Get audio hardware parameters (RPi on-board audio - `sample format: S16LE`)
