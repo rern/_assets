@@ -7,11 +7,11 @@ from camilladsp import CamillaConnection, CamillaError
 cdsp = CamillaConnection( '127.0.0.1', 1234 )
 cdsp.connect()
 
-is_connected    = cdsp.is_connected()               # True
+is_connected    = cdsp.is_connected()            # True
 
-config          = cdsp.get_config()                       # { 'KEY': VALUE }
-config          = str( config ).replace( 'False', 'false' ).replace( 'True', 'True' ).replace( "'", '"' )
-config          = json.loads( config )
+config          = cdsp.get_config()                       # object - { 'KEY': VALUE }
+config_str      = str( config ).replace( 'False', 'false' ).replace( 'True', 'True' ).replace( "'", '"' )
+config          = json.loads( config_str )
 
 version         = '.'.join( cdsp.get_version() ) # '1.0.3'
 # volume
@@ -31,12 +31,32 @@ rate_adjust     = cdsp.get_rate_adjust()         # 0
 clipped_samples = cdsp.get_clipped_samples()     # 0
 buffer_level    = cdsp.get_buffer_level()        # 2015
 # config
-config_name     = cdsp.get_config_name()         # '/srv/http/data/camilladsp/configs/camilladsp.yml'
-config_name     = os.path.basename( config_name )
-apply_auto      = os.path.exists( '/srv/http/data/system/camilladsp-auto' )
+config_name     = cdsp.get_config_name()         # '/srv/http/data/camilladsp/configs/NAME.yml'
+config_filename = os.path.basename( config_name )
+apply_auto      = os.path.exists( '/srv/http/data/camilladsp/applyauto' )
 
 # tabs
 devices         = config[ 'devices' ]
 filters         = config[ 'filters' ]
 mixers          = config[ 'mixers' ]
 pipeline        = config[ 'pipeline' ]
+
+exit
+
+cdsp.set_volume( 0.0 )
+cdsp.set_mute( False )
+
+# load existing config file
+cdsp.set_config_name( file )
+cdsp.reload()
+
+# load + validatation user config file
+cdsp.read_config_file( file )
+cdsp.read_config( 'yaml' )
+
+# save to config file
+validate_config( config )
+cdsp.set_config( config )
+#cdsp.set_config_raw( 'yaml' )
+
+cdsp.disconnect()

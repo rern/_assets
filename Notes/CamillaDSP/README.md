@@ -114,7 +114,7 @@ ln -s /srv/http/assets/fonts .
 
 ```
 
-- Start development server
+### Start development server
 ```sh
 systemctl start camilladsp
 npm start
