@@ -74,60 +74,60 @@ wget -qN https://github.com/rern/RuneAudio/raw/master/shairport-sync/shairport-s
 chmod 755 /usr/local/bin/shairport-sync-metadata-reader
 
 shairport-sync-metadata-reader < /tmp/shairport-sync-metadata
-
-# play
-.............................................
-64616964  daid
-636c6970  clip
-73766970  svip
-61626567  abeg
-70626567  pbeg
-70766f6c  pvol
-666c7372  flsr
-6461706f  dapo
-70637374  pcst
-50494354  PICT
-7063656e  pcen
-6173616c  asal
-61736370  ascp
-6173676e  asgn
-6d696e6d  minm
-6173746e  astn
-61737463  astc
-6173646b  asdk
-63617073  caps
-6173746d  astm
-6d64656e  mden
-73747970  styp
-.............................................
-# pause
-.............................................
-70637374  pcst
-50494354  PICT
-7063656e  pcen
-70726772  prgr
-6d706572  mper
-6173616c  asal
-61736172  asar
-61736370  ascp
-6173676e  asgn
-6d696e6d  minm
-6173746e  astn
-61737463  astc
-6173646b  asdk
-63617073  caps
-6173746d  astm
-6d64656e  mden
-70666672  pffr
-61736172  asar
-61736370  ascp
-6173676e  asgn
-6d696e6d  minm
-63617073  caps
-6d64656e  mden
-7072736d  prsm
-.............................................
 ```
+- play
+ 
+	```
+	64616964  daid
+	636c6970  clip
+	73766970  svip
+	61626567  abeg
+	70626567  pbeg
+	70766f6c  pvol
+	666c7372  flsr
+	6461706f  dapo
+	70637374  pcst
+	50494354  PICT
+	7063656e  pcen
+	6173616c  asal
+	61736370  ascp
+	6173676e  asgn
+	6d696e6d  minm
+	6173746e  astn
+	61737463  astc
+	6173646b  asdk
+	63617073  caps
+	6173746d  astm
+	6d64656e  mden
+	73747970  styp
+	```
+- pause
+	```
+	70637374  pcst
+	50494354  PICT
+	7063656e  pcen
+	70726772  prgr
+	6d706572  mper
+	6173616c  asal
+	61736172  asar
+	61736370  ascp
+	6173676e  asgn
+	6d696e6d  minm
+	6173746e  astn
+	61737463  astc
+	6173646b  asdk
+	63617073  caps
+	6173746d  astm
+	6d64656e  mden
+	70666672  pffr
+	61736172  asar
+	61736370  ascp
+	6173676e  asgn
+	6d696e6d  minm
+	63617073  caps
+	6d64656e  mden
+	7072736d  prsm
+	```
 
 Request to AirPlay devices
 ```sh
