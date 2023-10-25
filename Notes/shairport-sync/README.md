@@ -3,6 +3,8 @@
 
 [Shairport Sync Metadata](https://github.com/mikebrady/shairport-sync-metadata-reader)
 
+[Code Table](https://github.com/Schlaubischlump/shairport-metadatareader-python/blob/master/shairportmetadatareader/codetable.py)
+
 **Note**
 ```
 # fix if needed - Failed to determine user credentials: No such process
@@ -28,44 +30,41 @@ bin2hex() {
 }
 
 # STRING values
-<type> <code>                = hex2bin $STRING
-<data encoding="base64">     = base64 -d <<< $STRING
-                               PHP: base64_decode( $DATA )
-                               JS:  atob( DATA )
-<code>50494354</code> - PICT = file:   base64 -d <<< $STRING > coverart.jpg
-                               string: data:image/jpeg;base64,$STRING
-time (unit: 41000/second)    = $(( value / 41000 ))
+<type> <code>                = BASH   : hex2bin $STRING
+<data encoding="base64">     = BASH   : base64 -d <<< $STRING
+                               PHP    : base64_decode( $DATA )
+                               JS     : atob( DATA )
+<code>50494354</code> - PICT = BASH   : base64 -d <<< $STRING > coverart.jpg
+                               string : data:image/jpeg;base64,$STRING
+
+time: 41000/second ( value / 41000 )
 
 # <type>
 636f7265  core    AirPlay
 73736e63  ssnc    Shairport-sync
 
 ----------------------------------------------------------------------------------
-hex       code    field           decoded value - example : format
+hex       code    field            decoded value - example : format
 ----------------------------------------------------------------------------------
-61637265  acre    Active-Remote token
-64616964  daid    DACP-ID
-636c6970  clip    IP
-6461706f  dapo    port
-70766f6c  pvol    volume          -24.78,24.08,0.00,60.00 : airplay,current,limitH,limitL
+70766f6c  pvol    volume           -24.78,24.08,0.00,60.00 : airplay,current,limitH,limitL
 70626567  pbeg    [play begin]
-70617573  paus    [pause]
+70617573  pfls    [play flush]
 70656e64  pend    [play end]
 .............................................
-6d647374  mdst    [data start]    1056687241
+6d647374  mdst    [metadata start] 1056687241
 6173616c  asal    Album
+61736161  asaa    AlbumArtist
 61736172  asar    Artist
-6173636d  ascm    Comment
 61736370  ascp    Composer
+61736472  asdr    Date
 6173676e  asgn    Genre
-61736474  asdt    filetype
 6d696e6d  minm    Title
-6173736e  assn    sort as
-6d64656e  mden    [data end]      1056687241
-6d647374  mdst    [data start]    1056687241
 50494354  PICT    coverart
-6d64656e  mden    [data end]     1056687241
-70726772  prgr    progress        1056674953/1056687241/1072515673 : start/current/end
+6d64656e  mden    [metadata end]   1056687241
+
+70726772  prgr    progress         1056674953/1056687241/1072515673 : start/current/end
+
+63617073  caps    state            base64: AQ== - 1(play), Ag== - 2(pause)
 ```
 
 **`shairport-sync-metadata-reader`**
@@ -75,59 +74,54 @@ chmod 755 /usr/local/bin/shairport-sync-metadata-reader
 
 shairport-sync-metadata-reader < /tmp/shairport-sync-metadata
 ```
+
+### Code Examples
 - play
- 
-	```
-	64616964  daid
-	636c6970  clip
-	73766970  svip
-	61626567  abeg
-	70626567  pbeg
-	70766f6c  pvol
-	666c7372  flsr
-	6461706f  dapo
-	70637374  pcst
-	50494354  PICT
-	7063656e  pcen
-	6173616c  asal
-	61736370  ascp
-	6173676e  asgn
-	6d696e6d  minm
-	6173746e  astn
-	61737463  astc
-	6173646b  asdk
-	63617073  caps
-	6173746d  astm
-	6d64656e  mden
-	73747970  styp
-	```
+```
+64616964  daid    source's DACP-ID
+636c6970  clip    IP of client
+73766970  svip    IP number of server
+61626567  abeg    airplay2begin
+70626567  pbeg    play stream begin
+70766f6c  pvol    volume
+666c7372  flsr    flush requested
+6461706f  dapo    port
+70637374  pcst    picture start
+50494354  PICT    picture
+7063656e  pcen    picture end
+6173616c  asal    Album
+61736370  ascp    Composer
+6173676e  asgn    Genre
+6d696e6d  minm    Title
+6173746e  astn    track number
+61737463  astc    track count
+6173646b  asdk    data kind (0 - timed, 1 - stream)
+63617073  caps    state (base64: AQ==)
+6173746d  astm    Time
+6d64656e  mden    metadata end
+73747970  styp    stream type
+```
 - pause
-	```
-	70637374  pcst
-	50494354  PICT
-	7063656e  pcen
-	70726772  prgr
-	6d706572  mper
-	6173616c  asal
-	61736172  asar
-	61736370  ascp
-	6173676e  asgn
-	6d696e6d  minm
-	6173746e  astn
-	61737463  astc
-	6173646b  asdk
-	63617073  caps
-	6173746d  astm
-	6d64656e  mden
-	70666672  pffr
-	61736172  asar
-	61736370  ascp
-	6173676e  asgn
-	6d696e6d  minm
-	63617073  caps
-	6d64656e  mden
-	7072736d  prsm
-	```
+```
+70637374  pcst    [picture start]
+50494354  PICT    picture
+7063656e  pcen    [picture end]
+70726772  prgr    progress
+6d706572  mper    persistent ID
+6173616c  asal    Album
+61736172  asar    Artist
+61736370  ascp    Composer
+6173676e  asgn    Genre
+6d696e6d  minm    Title
+6173746e  astn    track number
+61737463  astc    track count
+6173646b  asdk    data kind (0 - timed, 1 - stream)
+63617073  caps    state (base64: Ag=)
+6173746d  astm    Time
+6d64656e  mden    [metadata end]
+70666672  pffr    [play first frame]
+7072736d  prsm    [play resume]
+```
 
 Request to AirPlay devices
 ```sh
