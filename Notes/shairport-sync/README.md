@@ -70,7 +70,7 @@ hex       code    field           decoded value - example : format
 
 **`shairport-sync-metadata-reader`**
 ```sh
-wget -qN https://github.com/rern/RuneAudio/raw/master/shairport-sync/shairport-sync-metadata-reader -P /usr/local/bin
+wget -qN https://github.com/rern/_assets/raw/master/Notes/shairport-sync/shairport-sync-metadata-reader -P /usr/local/bin
 chmod 755 /usr/local/bin/shairport-sync-metadata-reader
 
 shairport-sync-metadata-reader < /tmp/shairport-sync-metadata
