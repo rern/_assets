@@ -49,6 +49,8 @@ hex       code    field           decoded value - example : format
 6461706f  dapo    port
 70766f6c  pvol    volume          -24.78,24.08,0.00,60.00 : airplay,current,limitH,limitL
 70626567  pbeg    [play begin]
+70617573  paus    [pause]
+70656e64  pend    [play end]
 .............................................
 6d647374  mdst    [data start]    1056687241
 6173616c  asal    Album
@@ -64,8 +66,6 @@ hex       code    field           decoded value - example : format
 50494354  PICT    coverart
 6d64656e  mden    [data end]     1056687241
 70726772  prgr    progress        1056674953/1056687241/1072515673 : start/current/end
-.............................................
-70656e64  pend    [play end]
 ```
 
 **`shairport-sync-metadata-reader`**
