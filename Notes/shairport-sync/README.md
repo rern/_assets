@@ -51,7 +51,7 @@ hex       code    field            decoded value - example : format
 70617573  pfls    [play flush]
 70656e64  pend    [play end]
 .............................................
-6d647374  mdst    [metadata start] 1056687241
+6d647374  mdst    [metadata start]
 6173616c  asal    Album
 61736161  asaa    AlbumArtist
 61736172  asar    Artist
@@ -60,7 +60,7 @@ hex       code    field            decoded value - example : format
 6173676e  asgn    Genre
 6d696e6d  minm    Title
 50494354  PICT    coverart
-6d64656e  mden    [metadata end]   1056687241
+6d64656e  mden    [metadata end]
 
 70726772  prgr    progress         1056674953/1056687241/1072515673 : start/current/end
 
@@ -73,10 +73,38 @@ wget -qN https://github.com/rern/_assets/raw/master/Notes/shairport-sync/shairpo
 chmod 755 /usr/local/bin/shairport-sync-metadata-reader
 
 shairport-sync-metadata-reader < /tmp/shairport-sync-metadata
+
+# raw
+cat /tmp/shairport-sync-metadata
 ```
 
 ### Code Examples
-- play
+- Connect
+```
+736e7561  snua    sender useragent
+61637265  acre    active remote
+64616964  daid
+636c6970  clip
+73766970  svip
+61626567  abeg
+70626567  pbeg
+70766f6c  pvol
+70766f6c  pvol
+666c7372  flsr
+6461706f  dapo
+70637374  pcst
+50494354  PICT
+7063656e  pcen
+70726772  prgr
+7072736d  prsm
+70656e64  pend
+61656e64  aend
+```
+- Disconnect
+```
+61656e64  aend    [airplay end]
+```
+- Play
 ```
 64616964  daid    source's DACP-ID
 636c6970  clip    IP of client
@@ -98,10 +126,10 @@ shairport-sync-metadata-reader < /tmp/shairport-sync-metadata
 6173646b  asdk    data kind (0 - timed, 1 - stream)
 63617073  caps    state (base64: AQ==)
 6173746d  astm    Time
-6d64656e  mden    metadata end
+6d64656e  mden    [metadata end]
 73747970  styp    stream type
 ```
-- pause
+- Pause
 ```
 70637374  pcst    [picture start]
 50494354  PICT    picture
