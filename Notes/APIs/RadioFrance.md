@@ -16,7 +16,7 @@
 | Classique Easy            | 401   | `https://icecast.radiofrance.fr/francemusiqueeasyclassique-hifi.aac`       |
 | Classique Plus            | 402   | `https://icecast.radiofrance.fr/francemusiqueclassiqueplus-hifi.aac`       |
 | Concerts Radio France     | 403   | `https://icecast.radiofrance.fr/francemusiqueconcertsradiofrance-hifi.aac` |
-| La B.O. Musiques de Films | 407   | `https://icecast.radiofrance.fr/francemusiquelabo-hifi.aac`                |
+| Musiques de Films         | 407   | `https://icecast.radiofrance.fr/francemusiquelabo-hifi.aac`                |
 | La Baroque                | 408   | `https://icecast.radiofrance.fr/francemusiquebaroque-hifi.aac`             |
 | La Contemporaine          | 406   | `https://icecast.radiofrance.fr/francemusiquelacontemporaine-hifi.aac`     |
 | La Jazz                   | 405   | `https://icecast.radiofrance.fr/francemusiquelajazz-hifi.aac`              |
