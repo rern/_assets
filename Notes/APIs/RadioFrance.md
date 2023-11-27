@@ -26,18 +26,18 @@
 **Now playing**
 ```sh
 chan=CHANNEL
-curl -s -m 5 -G \
-	--data-urlencode "operationName=Now" \
-	--data-urlencode 'variables={"bannerPreset":"600x600-noTransform","stationId":'$chan',"previousTrackLimit":1}' \
-	--data-urlencode 'extensions={"persistedQuery":{"version":1,"sha256Hash":"8a931c7d177ff69709a79f4c213bd2403f0c11836c560bc22da55628d8100df8"}}' \
-	--data-urlencode "v=$( date +%s )" \
-	https://www.fip.fr/latest/api/graphql
+curl -sGk https://api.radiofrance.fr/livemeta/pull/$chan
+
+levels=$( jq .levels[0] <<< $data )
+position=$( jq .position <<< $levels )
+item=$( jq .items[$position] <<< $levels )
+step=$( jq .steps[$item] <<< $data )
+now=$( date +%s )
+end=$( jq .end <<< $step )
+countdown=$(( end - now ))
+artist=$( jq .authors <<< $step )
+title=$( jq .title <<< $step )
+album=$( jq .titreAlbum <<< $step )
+coverurl=$( jq .visual <<< $step )
+countdown=$( jq .visual <<< $step )
 ```
-`.data.now`
-- `.server_time` - timestamp (ms)
-- `.playing_item`
-	- `.title` - artist
-	- `.subtitle` - title
-	- `.cover`
-	- `.end_time` - ms to track change
-- `.song.album`
