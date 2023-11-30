@@ -30,10 +30,9 @@ data=$( curl -s 'https://openapi.radiofrance.fr/v1/graphql' \
 	--data-binary "$query" )
 	
 if [[ $stations ]]; then
-	jq .data.brand.webRadios <<< $data | sed -E 's/"id"/"STATION"/
-												 s/"title"/\U&/
-												 s/"playerUrl.*=(.*)",/"CHANNEL": \1,/
-												 s/liveStream/URL/
+	jq .data.brand.webRadios <<< $data | sed -E 's/"id"/"station"/
+												 s/"playerUrl.*=(.*)",/"channel": \1,/
+												 s/liveStream/url/
 												 s/midfi.*/hifi.aac"/'
 	exit
 fi
