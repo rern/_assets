@@ -42,9 +42,11 @@ coverurl=$( jq .visual <<< $step )
 countdown=$( jq .visual <<< $step )
 ```
 
-**OpenAPI** (when `api` service ended)
+**Open API** (when `api` service ended)
+- https://developers.radiofrance.fr/
 ```sh
 station=STATION
+token=TOKEN
 curl 'https://openapi.radiofrance.fr/v1/graphql' \
 	-H 'Accept-Encoding: gzip, deflate, br' \
 	-H 'Content-Type: application/json' \
@@ -52,7 +54,7 @@ curl 'https://openapi.radiofrance.fr/v1/graphql' \
 	-H 'Connection: keep-alive' \
 	-H 'DNT: 1' \
 	-H 'Origin: https://openapi.radiofrance.fr' \
-	-H 'x-token: 0390600a-5407-4e86-b439-24e5d48427dc' \
+	-H "x-token: $token" \
 	--compressed \
 	--data-binary '{ "query": "{ live(station: '$station') { song { track { title albumTitle mainArtists } start end } } }" }'
 
