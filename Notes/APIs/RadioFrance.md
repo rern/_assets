@@ -1,27 +1,29 @@
 ### Radio France API 
 
-| Station          | `chan` | URL                                                     | STATION `openapi` |
-| :--------------- | :----- | :------------------------------------------------------ | :---------------- |
-| Fip              | 7      | `https://icecast.radiofrance.fr/fip-hifi.aac`           | FIP               |
-| Fip - Electro    | 74     | `https://icecast.radiofrance.fr/fipelectro-hifi.aac`    | FIP_ELECTRO       |
-| Fip - Groove     | 66     | `https://icecast.radiofrance.fr/fipgroove-hifi.aac`     | FIP_GROOVE        |
-| Fip - Jazz       | 65     | `https://icecast.radiofrance.fr/fipjazz-hifi.aac`       | FIP_JAZZ          |
-| Fip - Nouveautés | 70     | `https://icecast.radiofrance.fr/fipnouveautes-hifi.aac` | FIP_NOUVEAUTES    |
-| Fip - Pop        | 78     | `https://icecast.radiofrance.fr/fippop-hifi.aac`        | FIP_POP           |
-| Fip - Reggae     | 71     | `https://icecast.radiofrance.fr/fipreggae-hifi.aac`     | FIP_REGGAE        |
-| Fip - Rock       | 64     | `https://icecast.radiofrance.fr/fiprock-hifi.aac`       | FIP_ROCK          |
-| Fip - World      | 69     | `https://icecast.radiofrance.fr/fipworld-hifi.aac`      | FIP_MONDE         |
-|                  |        |                                                         |                   |
-| France Musique            | 4     | `https://icecast.radiofrance.fr/francemusique-hifi.aac`                    | FRANCEMUSIQUE                  |
-| Classique Easy            | 401   | `https://icecast.radiofrance.fr/francemusiqueeasyclassique-hifi.aac`       | FRANCEMUSIQUE_CLASSIQUE_EASY   |
-| Classique Plus            | 402   | `https://icecast.radiofrance.fr/francemusiqueclassiqueplus-hifi.aac`       | FRANCEMUSIQUE_CLASSIQUE_PLUS   |
-| Concerts Radio France     | 403   | `https://icecast.radiofrance.fr/francemusiqueconcertsradiofrance-hifi.aac` | FRANCEMUSIQUE_CONCERT_RF       |
-| Musiques de Films         | 407   | `https://icecast.radiofrance.fr/francemusiquelabo-hifi.aac`                | FRANCEMUSIQUE_LA_BO            |
-| La Baroque                | 408   | `https://icecast.radiofrance.fr/francemusiquebaroque-hifi.aac`             | FRANCEMUSIQUE_LA_BAROQUE       |
-| La Contemporaine          | 406   | `https://icecast.radiofrance.fr/francemusiquelacontemporaine-hifi.aac`     | FRANCEMUSIQUE_LA_CONTEMPORAINE |
-| La Jazz                   | 405   | `https://icecast.radiofrance.fr/francemusiquelajazz-hifi.aac`              | FRANCEMUSIQUE_LA_JAZZ          |
-| Ocora                     | 404   | `https://icecast.radiofrance.fr/francemusiqueocoramonde-hifi.aac`          | FRANCEMUSIQUE_OCORA_MONDE      |
-| Opéra                     | 409   | `https://icecast.radiofrance.fr/francemusiqueopera-hifi.aac`               | FRANCEMUSIQUE_OPERA            |
+| Station          | `chan` | URL                              | STATION `openapi` |
+| :--------------- | :----- | :------------------------------- | :---------------- |
+| (base)           |        | `https://icecast.radiofrance.fr` |                   |
+| Fip              | 7      | `base/fip-hifi.aac`              | FIP               |
+| Fip - Electro    | 74     | `base/fipelectro-hifi.aac`       | FIP_ELECTRO       |
+| Fip - Groove     | 66     | `base/fipgroove-hifi.aac`        | FIP_GROOVE        |
+| Fip - Jazz       | 65     | `base/fipjazz-hifi.aac`          | FIP_JAZZ          |
+| Fip - Nouveautés | 70     | `base/fipnouveautes-hifi.aac`    | FIP_NOUVEAUTES    |
+| Fip - Pop        | 78     | `base/fippop-hifi.aac`           | FIP_POP           |
+| Fip - Reggae     | 71     | `base/fipreggae-hifi.aac`        | FIP_REGGAE        |
+| Fip - Rock       | 64     | `base/fiprock-hifi.aac`          | FIP_ROCK          |
+| Fip - World      | 69     | `base/fipworld-hifi.aac`         | FIP_MONDE         |
+|                  |        |                                  |                   |
+| (base)           |        | `https://icecast.radiofrance.fr`                         |                                |
+| France Musique            | 4     | `base/francemusique-hifi.aac`                    | FRANCEMUSIQUE                  |
+| Classique Easy            | 401   | `base/francemusiqueeasyclassique-hifi.aac`       | FRANCEMUSIQUE_CLASSIQUE_EASY   |
+| Classique Plus            | 402   | `base/francemusiqueclassiqueplus-hifi.aac`       | FRANCEMUSIQUE_CLASSIQUE_PLUS   |
+| Concerts Radio France     | 403   | `base/francemusiqueconcertsradiofrance-hifi.aac` | FRANCEMUSIQUE_CONCERT_RF       |
+| Musiques de Films         | 407   | `base/francemusiquelabo-hifi.aac`                | FRANCEMUSIQUE_LA_BO            |
+| La Baroque                | 408   | `base/francemusiquebaroque-hifi.aac`             | FRANCEMUSIQUE_LA_BAROQUE       |
+| La Contemporaine          | 406   | `base/francemusiquelacontemporaine-hifi.aac`     | FRANCEMUSIQUE_LA_CONTEMPORAINE |
+| La Jazz                   | 405   | `base/francemusiquelajazz-hifi.aac`              | FRANCEMUSIQUE_LA_JAZZ          |
+| Ocora                     | 404   | `base/francemusiqueocoramonde-hifi.aac`          | FRANCEMUSIQUE_OCORA_MONDE      |
+| Opéra                     | 409   | `base/francemusiqueopera-hifi.aac`               | FRANCEMUSIQUE_OPERA            |
 
 **Now playing**
 ```sh
