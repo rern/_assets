@@ -42,7 +42,7 @@ coverurl=$( jq .visual <<< $step )
 countdown=$( jq .visual <<< $step )
 ```
 
-**OpenAPI** (when `https://api.radiofrance.fr/livemeta/pull/$chan` stop)
+**OpenAPI** (when `api` service ended)
 ```sh
 station=STATION
 curl 'https://openapi.radiofrance.fr/v1/graphql' \
