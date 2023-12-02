@@ -12,9 +12,17 @@ else
 	echo $token > token
 fi
 
-if [[ $2 ]]; then
+if [[ ! $1 ]]; then
 	stations=1
-	query='{ "query": "{ brand( id: '$1' ) { id playerUrl liveStream webRadios { id title playerUrl liveStream } } }" }'
+	one=FIP
+	two=FRANCEMUSIQUE
+	read -n 1 -p "
+1) $one
+2) $two
+
+1 / 2 ? " id
+	[[ $id == 1 ]] && id=$one|| id=$two
+	query='{ "query": "{ brand( id: '$id' ) { id playerUrl liveStream webRadios { id title playerUrl liveStream } } }" }'
 else
 	query='{ "query": "{ live( station: '$1' ) { song { end track { title albumTitle mainArtists } } } }" }'
 fi
