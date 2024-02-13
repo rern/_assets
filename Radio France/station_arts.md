@@ -27,14 +27,17 @@ Opéra                   : https://www.radiofrance.fr/s3/cruiser-production/2022
 
 bash
 ---
+```sh
 readarray -t pictures <<< $( curl https://www.radiofrance.fr/fip \
 				| sed '/<script/,/script>/ d' \
 				| xmllint --html - \
 				| sed -n '/srcset/ {s/" size.*//; s/.* srcset="//; p}' )
-
+```
 JS
 ---
+```js
 var picture  = document.getElementsByTagName( 'picture' );
 var stations = [ 'Fip', 'Fip', 'Rock', 'Jazz', 'Groove', 'Monde', 'Nouveautés', 'Reggae', 'Electro', 'Metal', 'Pop', 'Hip-Hop' ];
 var i        = stations.indexOf( station );
 var srcset   = picture[ i ].firstElementChild.srcset
+```
