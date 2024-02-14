@@ -113,7 +113,7 @@ amixer -M -c $card sset "$control" 50%
 
 # set dB
 amixer -c $card sset "$control" 0dB
-amixer -c $card sset "$control" [mute|unmute|toggle]
+amixer -c $card sset "$control" [on|off|toggle]
 amixer -c $card sset "$control" .1dB-
 amixer -c $card sset "$control" .1dB+
 
