@@ -108,12 +108,12 @@ amixer -M -c $card sget "$control" \
 		| awk -F'[%[]' '/%/ {print $2}' \
 		| head -1
 
-# set % level
+# set % linear scale
 amixer -M -c $card sset "$control" 50%
 
 # set dB
-amixer -c $card sset "$control" 0dB # 100%
-amixer -c $card sset "$control" 0   # mute (no explicit mute)
+amixer -c $card sset "$control" 0dB
+amixer -c $card sset "$control" [mute|unmute|toggle]
 amixer -c $card sset "$control" .1dB-
 amixer -c $card sset "$control" .1dB+
 
@@ -124,7 +124,7 @@ numidsw=$( amixer -c $card controls | grep 'Playback Switch' | cut -d, -f1 )
 # set dB
 amixer -c $card cset $numid 0dB   # 100% (no % scale)
 amixer -c $card cset $numid 50%   # 50% of min-max dB (not in linear scale)
-amixer -c $card cset $numidsw [on|off] # explicit mute - 00|MM in alsamixer (dB not changed)
+amixer -c $card cset $numidsw [on|off]
 ```
 
 `scontrols`
