@@ -23,7 +23,11 @@ France Musique          : https://www.radiofrance.fr/client/immutable/assets/fra
 La Jazz                 : https://www.radiofrance.fr/s3/cruiser-production/2022/02/13381986-e962-4809-ad21-23e8260c8f75/500x500_webradios_fm_la-jazz.webp  
 Musique de Films        : https://www.radiofrance.fr/s3/cruiser-production/2023/05/4f0b91f5-d507-4924-b3c2-518a9c087aec/500x500_sc_musique-de-films.webp  
 Ocora Musiques du Monde : https://www.radiofrance.fr/s3/cruiser-production/2022/02/75db3a09-1545-487b-ab11-81db3642a5cd/500x500_webradios_fm_musiques-du-monde-ocora.webp  
-Opéra                   : https://www.radiofrance.fr/s3/cruiser-production/2022/02/e00ce389-b9ec-40e7-889f-df831e8454fd/500x500_opera.webp  
+Opéra                   : https://www.radiofrance.fr/s3/cruiser-production/2022/02/e00ce389-b9ec-40e7-889f-df831e8454fd/500x500_opera.webp
+
+New:
+---
+Piano Zen: https://icecast.radiofrance.fr/francemusiquepianozen-hifi.aac
 
 bash
 ---
