@@ -1,15 +1,18 @@
-### Radio Paradise API 
+# Radio Paradise API 
 
-| Station      | `chan` | URL                                             |
-| :----------- | :----- | :---------------------------------------------- |
-| Main Mix     | 0      | `http://stream.radioparadise.com/flac`          |
-| Mellow Mix   | 1      | `http://stream.radioparadise.com/mellow-flac`   |
-| Rock Mix     | 2      | `http://stream.radioparadise.com/rock-flac`     |
-| Eclectic Mix | 3      | `http://stream.radioparadise.com/eclectic-flac` |
+| Station    | `chan` | URL                                              |
+| :--------- | :----- | :----------------------------------------------- |
+| Main Mix   | 0      | `http://stream.radioparadise.com/flac`           |
+| Mellow Mix | 1      | `http://stream.radioparadise.com/mellow-flac`    |
+| Rock Mix   | 2      | `http://stream.radioparadise.com/rock-flac`      |
+| Global Mix | 3      | `http://stream.radioparadise.com/global-flac`    |
+| Radio 2025 | ?      | `http://stream.radioparadise.com/radio2025-flac` |
+| Beyond     | 5      | `http://stream.radioparadise.com/beyond-flac`    |
+| Serenity   | ?      | `http://stream.radioparadise.com/serenity`       |
 
 Note: `*-falcm`, streams with metadata, emit `playlist` and `player` every 5 seconds
 
-**Now playing**
+### Now playing
 ```sh
 chan=CHANNEL
 curl -s -m 5 -G \
@@ -22,7 +25,7 @@ curl -s -m 5 -G \
 - `.cover`
 - `.time` - seconds to track change
 
-**Playlist**
+### Playlist
 - FLAC - `bitrate=4`
 - List - Not consistent on reload (cache issue?)
 ```sh
@@ -54,5 +57,3 @@ curl -s -m 5 -G \
 	- `.sched_time_millis` - start timestamp (ms)
 	- `.duration` (ms)
 	- seconds to track change: ( `.sched_time_millis` + `.duration` ) / 1000 - `$( date +%s )`
-
-Legacy now playing: http://radioparadise.com/xml/now.xml
