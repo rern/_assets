@@ -13,7 +13,7 @@ systemctl daemon-reexec
 
 **Metadata**
 ```sh
-# data from fifo / named pipe
+# xml data from fifo / named pipe
 cat /tmp/shairport-sync-metadata
 
 ...
@@ -22,16 +22,9 @@ cat /tmp/shairport-sync-metadata
 U29uZ3Mgb2YgSW5ub2NlbmNl</data></item>
 ...
 
-hex2bin() {
-	sed 's/\([0-9A-F]\{2\}\)/\\\\\\x\1/gI' <<< $1 | xargs printf
-}
-bin2hex() {
-	hexdump -e '1/1 "%02x"' <<< $1 | head -c -2
-}
-
 # STRING values
-<type> <code>                = BASH   : hex2bin $STRING
-<data encoding="base64">     = BASH   : base64 -d <<< $STRING
+<type> <code>
+<data encoding="base64">     = BASH   : base64 -d <<< $DATA
                                PHP    : base64_decode( $DATA )
                                JS     : atob( DATA )
 <code>50494354</code> - PICT = BASH   : base64 -d <<< $STRING > coverart.jpg
@@ -39,6 +32,7 @@ bin2hex() {
 
 time: 41000/second ( value / 41000 )
 
+# hex to ascii: xxd -r -p <<< 636f7265 => core
 # <type>
 636f7265  core    AirPlay
 73736e63  ssnc    Shairport-sync
