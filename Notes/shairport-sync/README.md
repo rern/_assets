@@ -21,6 +21,25 @@ cat /tmp/shairport-sync-metadata
 <data encoding="base64">
 U29uZ3Mgb2YgSW5ub2NlbmNl</data></item>
 ...
+echo <item> ... </item> | xmllint --xpath '//item/code/text() | //item/data/text()' -
+
+declare -A CODE=(
+	[70766f6c]=volume
+	[6173616c]=Album
+	[61736161]=AlbumArtist
+	[61736172]=Artist
+	[61736370]=Composer
+	[61736472]=Date
+	[6173676e]=Genre
+	[6d696e6d]=Title
+	[50494354]=coverart
+	[70726772]=progress
+	[63617073]=state
+)
+xmllint --xpath '//item/concat(code,"=",data,"&#10;")' /tmp/shairport-sync-metadata \
+  | while IFS="=" read type data; do
+		printf -v $CODE[$code] '%s' $( base64 --decode <<< $data )
+    done
 
 # STRING values
 <type> <code>                = BASH   : xxd -r -p <<< $HEX    - hex > ascii
