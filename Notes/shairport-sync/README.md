@@ -23,16 +23,15 @@ U29uZ3Mgb2YgSW5ub2NlbmNl</data></item>
 ...
 
 # STRING values
-<type> <code>
-<data encoding="base64">     = BASH   : base64 -d <<< $DATA
+<type> <code>                = BASH   : xxd -r -p <<< $HEX    - hex > ascii
+<data encoding="base64">     = BASH   : base64 -d <<< $DATA   - base64 > string
                                PHP    : base64_decode( $DATA )
                                JS     : atob( DATA )
-<code>50494354</code> - PICT = BASH   : base64 -d <<< $STRING > coverart.jpg
-                               string : data:image/jpeg;base64,$STRING
+<code>50494354</code> - PICT = BASH   : base64 -d <<< $DATA > coverart.jpg
+                                        (string=data:image/jpeg;base64,...)
 
 time: 41000/second ( value / 41000 )
 
-# hex to ascii: xxd -r -p <<< 636f7265 => core
 # <type>
 636f7265  core    AirPlay
 73736e63  ssnc    Shairport-sync
@@ -59,6 +58,7 @@ hex       code    field            decoded value - example : format
 70726772  prgr    progress         1056674953/1056687241/1072515673 : start/current/end
 
 63617073  caps    state            base64: AQ== - 1(play), Ag== - 2(pause)
+                                   base64 --decode <<< AQ== | od -An -t u1 => 1
 ```
 
 **`shairport-sync-metadata-reader`**
