@@ -92,7 +92,7 @@ hex       code    field            decoded value - example : format
 666c7372  flsr    [flush request]
 6d647374  mdst    [metadata start]
 6d64656e  mden    [metadata end]
-70726772  prgr    progress         1056674953/1056687241/1072515673 : start/current/end (seconds: DATA / 41000)
+70726772  prgr    progress         1056674953/1056687241/1072515673 : start/current/end (seconds=value/41000)
 70626567  pbeg    [play begin]
 70656e64  pend    [play end]
 70666672  pffr    [play first frame]
