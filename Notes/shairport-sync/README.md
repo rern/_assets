@@ -51,7 +51,7 @@ declare -A CODE=(
 )
 cat /tmp/shairport-sync-metadata \
 	| while read line; do
-		[[ $line =~ '<code>'.*'<code>' ]] && continue # skip: no value / double codes
+		[[ $line =~ '<code>'.*'<code>' ]] && continue # skip: double codes
 
 		if [[ ${line:0:6} == '<item>' ]]; then
 			item=$line
