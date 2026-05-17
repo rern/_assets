@@ -125,6 +125,7 @@ cat /tmp/shairport-sync-metadata
 50494354  PICT    picture
 7063656e  pcen    [picture end]
 6173616c  asal    album
+61736172  asar    artist
 61736370  ascp    composer
 6173676e  asgn    genre
 6d696e6d  minm    name (title)
@@ -138,22 +139,22 @@ cat /tmp/shairport-sync-metadata
 ```
 - Pause
 ```
-70637374  pcst    [picture start]
-50494354  PICT    picture
-7063656e  pcen    [picture end]
-70726772  prgr    progress
-6d706572  mper    persistent ID
-6173616c  asal    Album
-61736172  asar    Artist
-61736370  ascp    Composer
-6173676e  asgn    Genre
-6d696e6d  minm    Title
-6173746e  astn    track number
-61737463  astc    track count
-6173646b  asdk    data kind (0 - timed, 1 - stream)
-63617073  caps    state (base64: Ag=)
-6173746d  astm    Time
-6d64656e  mden    [metadata end]
+70637374  pcst
+50494354  PICT
+7063656e  pcen
+70726772  prgr
+6d706572  mper    persistent id
+6173616c  asal
+61736172  asar
+61736370  ascp
+6173676e  asgn
+6d696e6d  minm
+6173746e  astn
+61737463  astc
+6173646b  asdk
+63617073  caps
+6173746d  astm
+6d64656e  mden
 70666672  pffr    [play first frame]
 7072736d  prsm    [play resume]
 ```
