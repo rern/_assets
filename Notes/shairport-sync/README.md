@@ -50,10 +50,10 @@ declare -A CODE=(
 	[70766f6c]=volume
 )
 stdbuf -oL cat /tmp/shairport-sync-metadata \
-	| grep --line-buffered '<item>' \
+	| grep -zoP '(?s)<item>.*?</item>' \
 	| tr -d '\n' \
-	| xmllint --xpath 'concat(//item/code/text(), " ", //item/data/text())' - \
-	| while read -r hex b64; do
+	| while read line; do
+		read code b64 < <( xmllint --xpath 'concat(//item/code/text(), " ", //item/data/text())' - <<< $line )
 		printf -v $CODE[$hex] '%s' $( base64 -d <<< $b64 ) # base64 > string
 	  done
 ```
