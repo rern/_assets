@@ -5,16 +5,29 @@
 
 [Code Table](https://github.com/Schlaubischlump/shairport-metadatareader-python/blob/master/shairportmetadatareader/codetable.py)
 
-**Note**
+Request to AirPlay devices
+```sh
+curl -vX POST https://IP_ADDRESS:PORT
 ```
-# fix if needed - Failed to determine user credentials: No such process
+
+**Fix** 
+```
+# Failed to determine user credentials: No such process
 systemctl daemon-reexec
+```
+
+**Default `shairport-sync-metadata-reader`**
+```sh
+wget -qN https://github.com/rern/_assets/raw/master/Notes/shairport-sync/shairport-sync-metadata-reader -P /usr/local/bin
+chmod 755 /usr/local/bin/shairport-sync-metadata-reader
+
+shairport-sync-metadata-reader < /tmp/shairport-sync-metadata
 ```
 
 **Metadata**
 - MQTT - Message Queue Telemetry Transport
 ```sh
-# xml data from fifo / named pipe
+# xml data from named pipe (fifo)
 cat /tmp/shairport-sync-metadata
 # ...
 # <item><type>636f7265</type><code>6173616c</code><length>18</length>
@@ -107,17 +120,6 @@ hex       code    field            decoded value - example : format
 73766970  svip    server ip
 ```
 
-**`shairport-sync-metadata-reader`**
-```sh
-wget -qN https://github.com/rern/_assets/raw/master/Notes/shairport-sync/shairport-sync-metadata-reader -P /usr/local/bin
-chmod 755 /usr/local/bin/shairport-sync-metadata-reader
-
-shairport-sync-metadata-reader < /tmp/shairport-sync-metadata
-
-# raw
-cat /tmp/shairport-sync-metadata
-```
-
 ### Code Examples
 - Connect
 ```
@@ -191,9 +193,4 @@ cat /tmp/shairport-sync-metadata
 6d64656e  mden
 70666672  pffr
 7072736d  prsm
-```
-
-Request to AirPlay devices
-```sh
-curl -vX POST https://IP_ADDRESS:PORT
 ```
