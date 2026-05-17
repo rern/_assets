@@ -38,14 +38,13 @@ declare -A CODE=(
 )
 cat /tmp/shairport-sync-metadata \
 	| tr -d '\n' \
-	| xmllint --xpath 'concat(//item/code/text(), " ", //item/data/text())' - \ # 6173616c U29uZ3Mgb2YgSW5ub2NlbmNl
+	| xmllint --xpath 'concat(//item/code/text(), " ", //item/data/text())' - \
 	| while read -r hex b64; do
-		code=$( xxd -r -p <<< $hex ) # hex > ascii
-		printf -v $CODE[$code] '%s' $( base64 -d <<< $b64 ) # base64 > string
+		printf -v $CODE[$hex] '%s' $( base64 -d <<< $b64 ) # base64 > string
 	  done
 ```
 
-- `type` and `code`
+- `type` and `code` : *`xxd -r -p <<< $hex`*
 ```
 # <type>
 636f7265  core    AirPlay
