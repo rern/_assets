@@ -101,10 +101,10 @@ hex       code    field            decoded value - example : format
 50494354  PICT    picture          data:image/jpeg;base64,... : (can be saved to file directly)
 7072736d  prsm    [play resume]
 70766f6c  pvol    play volume      -24.78,24.08,0.00,60.00 : airplay,current,limitH,limitL
-736e616d  snam    server name (X-Apple-Client-Name)
+736e616d  snam    server name
 736e7561  snua    server useragent
 7374616c  stal    [stalled data]
-73747970  styp    stream type
+73747970  styp    stream type      music / video / podcast / radio / airplay
 73766970  svip    server ip
 ```
 
