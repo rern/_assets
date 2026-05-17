@@ -82,12 +82,12 @@ hex       code    field            decoded value - example : format
 61626567  abeg    [airplay begin]
 61637265  acre    active remote
 61656e64  aend    [airplay end]
-63646964  cdid    client advertised device id
+63646964  cdid    client device id
 636c6970  clip    client ip
-636d6163  cmac    client advertised mac
-636d6f64  cmod    client advertised model (iPhone14,2)
-64616964  daid    dacp-id source
-6461706f  dapo    dacp-id port
+636d6163  cmac    client mac
+636d6f64  cmod    client model
+64616964  daid    dacp id
+6461706f  dapo    dacp port
 666c7372  flsr    [flush request]
 6d647374  mdst    [metadata start]
 6d64656e  mden    [metadata end]
