@@ -46,7 +46,7 @@ cat /tmp/shairport-sync-metadata \
 ```
 
 - `type` and `code`
-```sh
+```
 # <type>
 636f7265  core    AirPlay
 # <code>
@@ -58,7 +58,7 @@ hex       code    field            decoded value - example : format
 61736172  asar    artist
 6173636d  ascm	  comment
 61736370  ascp    composer
-6173646b  asdk    data kind (0 - timed, 1 - stream)
+6173646b  asdk    data kind        0-timed/1-stream
 61736472  asdr    date
 61736474  asdt	  description
 6173666d  asfm	  format
@@ -67,17 +67,19 @@ hex       code    field            decoded value - example : format
 61737463  astc    track count
 6173746e  astn    track number
 6173746d  astm	  tempo
-63617073  caps    play state (base64: AQ==/Ag== 1/2 play/pause)
 6173746d  astm    time
 6173756c  asul	  url
 61737972  asyr	  year
-63617073  caps    play state       base64: AQ== / Ag== : play / pause (base64 -d <<< DATA | od -An -tu1 => 1 / 2)
+63617073  caps    play state       1-play/2-pause (AQ==/Ag=)
 6d696e6d  minm    item name (title)
 6d706572  mper    persistent track id
-.............................................
+
 # <type>
 73736e63  ssnc    Shairport-sync
 # <code>
+----------------------------------------------------------------------------------
+hex       code    field            decoded value - example : format
+----------------------------------------------------------------------------------
 61626567  abeg    [airplay begin]
 61637265  acre    active remote
 61656e64  aend    [airplay end]
