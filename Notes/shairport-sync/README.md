@@ -49,16 +49,17 @@ declare -A CODE=(
 	[63617073]=state
 	[70766f6c]=volume
 )
-stdbuf -oL cat /tmp/shairport-sync-metadata \
-	| grep -zoP '(?s)<item>.*?</item>' \
-	| paste -sd "" - \ # remove newlines except last
-	| while read line; do
-		read hex b64 < <( xmllint --xpath 'concat(//item/code/text(), " ", //item/data/text())' - <<< $line )
-		[[ ! $b64 ]] && continue
+cat /tmp/shairport-sync-metadata | while read line; do
+	[[ ${line:0:6} == '<item>' ]] && item=$line || item+=$line
+	if [[ ${line: -7} == '</item>' ]]; then
+		[[ ! $item || $item == *'<length>0</length>'* ]] && continue
 		
-		value=$( base64 -d <<< $b64 2> /dev/null )
-		[[ $value ]] && printf -v $CODE[$hex] '%s' $value
-	  done
+		item=$( tr -d '\000' <<< $item | sed -E 's|(</item>).*$|\1|' ) # remove null byte and trailng
+		read hex b64 < <( xmllint --xpath 'concat(//item/code/text(), " ", //item/data/text())' - <<< $item 2> /dev/null | tr -d '\000' )
+		[[ $? == 0 ]] && printf -v ${CODE[$hex]} '%s' $( base64 -d <<< $b64 )
+		item=
+	fi
+done
 ```
 
 - `type` and `code` : *`xxd -r -p <<< $hex`*
