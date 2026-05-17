@@ -54,6 +54,8 @@ stdbuf -oL cat /tmp/shairport-sync-metadata \
 	| paste -sd "" - \ # remove newlines except last
 	| while read line; do
 		read hex b64 < <( xmllint --xpath 'concat(//item/code/text(), " ", //item/data/text())' - <<< $line )
+		[[ ! $b64 ]] && continue
+		
 		value=$( base64 -d <<< $b64 2> /dev/null )
 		[[ $value ]] && printf -v $CODE[$hex] '%s' $value
 	  done
