@@ -51,7 +51,7 @@ declare -A CODE=(
 )
 stdbuf -oL cat /tmp/shairport-sync-metadata \
 	| grep -zoP '(?s)<item>.*?</item>' \
-	| tr -d '\n' \
+	| paste -sd - \
 	| while read line; do
 		read code b64 < <( xmllint --xpath 'concat(//item/code/text(), " ", //item/data/text())' - <<< $line )
 		printf -v $CODE[$hex] '%s' $( base64 -d <<< $b64 ) # base64 > string
