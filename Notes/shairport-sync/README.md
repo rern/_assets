@@ -114,7 +114,7 @@ hex       code    field            decoded value - example : format
 70617573  pfls    [play flush]
 7063656e  pcen    [picture end]
 70637374  pcst    [picture start]
-50494354  PICT    picture          data:image/jpeg;base64,... : (can be saved to file directly)
+50494354  PICT    picture          data:image/jpeg;base64,... : (save to *.jpg)
 7072736d  prsm    [play resume]
 70766f6c  pvol    play volume      -24.78,24.08,0.00,60.00 : airplay,current,limitH,limitL
 736e616d  snam    server name
