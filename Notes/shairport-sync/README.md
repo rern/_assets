@@ -49,17 +49,23 @@ declare -A CODE=(
 	[63617073]=state
 	[70766f6c]=volume
 )
-cat /tmp/shairport-sync-metadata | while read line; do
-	[[ ${line:0:6} == '<item>' ]] && item=$line || item+=$line
-	if [[ ${line: -7} == '</item>' ]]; then
-		[[ ! $item || $item == *'<length>0</length>'* ]] && continue
-		
-		item=$( tr -d '\000' <<< $item | sed -E 's|(</item>).*$|\1|' ) # remove null byte and trailng
-		read hex b64 < <( xmllint --xpath 'concat(//item/code/text(), " ", //item/data/text())' - <<< $item 2> /dev/null | tr -d '\000' )
-		[[ $? == 0 ]] && printf -v ${CODE[$hex]} '%s' $( base64 -d <<< $b64 )
-		item=
-	fi
-done
+cat /tmp/shairport-sync-metadata \
+	| while read line; do
+		[[ $line =~ '<code>'.*'<code>' ]] && continue # skip: no value / double codes
+
+		if [[ ${line:0:6} == '<item>' ]]; then
+			item=$line
+		elif [[ $item ]]; then
+			item+=$line
+			if [[ ${line: -7} == '</item>' ]]; then
+				[[ ! $item || $item == *'<length>0</length>'* ]] && continue
+				
+				read hex b64 < <( xmllint --xpath 'concat(//item/code/text(), " ", //item/data/text())' - <<< $item 2> /dev/null | tr -d '\000' )
+				[[ $? == 0 && $b64 ]] && printf -v ${CODE[$hex]} '%s' $( tr -d '\000' <<< $b64 | base64 -d )
+				item=
+			fi
+		fi
+	done
 ```
 
 - `type` and `code` : *`xxd -r -p <<< $hex`*
