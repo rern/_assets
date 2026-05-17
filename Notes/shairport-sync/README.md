@@ -58,19 +58,18 @@ hex       code    field            decoded value - example : format
 61736172  asar    artist
 6173636d  ascm	  comment
 61736370  ascp    composer
-6173646b  asdk    data kind        0-timed/1-stream
-61736472  asdr    date
+6173646b  asdk    data kind        0-timed / 1-stream
+61736472  asdr    description (legacy)
 61736474  asdt	  description
 6173666d  asfm	  format
 6173676e  asgn    genre
 6173736e  assn	  series name
 61737463  astc    track count
 6173746e  astn    track number
-6173746d  astm	  tempo
 6173746d  astm    time
 6173756c  asul	  url
 61737972  asyr	  year
-63617073  caps    play state       1-play/2-pause (AQ==/Ag=)
+63617073  caps    play state       1-play / 2-pause (AQ==/Ag=)
 6d696e6d  minm    item name (title)
 6d706572  mper    persistent track id
 
