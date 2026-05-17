@@ -37,7 +37,6 @@ cat /tmp/shairport-sync-metadata
 
 # decode
 declare -A CODE=(
-	[70766f6c]=volume
 	[6173616c]=Album
 	[61736161]=AlbumArtist
 	[61736172]=Artist
@@ -48,8 +47,10 @@ declare -A CODE=(
 	[50494354]=coverart
 	[70726772]=progress
 	[63617073]=state
+	[70766f6c]=volume
 )
-cat /tmp/shairport-sync-metadata \
+stdbuf -oL cat /tmp/shairport-sync-metadata \
+	| grep --line-buffered '<item>' \
 	| tr -d '\n' \
 	| xmllint --xpath 'concat(//item/code/text(), " ", //item/data/text())' - \
 	| while read -r hex b64; do
@@ -73,12 +74,12 @@ hex       code    field            decoded value - example : format
 6173646b  asdk    data kind        0-timed / 1-stream
 61736472  asdr    description (legacy)
 61736474  asdt	  description
-6173666d  asfm	  format
+6173666d  asfm	  format           aac / alac / flac / mp3 / stream / wav
 6173676e  asgn    genre
 6173736e  assn	  series name
 61737463  astc    track count
 6173746e  astn    track number
-6173746d  astm    time
+6173746d  astm    tempo
 6173756c  asul	  url
 61737972  asyr	  year
 63617073  caps    play state       1-play / 2-pause (AQ==/Ag=)
