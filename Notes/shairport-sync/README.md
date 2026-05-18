@@ -10,7 +10,7 @@ Request to AirPlay devices
 curl -vX POST https://IP_ADDRESS:PORT
 ```
 
-**Fix** 
+**Fix**
 ```
 # Failed to determine user credentials: No such process
 systemctl daemon-reexec
@@ -59,7 +59,7 @@ cat /tmp/shairport-sync-metadata \
 			item+=$line
 			if [[ $line == *'item>' ]]; then
 				[[ ! $item || $item == *'<length>0</length>'* ]] && continue
-				
+
 				read hex b64 < <( xmllint --xpath 'concat(//item/code/text(), " ", //item/data/text())' - <<< $item 2> /dev/null | tr -d '\000' )
 				[[ $? == 0 && $b64 ]] && printf -v ${CODE[$hex]} '%s' $( tr -d '\000' <<< $b64 | base64 -d )
 				item=
@@ -92,7 +92,7 @@ hex       code    field            decoded value - example : format
 6173746d  astm    tempo
 6173756c  asul	  url
 61737972  asyr	  year
-63617073  caps    play state       1-play / 2-pause (AQ==/Ag=)
+63617073  caps    state            0 / 1 / 2 / 3 : stop / play / pause / buffer (AA==/AQ==/Ag=/Aw==)
 6d696e6d  minm    item name (title)
 6d706572  mper    persistent track id
 
