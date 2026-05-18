@@ -51,13 +51,13 @@ declare -A CODE=(
 )
 cat /tmp/shairport-sync-metadata \
 	| while read line; do
-		[[ $line =~ '<code>'.*'<code>' ]] && continue # skip: double codes
+		[[ $line == *'>0</length>' || $line == '<code'* ]] && continue
 
-		if [[ ${line:0:6} == '<item>' ]]; then
+		if [[ $line == '<item'* ]]; then
 			item=$line
 		elif [[ $item ]]; then
 			item+=$line
-			if [[ ${line: -7} == '</item>' ]]; then
+			if [[ $line == *'item>' ]]; then
 				[[ ! $item || $item == *'<length>0</length>'* ]] && continue
 				
 				read hex b64 < <( xmllint --xpath 'concat(//item/code/text(), " ", //item/data/text())' - <<< $item 2> /dev/null | tr -d '\000' )
