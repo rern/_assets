@@ -1,5 +1,9 @@
 ### Shairport Sync
 [Shairport Sync](https://github.com/mikebrady/shairport-sync) - AirPlay audio player. Shairport Sync adds multi-room capability with Audio Synchronisation
+- `/etc/shairport-sync.conf`
+	- `run_this_before_play_begins` - On play - start metadata
+	- `run_this_after_play_ends` - On pause / disconnect
+	-
 
 [Shairport Sync Metadata](https://github.com/mikebrady/shairport-sync-metadata-reader)
 
@@ -14,6 +18,21 @@ curl -vX POST https://IP_ADDRESS:PORT
 ```
 # Failed to determine user credentials: No such process
 systemctl daemon-reexec
+```
+
+**D-Bus**
+```sh
+# /etc/shairport-sync.conf
+# /etc/dbus-1/system.d/shairport-sync-dbus.conf
+# /etc/dbus-1/system.d/shairport-sync-mpris.conf
+
+# bash
+dbus-monitor --system "type='signal',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged'"
+
+# python
+import dbus
+bus = dbus.SystemBus()
+player = bus.get_object('org.mpris.MediaPlayer2.ShairportSync', '/org/mpris/MediaPlayer2')
 ```
 
 **Default `shairport-sync-metadata-reader`**
@@ -48,6 +67,10 @@ declare -A CODE=(
 	[70726772]=progress
 	[63617073]=state
 	[70766f6c]=volume
+	[61626567]=airplay_begin
+	[61656e64]=airplay_end
+	[70626567]=play_begin
+	[70656e64]=play_end
 )
 cat /tmp/shairport-sync-metadata \
 	| while read line; do
@@ -104,7 +127,7 @@ hex       code    field            decoded value - example : format
 ----------------------------------------------------------------------------------
 61626567  abeg    [airplay begin]
 61637265  acre    active remote
-61656e64  aend    [airplay end]
+61656e64  aend    [airplay end]   (missing sometime)
 63646964  cdid    client device id
 636c6970  clip    client ip
 636d6163  cmac    client mac
@@ -114,7 +137,6 @@ hex       code    field            decoded value - example : format
 666c7372  flsr    [flush request]
 6d647374  mdst    [metadata start]
 6d64656e  mden    [metadata end]
-70726772  prgr    progress         1056674953/1056687241/1072515673 : start/current/end (seconds=value/41000)
 70626567  pbeg    [play begin]
 70656e64  pend    [play end]
 70666672  pffr    [play first frame]
@@ -122,6 +144,7 @@ hex       code    field            decoded value - example : format
 7063656e  pcen    [picture end]
 70637374  pcst    [picture start]
 50494354  PICT    picture          data:image/jpeg;base64,... : (save to *.jpg)
+70726772  prgr    progress*         1056674953/1056687241/1072515673 : start/current/end (44100/s)
 7072736d  prsm    [play resume]
 70766f6c  pvol    play volume      -24.78,24.08,0.00,60.00 : airplay,current,limitH,limitL
 736e616d  snam    server name
@@ -130,8 +153,19 @@ hex       code    field            decoded value - example : format
 73747970  styp    stream type      music / video / podcast / radio / airplay
 73766970  svip    server ip
 ```
+\* `prgr progress` - `current` slipped if source device sleep-wakeup
 
 ### Code Examples
+```sh
+cat /tmp/shairport-sync-metadata | while read line; do
+	if [[ $line == '<item'* ]]; then
+		echo "$hex  $( xxd -r -p <<< $hex )    $value"
+		hex=$( sed -E 's|.*code>(.*)</code.*|\1|' <<< $line )
+		value=
+	elif [[ $line == *'item>' ]]; then
+		value=$( sed 's|<.*$||' <<< $line | base64 -d ) # base64 - null byte warning: caps(state)
+done
+```
 - Connect
 ```
 736e7561  snua
@@ -139,39 +173,44 @@ hex       code    field            decoded value - example : format
 64616964  daid
 636c6970  clip
 73766970  svip
-61626567  abeg
-70626567  pbeg
-70766f6c  pvol
-70766f6c  pvol
+61626567  abeg    airplay_begin
+70626567  pbeg    play_begin
+70766f6c  pvol    volume
+70666672  pffr
 666c7372  flsr
-6461706f  dapo
+70666c73  pfls
 70637374  pcst
-50494354  PICT
-7063656e  pcen
-70726772  prgr
-7072736d  prsm
-70656e64  pend
-61656e64  aend
+50494354  PICT    coverart
+6d647374  mdst
+6d706572  mper
+61737463  astc
+6173646b  asdk
+63617073  caps    state
+6173746d  astm
+6d64656e  mden
+6461706f  dapo
+70656e64  pend    play_end
 ```
 - Disconnect
 ```
-61656e64  aend
+70656e64  pend    play_end
+61656e64  aend    airplay_end (missing sometimes)
 ```
 - Play
 ```
 64616964  daid
 636c6970  clip
 73766970  svip
-61626567  abeg
-70626567  pbeg
-70766f6c  pvol
+61626567  abeg    airplay_begin
+70626567  pbeg    play_begin
+70766f6c  pvol    volume
 666c7372  flsr
 6461706f  dapo
 70637374  pcst
-50494354  PICT
+50494354  PICT    coverart
 7063656e  pcen
-6173616c  asal
-61736172  asar
+6173616c  asal    album
+61736172  asar    artist
 61736161  asaa
 61736370  ascp
 6173676e  asgn
@@ -179,7 +218,7 @@ hex       code    field            decoded value - example : format
 6173746e  astn
 61737463  astc
 6173646b  asdk
-63617073  caps
+63617073  caps    state
 6173746d  astm
 6d64656e  mden
 73747970  styp
@@ -189,13 +228,13 @@ hex       code    field            decoded value - example : format
 70637374  pcst
 50494354  PICT
 7063656e  pcen
-70726772  prgr
+70726772  prgr    progress
 6d706572  mper
 6173616c  asal
 61736172  asar
 61736370  ascp
 6173676e  asgn
-6d696e6d  minm
+6d696e6d  minm    title
 6173746e  astn
 61737463  astc
 6173646b  asdk
