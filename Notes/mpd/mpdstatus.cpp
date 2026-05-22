@@ -1,3 +1,5 @@
+// g++ mpdstatus.cpp $(pkg-config --cflags --libs libmpdclient) -o $dirbash/mpdstatus
+
 #include <mpd/client.h>
 #include <array>
 #include <chrono>
