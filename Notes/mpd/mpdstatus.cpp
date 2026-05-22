@@ -1,10 +1,19 @@
-// g++ mpdstatus.cpp $(pkg-config --cflags --libs libmpdclient) -o mpdstatus
-
 #include <mpd/client.h>
 #include <iostream>
 #include <cstring>
 #include <string>
+#include <chrono>
 
+std::string quoteEscape(const char *value) {
+    std::string result;
+    // Pre-allocate memory to avoid multiple reallocations during push_back
+    result.reserve(std::string_view(value).size() * 1.1);
+    for (const char *p = value; *p != '\0'; ++p) {
+        if (*p == '"') result.push_back('\\');
+        result.push_back(*p);
+    }
+    return result;
+}
 static const char* state_str(mpd_state s) {
     switch (s) {
         case MPD_STATE_PLAY:  return "play";
@@ -15,7 +24,10 @@ static const char* state_str(mpd_state s) {
 }
 // ---------------- CLIENT ----------------
 class MPDClient {
-public:
+	private:
+	mpd_connection *conn = nullptr;
+
+	public:
     MPDClient() {
         conn = mpd_connection_new(nullptr, 0, 30000);
     }
@@ -34,27 +46,25 @@ public:
         mpd_song *song = mpd_run_current_song(conn);
         if (song) {
 			std::cout
-				<< ", \"file\": \"" << mpd_song_get_uri(song) << "\"\n"
+				<< "  \"file\": \"" << mpd_song_get_uri(song) << "\"\n"
 				<< ", \"pos\": "    << mpd_song_get_pos(song) << "\n";
-
 			for (int tag = 0; tag < MPD_TAG_COUNT; ++tag) {
 				auto type = static_cast<mpd_tag_type>(tag);
-
 				for (unsigned i = 0;; ++i) {
 					const char *value = mpd_song_get_tag(song, type, i);
 
-					if (!value) break;
+					if (value == nullptr) break;
 
-					std::cout << ", \"" << mpd_tag_name(type) << "\": \"" << value << "\"\n";
+					std::cout << ", \"" << mpd_tag_name(type) << "\": \"" << quoteEscape(value) << "\"\n";
 				}
 			}
-
             mpd_song_free(song);
         }
-
         // ---- status ----
         mpd_status *st = mpd_run_status(conn);
         if (st) {
+			auto now = std::chrono::system_clock::now();
+			auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch());
             const mpd_audio_format *fmt = mpd_status_get_audio_format(st);
 			if (fmt != nullptr) { // while play/pause only
 				std::cout
@@ -63,18 +73,20 @@ public:
 					<< ", \"channel\": "    << std::to_string(fmt->channels)    << "\n";
 			}
 			std::cout
-				<< ", \"bitrate\": "  << mpd_status_get_kbit_rate(st)        << "\n"
-				<< ", \"state\": \""  << state_str(mpd_status_get_state(st)) << "\"\n"
-				<< ", \"elapsed\": "  << mpd_status_get_elapsed_time(st)     << "\n"
-				<< ", \"duration\": " << mpd_status_get_total_time(st)       << "\n"
-				<< ", \"pllength\": " << mpd_status_get_queue_length(st)     << "\n"
-				<< ", \"volume\": "   << mpd_status_get_volume(st)           << "\n"
-
+				<< ", \"state\": \""     << state_str(mpd_status_get_state(st)) << "\"\n"
+				<< ", \"bitrate\": "     << mpd_status_get_kbit_rate(st)        << "\n"
+				<< ", \"crossfade\": "   << mpd_status_get_crossfade(st)        << "\n"
+				<< ", \"duration\": "    << mpd_status_get_total_time(st)       << "\n"
+				<< ", \"elapsed\": "     << mpd_status_get_elapsed_time(st)     << "\n"
+				<< ", \"pllength\": "    << mpd_status_get_queue_length(st)     << "\n"
+				<< ", \"volume\": "      << mpd_status_get_volume(st)           << "\n"
+				<< ", \"timestamp\": "   << timestamp.count()                   << "\n"
 				<< std::boolalpha
-				<< ", \"consume\": "  << mpd_status_get_consume(st)          << "\n"
-				<< ", \"random\": "   << mpd_status_get_random(st)           << "\n"
-				<< ", \"repeat\": "   << mpd_status_get_repeat(st)           << "\n"
-				<< ", \"single\": "   << mpd_status_get_single(st)           << "\n"
+				<< ", \"consume\": "     << mpd_status_get_consume(st)          << "\n" // deprecated for mpd_status_get_consume_state
+				<< ", \"random\": "      << mpd_status_get_random(st)           << "\n"
+				<< ", \"repeat\": "      << mpd_status_get_repeat(st)           << "\n"
+				<< ", \"single\": "      << mpd_status_get_single(st)           << "\n" // depecated for mpd_status_get_single_state
+				<< ", \"updating_db\": " << mpd_status_get_update_id(st)        << "\n"
 				<< std::noboolalpha;
 
             mpd_status_free(st);
@@ -83,34 +95,24 @@ public:
 
     void onChange() {
         while (true) {
-            // enter idle mode
 			mpd_send_idle(conn);
 			mpd_idle ev = mpd_recv_idle(conn, true);
-			// check error via connection, NOT ev
 			if (mpd_connection_get_error(conn) != MPD_ERROR_SUCCESS) {
-				std::cerr << "idle error: "
-						  << mpd_connection_get_error_message(conn)
-						  << "\n";
+				std::cerr << "idle error: " << mpd_connection_get_error_message(conn) << "\n";
 				break;
 			}
 			mpd_response_finish(conn);
 			if (ev == 0) {
-				std::cerr << "Error or timeout reading idle events.\n";
+				std::cerr << "idle error: Error or timeout reading idle events.\n";
 			} else {
-				std::cout << "{\n";
-				if (ev & MPD_IDLE_PLAYER)   std::cout << "  \"event\": \"player\"\n";
-				if (ev & MPD_IDLE_PLAYLIST) std::cout << "  \"event\": \"playlist\"\n";
-				if (ev & MPD_IDLE_MIXER)    std::cout << "  \"event\": \"volume\"\n";
-				if (ev & MPD_IDLE_DATABASE) std::cout << "  \"event\": \"updating_db\"\n";
+				if (ev & MPD_IDLE_MIXER)    std::cout << "mixer\n";
+				if (ev & MPD_IDLE_PLAYER)   std::cout << "player\n";
+				if (ev & MPD_IDLE_PLAYLIST) std::cout << "playlist\n";
+				if (ev & MPD_IDLE_DATABASE) std::cout << "update\n";
 
-				status();
-				std::cout << "}\n" << std::flush;
 			}
         }
     }
-
-	private:
-		mpd_connection *conn = nullptr;
 };
 
 int main(int argc, char **argv) {
@@ -127,10 +129,15 @@ int main(int argc, char **argv) {
 	}
 
     std::string mode = argv[1];
-    if (mode == "idle") {
+    if (mode == "-i") {
         mpd.onChange();
         return 0;
-    }
+    } else if (mode == "-j") {
+		std::cout << "{\n";
+		mpd.status();
+		std::cout << "}\n" << std::flush;
+		return 0;
+	}
 
     std::cout << "Usage: mpdstatus [idle]\n";
 
