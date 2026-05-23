@@ -18,13 +18,23 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <unistd.h>
 #include <vector>
 
-static bool json_format = false;
-static bool no_brace    = false;
-static bool is_string   = true;
+bool json_format = false;
+bool no_brace    = false;
+bool is_string   = true;
 
-static std::string fileContent(const std::string file) {
+std::string alphaNumeric(const std::string input) {
+    std::string result;
+    for (unsigned char c : input) {
+        char lower = std::tolower(c);
+        if (std::isalnum(lower)) result.push_back(lower);
+    }
+    return result;
+}
+
+std::string fileContent(const std::string file) {
 	std::ifstream file_object(file);
 	std::string content((std::istreambuf_iterator<char>(file_object)),
 						 std::istreambuf_iterator<char>());
@@ -32,12 +42,35 @@ static std::string fileContent(const std::string file) {
 	return content;
 }
 
-static bool fileLocal(const std::string file) {
-	std::filesystem::path file_path = file;
-	return std::filesystem::exists(file_path);
+std::string fileCover(const std::string file) {
+	namespace fs          = std::filesystem;
+    std::filesystem::path pathObj(file);
+	std::string directory = pathObj.parent_path().string();
+
+    std::vector<std::string> keywords   = {"album", "cover", "folder", "front"};
+    std::vector<std::string> extensions = {".gif", ".jpg", ".png"};
+
+    for (const auto& entry : fs::directory_iterator(directory)) {
+        if (!entry.is_regular_file()) continue;
+
+        std::string filename = entry.path().filename().string();
+        std::string ext      = entry.path().extension().string();
+
+        // check extension
+        auto extMatch = std::find(extensions.begin(), extensions.end(), ext);
+        if (extMatch == extensions.end()) continue;
+
+        // check keywords in filename (case-insensitive optional)
+        for (const auto& kw : keywords) {
+            if (filename.find(kw) != std::string::npos) {
+                return entry.path().string(); // return full path
+            }
+        }
+    }
+    return "";
 }
 
-static std::string quoteEscape(const char *value) {
+std::string quoteEscape(const char *value) {
 	if (!value) return "";
 
 	std::string result;
@@ -49,7 +82,7 @@ static std::string quoteEscape(const char *value) {
 	return result;
 }
 
-static std::string statusFormat(const std::string key, const std::string value) {
+std::string statusFormat(const std::string key, const std::string value) {
 	if (json_format) {
 		if (is_string) return ", \""+ key +"\": \""+ quoteEscape(value.c_str()) +"\"";
 
@@ -61,19 +94,25 @@ static std::string statusFormat(const std::string key, const std::string value) 
 	}
 }
 
-static const char* str_consume(mpd_consume_state state) {
+bool stringContains(const std::string str, const std::string sub) {
+	if (str.find(sub) != std::string::npos) return true;
+
+	return false;
+}
+
+const char* str_consume(mpd_consume_state state) {
 	if (state == MPD_CONSUME_ON) return "true";
 //    if (state == MPD_CONSUME_ONESHOT) return json_format ? "\"oneshot\"" : "oneshot";
 	return "false";
 }
 
-static const char* str_single(mpd_single_state state) {
+const char* str_single(mpd_single_state state) {
 	if (state == MPD_SINGLE_ON) return "true";
 //    if (state == MPD_SINGLE_ONESHOT) return json_format ? "\"oneshot\"" : "oneshot";
 	return "false";
 }
 
-static const char* str_state(mpd_state state) {
+const char* str_state(mpd_state state) {
 	switch (state) {
 		case MPD_STATE_PLAY:  return "play";
 		case MPD_STATE_PAUSE: return "pause";
@@ -100,22 +139,44 @@ public:
 	}
 
 	void status() {
-		const char* uri;
+		std::string Album    = "";
+		std::string Artist   = "";
+		std::string coverart = "";
+		std::string ext      = "";
 		std::filesystem::path file;
+		std::string icon     = "";
+		std::string player   = fileContent("/srv/http/data/shm/player");
+		std::string sampling = "";
+		bool stream          = false;
+		const char* uri;
+		std::string uri_ini;
 		std::vector<std::string> v;
-		std::string player  = fileContent("/srv/http/data/shm/player");
-		mpd_song *song = mpd_run_current_song(conn);
+		bool webradio        = false;
+
+		mpd_song *song       = mpd_run_current_song(conn);
 		if (song) {
 			uri  = mpd_song_get_uri(song);
-			file = "/mnt/MPD/"+ std::string(uri);
-			if (uri) v.push_back(statusFormat("file", uri));
+			uri_ini = std::string(uri).substr(0, 4);
+			if ( uri_ini == "http" || uri_ini == "rtmp" || uri_ini == "rtp:" || uri_ini == "rtsp" ) {
+				stream = true;
+			} else {
+				file = "/mnt/MPD/"+ std::string(uri);
+			}
+			v.push_back(statusFormat( "file", uri ));
 
 			for (int tag = 0; tag < MPD_TAG_COUNT; ++tag) {
 				auto type = static_cast<mpd_tag_type>(tag);
 				for (unsigned i = 0;; ++i) {
 					const char *value = mpd_song_get_tag(song, type, i);
 					if (value == nullptr) break;
-					v.push_back(statusFormat(mpd_tag_name(type), value));
+
+					std::string tag = mpd_tag_name(type);
+					v.push_back(statusFormat(tag, value));
+					if ( tag == "Album" ) {
+						Album = value;
+					} else if ( tag == "Artist" ) {
+						Artist = value;
+					}
 				}
 			}
 		}
@@ -126,15 +187,10 @@ public:
 			auto timestamp      = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch());
 			unsigned bitdepth   = 0;
 			unsigned bitrate    = mpd_status_get_kbit_rate(st);
-			std::string ext     = "";
 			unsigned pllength   = mpd_status_get_queue_length(st);
 			unsigned pos        = mpd_song_get_pos(song);
 			unsigned samplerate = 0;
-
 			std::string state   = str_state(mpd_status_get_state(st));
-			bool local_file     = fileLocal(file);
-			bool upnp           = player != "upnp";
-			bool webradio       = false;
 
 			if (state == "play") {
 				const mpd_audio_format *fmt = mpd_status_get_audio_format(st);
@@ -143,7 +199,7 @@ public:
 					samplerate = fmt->sample_rate;
 				}
 			} else {
-				if (local_file) {
+				if (!stream) {
 					TagLib::FileRef f(file.c_str());
 					TagLib::AudioProperties *p = f.audioProperties();
 					if (p) samplerate = p->sampleRate();
@@ -154,34 +210,57 @@ public:
 					}
 				}
 			}
-			std::string sampling;
-			if (pllength > 1)   sampling += std::to_string(pos+1) +"/"+ std::to_string(pllength) +" • ";
+
+			if (pllength   > 1) sampling += std::to_string(pos + 1) +"/"+ std::to_string(pllength) +" • ";
 			if (bitdepth   > 0) sampling += std::to_string(bitdepth) +"bit ";
 			if (samplerate > 0) sampling += std::format("{:.1f}", samplerate / 1000.0) +" kHz";
 			if (bitrate    > 0) sampling += " "+ std::to_string(bitrate) +" kHz";
-			if (local_file) {
-				ext = file.extension().string();
+			if (!stream) {
+				ext       = file.extension().string();
 				ext.erase(0, 1);
 				std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return std::toupper(c); });
 				sampling += " • "+ ext;
-
-				std::filesystem::path pathObj(file);
-				std::string directory = pathObj.parent_path().string();
-				if (std::filesystem::exists(directory)) {
-					std::string coverart = directory +"/coverart.jpg";
-				}
+				coverart  = fileCover(file);
 			} else {
-				if ( upnp ) {
-					// covername=$( alphaNumeric $Artist$Album )
-					// onlinefile=$( ls $dirshm/online/$covername.* 2> /dev/null | head -1 )
+				if (player == "upnp") {
+					coverart = "/data/shm/online/"+ alphaNumeric(Album + Artist) +".jpg";
 				} else {
 					webradio  = true;
-					ext       = "Radio";
-					sampling += " • Radio";
+					std::string dir_radio;
+					std::string url = std::string(uri);
+					if (url.rfind("cdda", 0) == 0) {
+						ext       = "CD";
+						icon      = "audiocd";
+						std::string discid = fileContent("/srv/http/data/shm/audiocd");
+					} else if (url.rfind("rtsp", 0) == 0) {
+						ext       = "DAB";
+						icon      = "dabradio";
+						dir_radio = "dabradio/";
+					} else {
+						ext       = "Radio";
+						dir_radio = "webradio/";
+						if (stringContains(url, "icecast.radiofrance.fr")) {
+							icon = "radiofrance";
+						} else if (stringContains(url, "stream.radioparadise.com")) {
+							icon = "radioparadise";
+						}
+					}
+					std::string stationcover = "/data/"+ dir_radio +"coverart.jpg";
+					std::replace(url.begin(), url.end(), '/', '|');
+					std::string content = fileContent("/srv/http/data/"+ dir_radio + url);
+					std::vector<std::string> radiodata;
+					std::istringstream iss(content);
+					std::string line;
+					while (std::getline(iss, line)) radiodata.push_back(line);
+					sampling += radiodata[1] +" • Radio";
+					v.push_back(statusFormat( "station",      radiodata[0] ));
+					v.push_back(statusFormat( "stationcover", "/data/"+ dir_radio +"img/"+ url +".jpg" ));
 				}
 			}
 
+			v.push_back(statusFormat( "coverart",    coverart ));
 			v.push_back(statusFormat( "ext",         ext ));
+			v.push_back(statusFormat( "icon",        icon ));
 			v.push_back(statusFormat( "player",      player ));
 			v.push_back(statusFormat( "state",       state ));
 			v.push_back(statusFormat( "sampling",    sampling ));
