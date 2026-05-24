@@ -104,18 +104,6 @@ bool stringContains(const std::string str, const std::string sub) {
 	return false;
 }
 
-const char* str_consume(mpd_consume_state state) {
-	if (state == MPD_CONSUME_ON) return "true";
-//    if (state == MPD_CONSUME_ONESHOT) return json_format ? "\"oneshot\"" : "oneshot";
-	return "false";
-}
-
-const char* str_single(mpd_single_state state) {
-	if (state == MPD_SINGLE_ON) return "true";
-//    if (state == MPD_SINGLE_ONESHOT) return json_format ? "\"oneshot\"" : "oneshot";
-	return "false";
-}
-
 const char* str_state(mpd_state state) {
 	switch (state) {
 		case MPD_STATE_PLAY:  return "play";
@@ -144,12 +132,12 @@ public:
 
 	void status() {
 		std::filesystem::path F;
-		std::unordered_map<std::string, std::string> S;
 		std::unordered_map<std::string, bool> B;
+		std::unordered_map<std::string, std::string> S;
 		std::unordered_map<std::string, unsigned> U;
 		bool stream          = false;
 		bool webradio        = false;
-		std::string file_ini;
+		std::string coverart, ext, file_ini, icon;
 		S["player"]          = fileContent("/srv/http/data/shm/player")[0];
 
 		mpd_song *song = mpd_run_current_song(conn);
@@ -161,6 +149,10 @@ public:
 				stream = true;
 			} else {
 				F = "/mnt/MPD/"+ S["file"];
+				ext = F.extension().string();
+				ext.erase(1);
+				std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return std::toupper(c); });
+				coverart = fileCover(F);
 			}
 			for (int tag = 0; tag < MPD_TAG_COUNT; ++tag) {
 				auto type = static_cast<mpd_tag_type>(tag);
@@ -203,54 +195,11 @@ public:
 				}
 			}
 
-								   S["sampling"] = "";
+								   S["sampling"]  = "";
 			if (U["pllength"] > 1) S["sampling"] += std::to_string(U["pos"] + 1) +"/"+ std::to_string(U["pllength"]) +" • ";
 			if (bitdepth   > 0)    S["sampling"] += std::to_string(bitdepth) +"bit ";
 			if (samplerate > 0)    S["sampling"] += std::format("{:.1f}", samplerate / 1000.0) +" kHz";
 			if (bitrate    > 0)    S["sampling"] += " "+ std::to_string(bitrate) +" kHz";
-			if (!stream) {
-				S["ext"]      = F.extension().string();
-				S["ext"].erase(0, 1);
-				std::transform(S["ext"].begin(),
-							   S["ext"].end(),
-							   S["ext"].begin(),
-							   [](unsigned char c){ return std::toupper(c); });
-				S["sampling"] += " • "+ S["ext"];
-				S["coverart"] = fileCover(F);
-			} else {
-				if (S["player"] == "upnp") {
-					S["coverart"] = "/data/shm/online/"+ alphaNumeric(S["Album"] + S["Artist"]) +".jpg";
-				} else {
-					webradio   = true;
-					std::string dir_radio;
-					std::string url = S["file"];
-					size_t p = url.find("#charset");
-					if (p != std::string::npos) url.erase(p); // erase from '#charset' to end
-					if (file_ini == "cdda") {
-						S["ext"]  = "CD";
-						S["icon"] = "audiocd";
-						std::vector<std::string> discid = fileContent("/srv/http/data/shm/audiocd");
-					} else if (file_ini == "rtsp") {
-						S["ext"]  = "DAB";
-						S["icon"] = "dabradio";
-						dir_radio = "dabradio/";
-					} else {
-						S["ext"]  = "Radio";
-						dir_radio = "webradio/";
-						if (stringContains(url, "icecast.radiofrance.fr")) {
-							S["icon"] = "radiofrance";
-						} else if (stringContains(url, "stream.radioparadise.com")) {
-							S["icon"] = "radioparadise";
-						}
-					}
-					std::string stationcover = "/data/"+ dir_radio +"coverart.jpg";
-					std::replace(url.begin(), url.end(), '/', '|');
-					std::vector<std::string> radiodata = fileContent("/srv/http/data/"+ dir_radio + url);
-					S["sampling"]    += radiodata[1] +" • Radio";
-					S["station"]      = radiodata[0];
-					S["stationcover"] = "/data/"+ dir_radio +"img/"+ url +".jpg";
-				}
-			}
 
 			U["elapsed"]     = mpd_status_get_elapsed_time(st);
 			U["crossfade"]   = mpd_status_get_crossfade(st);
@@ -266,6 +215,55 @@ public:
 			mpd_status_free(st);
 		}
 		if (song) mpd_song_free(song);
+
+		if (file_ini == "cdda") {
+			ext       = "CD";
+			icon      = "audiocd";
+			std::string discid  = fileContent("/srv/http/data/shm/audiocd")[0];
+			std::string file_id = "/srv/http/data/audiocd/"+ discid;
+/*			if (std::filesystem::exists(file_id)) {
+				std::vector<std::string> data = fileContent(file_id);
+				std::string track = std::filesystem::path(S["file"]).filename().string();
+				std::vector<std::string> disciddata = data[track];
+				std::vector<std::string> k = {"Artist", "Album", "Title", "Time"};
+				for (size_t i = 0; i < k.size(); i++) S[k[i]] = disciddata[i];
+				coverart = "/data/audiocd/"+ discid +".jpg";
+			} else {
+				if (S["state"] == "stop") Time = 0;
+			}*/
+		} else if (stream) {
+			if (S["player"] == "upnp") {
+				ext = "UPnP";
+				coverart = "/data/shm/online/"+ alphaNumeric(S["Album"] + S["Artist"]) +".jpg";
+			} else {
+				webradio  = true;
+				std::string dir_radio;
+				std::string url = S["file"];
+				size_t p = url.find("#charset");
+				if (p != std::string::npos) url.erase(p); // erase from "#charset" to end
+				if (file_ini == "rtsp") {
+					ext       = "DAB";
+					icon      = "dabradio";
+					dir_radio = "dabradio/";
+				} else {
+					ext       = "Radio";
+					dir_radio = "webradio/";
+					if (stringContains(url, "icecast.radiofrance.fr")) {
+						icon = "radiofrance";
+					} else if (stringContains(url, "stream.radioparadise.com")) {
+						icon = "radioparadise";
+					}
+				}
+				std::replace(url.begin(), url.end(), '/', '|');
+				std::vector<std::string> radiodata = fileContent("/srv/http/data/"+ dir_radio + url);
+				S["sampling"]    += ext == "DAB" ?"48 kHz 160 kbit/s • DAB" : radiodata[1] +" • Radio";
+				S["station"]      = radiodata[0];
+				S["stationcover"] = "/data/"+ dir_radio +"img/"+ url +".jpg";
+			}
+		}
+		S["coverart"] = coverart;
+		S["ext"]      = ext;
+		S["icon"]     = icon;
 
 		std::vector<std::string> L;
 		for (const auto& [key, value] : S) L.push_back(statusFormat(key, value, true));
