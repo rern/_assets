@@ -24,7 +24,6 @@
 
 bool json_format = false;
 bool no_brace    = false;
-bool is_string   = true;
 
 std::string alphaNumeric(const std::string input) {
     std::string result;
@@ -35,12 +34,16 @@ std::string alphaNumeric(const std::string input) {
     return result;
 }
 
-std::string fileContent(const std::string file) {
-	std::ifstream file_object(file);
-	std::string content((std::istreambuf_iterator<char>(file_object)),
-						 std::istreambuf_iterator<char>());
-	if (content.back() == '\n') content.pop_back();
-	return content;
+std::vector<std::string> fileContent(const std::string& file) {
+    std::vector<std::string> lines;
+    std::ifstream file_object(file);
+    if (!file_object.is_open()) return lines;
+
+    std::string line;
+    while (std::getline(file_object, line)) { // read line-by-line
+        lines.push_back(line);
+    }
+    return lines; // vetor
 }
 
 std::string fileCover(const std::string file) {
@@ -83,7 +86,7 @@ std::string quoteEscape(const char *value) {
 	return result;
 }
 
-std::string statusFormat(const std::string key, const std::string value) {
+std::string statusFormat(const std::string key, const std::string value, const bool is_string) {
 	if (json_format) {
 		if (is_string) return ", \""+ key +"\": \""+ quoteEscape(value.c_str()) +"\"";
 
@@ -141,20 +144,20 @@ public:
 
 	void status() {
 		std::filesystem::path F;
-		std::vector<std::string> v;
 		std::unordered_map<std::string, std::string> S;
-		std::unordered_map<std::string, bool> TF;
+		std::unordered_map<std::string, bool> B;
 		std::unordered_map<std::string, unsigned> U;
 		bool stream          = false;
 		bool webradio        = false;
-		S["player"]          = fileContent("/srv/http/data/shm/player");
+		std::string file_ini;
+		S["player"]          = fileContent("/srv/http/data/shm/player")[0];
 
 		mpd_song *song = mpd_run_current_song(conn);
 		if (song) {
-			U["Time"]    = mpd_song_get_duration(song);
-			S["file"]    = mpd_song_get_uri(song);
-			S["file_ini"] = S["file"].substr(0, 4);
-			if ( S["file_ini"] == "http" || S["file_ini"] == "rtmp" || S["file_ini"] == "rtp:" || S["file_ini"] == "rtsp" ) {
+			U["Time"]  = mpd_song_get_duration(song);
+			S["file"]  = mpd_song_get_uri(song);
+			file_ini   = S["file"].substr(0, 4);
+			if (file_ini == "http" || file_ini == "rtmp" || file_ini == "rtp:" || file_ini == "rtsp") {
 				stream = true;
 			} else {
 				F = "/mnt/MPD/"+ S["file"];
@@ -223,11 +226,11 @@ public:
 					std::string url = S["file"];
 					size_t p = url.find("#charset");
 					if (p != std::string::npos) url.erase(p); // erase from '#charset' to end
-					if (S["file_ini"] == "cdda") {
+					if (file_ini == "cdda") {
 						S["ext"]  = "CD";
 						S["icon"] = "audiocd";
-						std::string discid = fileContent("/srv/http/data/shm/audiocd");
-					} else if (S["file_ini"] == "rtsp") {
+						std::vector<std::string> discid = fileContent("/srv/http/data/shm/audiocd");
+					} else if (file_ini == "rtsp") {
 						S["ext"]  = "DAB";
 						S["icon"] = "dabradio";
 						dir_radio = "dabradio/";
@@ -242,40 +245,36 @@ public:
 					}
 					std::string stationcover = "/data/"+ dir_radio +"coverart.jpg";
 					std::replace(url.begin(), url.end(), '/', '|');
-					std::string content = fileContent("/srv/http/data/"+ dir_radio + url);
-					std::vector<std::string> radiodata;
-					std::istringstream iss(content);
-					std::string line;
-					while (std::getline(iss, line)) radiodata.push_back(line);
+					std::vector<std::string> radiodata = fileContent("/srv/http/data/"+ dir_radio + url);
 					S["sampling"]    += radiodata[1] +" • Radio";
 					S["station"]      = radiodata[0];
 					S["stationcover"] = "/data/"+ dir_radio +"img/"+ url +".jpg";
 				}
 			}
 
-			U["crossfade"]    = mpd_status_get_crossfade(st);
-			U["elapsed"]      = mpd_status_get_elapsed_time(st);
-			TF["updating_db"] = mpd_status_get_update_id(st) > 0;
-			U["volume"]       = mpd_status_get_volume(st);
-			TF["webradio"]    = webradio;
+			U["elapsed"]     = mpd_status_get_elapsed_time(st);
+			U["crossfade"]   = mpd_status_get_crossfade(st);
+			U["volume"]      = mpd_status_get_volume(st);
 
-			TF["consume"]     = mpd_status_get_consume_state(st) == MPD_CONSUME_ON;
-			TF["random"]      = mpd_status_get_random(st);
-			TF["repeat"]      = mpd_status_get_repeat(st);
-			TF["single"]      = mpd_status_get_single_state(st) == MPD_SINGLE_ON;
-
-			for (const auto& [key, value] : S) v.push_back(statusFormat(key, value));
-			is_string = false;
-			for (const auto& [key, value] : U) v.push_back(statusFormat(key, std::to_string(value) ));
-			for (const auto& [key, value] : TF) v.push_back(statusFormat(key, value ? "true" : "false"));
+			B["updating_db"] = mpd_status_get_update_id(st) > 0;
+			B["webradio"]    = webradio;
+			B["consume"]     = mpd_status_get_consume_state(st) == MPD_CONSUME_ON;
+			B["random"]      = mpd_status_get_random(st);
+			B["repeat"]      = mpd_status_get_repeat(st);
+			B["single"]      = mpd_status_get_single_state(st) == MPD_SINGLE_ON;
 
 			mpd_status_free(st);
 		}
 		if (song) mpd_song_free(song);
 
-		for (size_t i = 0; i < v.size(); ++i) {
-			if ( i == 0 && json_format && !no_brace ) v[i].replace(0, 1, " ");
-			std::cout << v[i] << "\n";
+		std::vector<std::string> L;
+		for (const auto& [key, value] : S) L.push_back(statusFormat(key, value, true));
+		for (const auto& [key, value] : U) L.push_back(statusFormat(key, std::to_string(value), false));
+		for (const auto& [key, value] : B) L.push_back(statusFormat(key, value ? "true" : "false", false));
+
+		for (size_t i = 0; i < L.size(); ++i) {
+			if ( i == 0 && json_format && !no_brace ) L[i].replace(0, 1, " ");
+			std::cout << L[i] << "\n";
 		}
 	}
 };
