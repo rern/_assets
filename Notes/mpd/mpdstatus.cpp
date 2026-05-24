@@ -137,7 +137,11 @@ public:
 		std::unordered_map<std::string, unsigned> U;
 		bool stream          = false;
 		bool webradio        = false;
-		std::string coverart, ext, file_ini, icon;
+		unsigned bitdepth    = 0;
+		unsigned bitrate     = 0;
+		unsigned samplerate  = 0;
+		std::string coverart, dir_radio, ext, file_ini, file_radio, file_sampling, icon, url;
+		std::string sampling = "";
 		S["player"]          = fileContent("/srv/http/data/shm/player")[0];
 
 		mpd_song *song = mpd_run_current_song(conn);
@@ -150,7 +154,7 @@ public:
 			} else {
 				F = "/mnt/MPD/"+ S["file"];
 				ext = F.extension().string();
-				ext.erase(1);
+				ext.erase(0, 1);
 				std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return std::toupper(c); });
 				coverart = fileCover(F);
 			}
@@ -167,14 +171,12 @@ public:
 
 		mpd_status *st = mpd_run_status(conn);
 		if (st) {
-			auto now            = std::chrono::system_clock::now();
-			U["timestamp"]      = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-			unsigned bitdepth   = 0;
-			unsigned bitrate    = mpd_status_get_kbit_rate(st);
-			U["pllength"]       = mpd_status_get_queue_length(st);
-			U["pos"]            = mpd_status_get_song_pos(st);
-			unsigned samplerate = 0;
-			S["state"]          = str_state(mpd_status_get_state(st));
+			auto now       = std::chrono::system_clock::now();
+			U["timestamp"] = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+			bitrate        = mpd_status_get_kbit_rate(st);
+			U["pllength"]  = mpd_status_get_queue_length(st);
+			U["pos"]       = mpd_status_get_song_pos(st);
+			S["state"]     = str_state(mpd_status_get_state(st));
 
 			if (S["state"] == "play") {
 				const mpd_audio_format *fmt = mpd_status_get_audio_format(st);
@@ -194,12 +196,6 @@ public:
 					}
 				}
 			}
-
-								   S["sampling"]  = "";
-			if (U["pllength"] > 1) S["sampling"] += std::to_string(U["pos"] + 1) +"/"+ std::to_string(U["pllength"]) +" • ";
-			if (bitdepth   > 0)    S["sampling"] += std::to_string(bitdepth) +"bit ";
-			if (samplerate > 0)    S["sampling"] += std::format("{:.1f}", samplerate / 1000.0) +" kHz";
-			if (bitrate    > 0)    S["sampling"] += " "+ std::to_string(bitrate) +" kHz";
 
 			U["elapsed"]     = mpd_status_get_elapsed_time(st);
 			U["crossfade"]   = mpd_status_get_crossfade(st);
@@ -221,24 +217,24 @@ public:
 			icon      = "audiocd";
 			std::string discid  = fileContent("/srv/http/data/shm/audiocd")[0];
 			std::string file_id = "/srv/http/data/audiocd/"+ discid;
-/*			if (std::filesystem::exists(file_id)) {
+			if (std::filesystem::exists(file_id)) {
 				std::vector<std::string> data = fileContent(file_id);
-				std::string track = std::filesystem::path(S["file"]).filename().string();
-				std::vector<std::string> disciddata = data[track];
+				size_t p               = S["file"].find("://");
+				int track              = std::stoi(S["file"].substr(p + 3)); // after '://'
+				std::string disciddata = data[track];
 				std::vector<std::string> k = {"Artist", "Album", "Title", "Time"};
 				for (size_t i = 0; i < k.size(); i++) S[k[i]] = disciddata[i];
 				coverart = "/data/audiocd/"+ discid +".jpg";
 			} else {
-				if (S["state"] == "stop") Time = 0;
-			}*/
+				if (S["state"] == "stop") U["Time"] = 0;
+			}
 		} else if (stream) {
 			if (S["player"] == "upnp") {
 				ext = "UPnP";
 				coverart = "/data/shm/online/"+ alphaNumeric(S["Album"] + S["Artist"]) +".jpg";
 			} else {
 				webradio  = true;
-				std::string dir_radio;
-				std::string url = S["file"];
+				url       = S["file"];
 				size_t p = url.find("#charset");
 				if (p != std::string::npos) url.erase(p); // erase from "#charset" to end
 				if (file_ini == "rtsp") {
@@ -254,16 +250,35 @@ public:
 						icon = "radioparadise";
 					}
 				}
-				std::replace(url.begin(), url.end(), '/', '|');
-				std::vector<std::string> radiodata = fileContent("/srv/http/data/"+ dir_radio + url);
-				S["sampling"]    += ext == "DAB" ?"48 kHz 160 kbit/s • DAB" : radiodata[1] +" • Radio";
-				S["station"]      = radiodata[0];
-				S["stationcover"] = "/data/"+ dir_radio +"img/"+ url +".jpg";
 			}
+		}
+		if (U["pllength"] > 1) sampling += std::to_string(U["pos"] + 1) +"/"+ std::to_string(U["pllength"]) +" • ";
+		if (file_ini == "cdda") {
+			sampling += "16 bit 44.1 kHz 1.41 Mbit/s • CD";
+		} else if (ext == "DAB") {
+			sampling += "48 kHz 160 kbit/s • DAB";
+		} else if ( S["state"] != "stop") {
+//			if (ext == "DSF" || ext == "DFF") bitdepth = "dsd";
+			if ( webradio) {
+				std::replace(url.begin(), url.end(), '/', '|');
+				file_radio = "/srv/http/data/"+ dir_radio + url;
+				if (std::filesystem::exists(file_radio)) {
+					std::vector<std::string> radiodata = fileContent(file_radio);
+					S["station"]      = radiodata[0];
+					S["stationcover"] = "/data/"+ dir_radio +"img/"+ url +".jpg";
+					sampling         += ext == "DAB" ?"48 kHz 160 kbit/s • DAB" : radiodata[1] +" • Radio";
+				}
+			}
+		} else {
+			if (bitdepth   > 0) sampling += std::to_string(bitdepth) +"bit ";
+			if (samplerate > 0) sampling += std::format("{:.1f}", samplerate / 1000.0) +" kHz";
+			if (bitrate    > 0) sampling += " "+ std::to_string(bitrate) +" kHz";
+								sampling += " • "+ ext;
 		}
 		S["coverart"] = coverart;
 		S["ext"]      = ext;
 		S["icon"]     = icon;
+		S["sampling"] = sampling;
 
 		std::vector<std::string> L;
 		for (const auto& [key, value] : S) L.push_back(statusFormat(key, value, true));
