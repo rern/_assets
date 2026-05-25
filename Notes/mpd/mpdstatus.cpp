@@ -171,6 +171,7 @@ public:
 		std::string coverart;
 		std::string dir_radio;
 		std::string ext;
+		std::string file_cover;
 		std::string file_radio;
 		std::string file_sampling;
 		std::string icon;
@@ -253,16 +254,6 @@ public:
 		}
 		mpd_song_free(song);
 //////////
-		if (!stream && samplerate == 0 && state == "stop") {
-			TagLib::FileRef f(F.c_str());
-			TagLib::AudioProperties *p = f.audioProperties();
-			if (p) samplerate = p->sampleRate();
-			TagLib::PropertyMap map = f.file()->properties();
-			if (map.contains("BITSPERSAMPLE")) { // only lossless
-				std::string bps_str = map["BITSPERSAMPLE"].front().to8Bit();
-				if (!bps_str.empty()) bitdepth = std::stoul(bps_str);
-			}
-		}
 // coverart, ext, icon
 		if (uri_ini == "cdda") {
 			ext                 = "CD";
@@ -285,10 +276,14 @@ public:
 				}
 			}
 		} else if (stream) {
+			if (state == "play" && S.find("Album") != S.end() && S.find("Artist") != S.end()) {
+				std::string album_artist = S["Album"] + S["Artist"];
+				std::string name_cover   = alphaNumericLower(album_artist);
+				std::string dir          = player == "upnp" ? "online/" : "webradio/";
+				coverart                 = "/data/shm/"+ dir + name_cover +".jpg";
+			}
 			if (player == "upnp") {
 				ext      = "UPnP";
-				std::string album_artist = S["Album"] + S["Artist"];
-				coverart = "/data/shm/online/"+ alphaNumericLower(album_artist) +".jpg";
 			} else {
 				webradio = true;
 				size_t p = uri.find("#charset");
@@ -317,6 +312,16 @@ public:
 			}
 		}
 // sampling
+		if (!stream && samplerate == 0 && state == "stop") {
+			TagLib::FileRef f(F.c_str());
+			TagLib::AudioProperties *p = f.audioProperties();
+			if (p) samplerate = p->sampleRate();
+			TagLib::PropertyMap map = f.file()->properties();
+			if (map.contains("BITSPERSAMPLE")) { // only lossless
+				std::string bps_str = map["BITSPERSAMPLE"].front().to8Bit();
+				if (!bps_str.empty()) bitdepth = std::stoul(bps_str);
+			}
+		}
 		if (pllength > 1) sampling += std::to_string(pos + 1) +"/"+ std::to_string(pllength) +" • ";
 		if (webradio && state == "stop") {
 			sampling += radio_sampling;
