@@ -43,6 +43,20 @@ std::string alphaNumericLower(const std::string str) {
 	return result;
 }
 
+/*bool fileContain(const std::string& file, const std::string& sub) {
+	std::ifstream file(file);
+	std::string line;
+	while (std::getline(file, line)) {
+		if (line.find(sub) != std::string::npos) {
+			file.close();
+			return true;
+//..............................................................................
+		}
+	}
+	file.close();
+	return false;
+}*/
+
 std::vector<std::string> fileContent(const std::string& file) {
 	std::vector<std::string> lines;
 	std::ifstream file_object(file);
@@ -101,20 +115,20 @@ void statusFormat(const std::string k, std::string v, const bool is_string) {
 			line_0 = false;
 		}
 		if (is_string) {
-			std::cout << key +"\""+ value +"\"\n";
+			std::cout << key +'"'+ value +"\"\n";
 		} else {
-			std::cout << key + value +"\n";
+			std::cout << key + value +'\n';
 		}
 	} else {
 		if (is_string) {
 			if (v.find(' ') != std::string::npos) {
 				std::cout << k +"=\""+ value +"\"\n";
 			} else {
-				std::cout << k +"="+ value +"\n";
+				std::cout << k +'='+ value +'\n';
 			}
 		} else {
 			if (value == "false") value = "";
-			std::cout << k +"="+ value +"\n";
+			std::cout << k +'='+ value +'\n';
 		}
 	}
 }
@@ -150,7 +164,8 @@ public:
 		unsigned pllength   = 0;
 		unsigned pos        = 0;
 		unsigned samplerate = 0;
-		S["player"]         = fileContent("/srv/http/data/shm/player")[0];
+		unsigned Time       = 0;
+		std::string player  = fileContent("/srv/http/data/shm/player")[0];
 
 		std::filesystem::path F;
 		std::string coverart;
@@ -159,6 +174,7 @@ public:
 		std::string file_radio;
 		std::string file_sampling;
 		std::string icon;
+		std::string radio_sampling;
 		std::string sampling;
 		std::string state;
 		std::string uri;
@@ -172,7 +188,7 @@ public:
 		mpd_status *status = mpd_run_status(conn);
 //////////
 		if (status == nullptr) return;
-
+//..............................................................................
 		auto now = std::chrono::system_clock::now();
 		pllength = mpd_status_get_queue_length(status);
 		pos      = mpd_status_get_song_pos(status);
@@ -190,7 +206,6 @@ public:
 			bitrate = mpd_status_get_kbit_rate(status);
 		}
 
-		S["state"]       = state;
 		B["updating_db"] = mpd_status_get_update_id(status) > 0;
 		B["consume"]     = mpd_status_get_consume_state(status) == MPD_CONSUME_ON;
 		B["random"]      = mpd_status_get_random(status);
@@ -198,8 +213,6 @@ public:
 		B["single"]      = mpd_status_get_single_state(status) == MPD_SINGLE_ON;
 		U["crossfade"]   = mpd_status_get_crossfade(status);
 		U["elapsed"]     = mpd_status_get_elapsed_time(status);
-		U["pllength"]    = pllength;
-		U["pos"]         = mpd_status_get_song_pos(status);
 		U["timestamp"]   = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
 		U["volume"]      = mpd_status_get_volume(status);
 
@@ -228,10 +241,7 @@ public:
 		F             = "/mnt/MPD/"+ uri;
 		uri_ini       = uri.substr(0, 4);
 		stream        = uri_ini == "http" || uri_ini == "rtmp" || uri_ini == "rtp:" || uri_ini == "rtsp";
-		S["file"]     = uri;
-		S["file_ini"] = uri_ini;
-		B["stream"]   = stream;
-		U["Time"]     = mpd_song_get_duration(song);
+		Time          = mpd_song_get_duration(song);
 		for (int tag = 0; tag < MPD_TAG_COUNT; tag++) {
 			auto type = static_cast<mpd_tag_type>(tag);
 			for (unsigned i = 0;; i++) {
@@ -253,8 +263,7 @@ public:
 				if (!bps_str.empty()) bitdepth = std::stoul(bps_str);
 			}
 		}
-// coverart, ext, icon, sampling
-		if (pllength > 1) sampling += std::to_string(U["pos"] + 1) +"/"+ std::to_string(pllength) +" • ";
+// coverart, ext, icon
 		if (uri_ini == "cdda") {
 			ext                 = "CD";
 			icon                = "audiocd";
@@ -272,11 +281,11 @@ public:
 					std::vector<std::string> k    = {"Artist", "Album", "Title", "Time"};
 					for (size_t i = 0; i < k.size(); i++) S[k[i]] = disciddata[i];
 				} else {
-					if (state == "stop") U["Time"] = 0;
+					if (state == "stop") Time = 0;
 				}
 			}
 		} else if (stream) {
-			if (S["player"] == "upnp") {
+			if (player == "upnp") {
 				ext      = "UPnP";
 				std::string album_artist = S["Album"] + S["Artist"];
 				coverart = "/data/shm/online/"+ alphaNumericLower(album_artist) +".jpg";
@@ -296,24 +305,27 @@ public:
 					} else if (url.find("stream.radioparadise.com") != std::string::npos) {
 						icon = "radioparadise";
 					}
-				}
-				if (state == "stop") {
 					std::replace(url.begin(), url.end(), '/', '|');
 					file_radio = "/srv/http/data/"+ dir_radio + url;
 					if (std::filesystem::exists(file_radio)) {
-						std::vector<std::string> radiodata = fileContent(file_radio);
-						S["station"]      = radiodata[0];
+						std::vector<std::string> data = fileContent(file_radio);
+						radio_sampling    = ext == "DAB" ? "48 kHz 160 kbit/s • DAB" : data[1] +" • Radio";
+						S["station"]      = data[0];
 						S["stationcover"] = "/data/"+ dir_radio +"img/"+ url +".jpg";
-						sampling         += ext == "DAB" ?"48 kHz 160 kbit/s • DAB" : radiodata[1] +" • Radio";
 					}
 				}
 			}
+		}
+// sampling
+		if (pllength > 1) sampling += std::to_string(pos + 1) +"/"+ std::to_string(pllength) +" • ";
+		if (webradio && state == "stop") {
+			sampling += radio_sampling;
 		} else {
-			ext      = F.extension().string().erase(0, 1);
+			ext       = F.extension().string().erase(0, 1);
 			std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) {
 				return std::toupper(c);
 			});
-			coverart = fileCover(F);
+			coverart  = fileCover(F);
 			if (bitdepth   > 0) sampling += std::to_string(bitdepth) +"bit ";
 			if (samplerate > 0) sampling += std::format("{:.1f}", samplerate / 1000.0) +" kHz";
 			if (bitrate    > 0) sampling += " "+ std::to_string(bitrate) +" kHz";
@@ -323,8 +335,16 @@ public:
 		S["coverart"] = coverart;
 		S["ext"]      = ext;
 		S["icon"]     = icon;
+		S["file"]     = uri;
+		S["file_ini"] = uri_ini;
+		S["player"]   = player;
 		S["sampling"] = sampling;
+		S["state"]    = state;
+		B["stream"]   = stream;
 		B["webradio"] = webradio;
+		U["pllength"] = pllength;
+		U["pos"]      = pos;
+		U["Time"]     = Time;
 
 		statusOutput();
 	}
