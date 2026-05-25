@@ -25,7 +25,9 @@
 bool json_format = false;
 bool no_brace    = false;
 
-int Br = 7, Sr = 14, Ur = 7;
+int Br = 7; // field count for map reserve memory
+int Sr = 14;
+int Ur = 7;
 std::unordered_map<std::string, bool> B;
 std::unordered_map<std::string, std::string> S;
 std::unordered_map<std::string, unsigned> U;
@@ -43,7 +45,7 @@ std::vector<std::string> fileContent(const std::string& file) {
 	std::vector<std::string> lines;
 	std::ifstream file_object(file);
 	if (!file_object.is_open()) return lines;
-
+//..............................................................................
 	std::string line;
 	while (std::getline(file_object, line)) { // read line-by-line
 		lines.push_back(line);
@@ -61,10 +63,10 @@ std::string fileCover(const std::string file) {
 
 	for (const auto& entry : fs::directory_iterator(directory)) {
 		if (!entry.is_regular_file()) continue;
-
+//..............................................................................
 		std::string filename = entry.path().filename().string();
 		std::string ext      = entry.path().extension().string();
-
+//..............................................................................
 		auto extMatch = std::find(extensions.begin(), extensions.end(), ext);
 		if (extMatch == extensions.end()) continue;
 
@@ -77,7 +79,7 @@ std::string fileCover(const std::string file) {
 
 std::string quoteEscape(const char *value) {
 	if (!value) return "";
-
+//..............................................................................
 	std::string result;
 	result.reserve(std::string_view(value).size() * 1.1);
 	for (const char *p = value; *p != '\0'; ++p) {
@@ -90,11 +92,11 @@ std::string quoteEscape(const char *value) {
 std::string statusFormat(const std::string k, const std::string v, const bool is_string) {
 	if (json_format) {
 		if (is_string) return ", \""+ k +"\": \""+ quoteEscape(v.c_str()) +"\"";
-
+//..............................................................................
 		return ", \""+ k +"\": "+ v;
 	} else {
 		if (is_string && v.find(' ') != std::string::npos) return k +"=\""+ v +"\"";
-
+//..............................................................................
 		return k +"="+ v;
 	}
 }
@@ -130,13 +132,13 @@ public:
 	}
 
 	void status() {
-		bool stream          = false;
-		bool webradio        = false;
-		unsigned bitdepth    = 0;
-		unsigned bitrate     = 0;
-		unsigned pllength    = 0;
-		unsigned pos         = 0;
-		unsigned samplerate  = 0;
+		bool stream         = false;
+		bool webradio       = false;
+		unsigned bitdepth   = 0;
+		unsigned bitrate    = 0;
+		unsigned pllength   = 0;
+		unsigned pos        = 0;
+		unsigned samplerate = 0;
 
 		std::filesystem::path F;
 		std::string coverart;
@@ -156,65 +158,65 @@ public:
 		U.reserve(Ur);
 		S["player"]          = fileContent("/srv/http/data/shm/player")[0];
 
-		mpd_status *st = mpd_run_status(conn);
-//..............................................................................
-		if (st == nullptr) return;
+		mpd_status *status = mpd_run_status(conn);
+//////////
+		if (status == nullptr) return;
 
 		auto now = std::chrono::system_clock::now();
-		pllength = mpd_status_get_queue_length(st);
-		pos      = mpd_status_get_song_pos(st);
-		switch (mpd_status_get_state(st)) {
+		pllength = mpd_status_get_queue_length(status);
+		pos      = mpd_status_get_song_pos(status);
+		switch (mpd_status_get_state(status)) {
 			case MPD_STATE_PLAY:  state = "play";
 			case MPD_STATE_PAUSE: state = "pause";
 			case MPD_STATE_STOP:  state = "stop";
 		}
 		if (state == "play") {
-			const mpd_audio_format *fmt = mpd_status_get_audio_format(st);
+			const mpd_audio_format *fmt = mpd_status_get_audio_format(status);
 			if (fmt != nullptr) {
 				bitdepth   = fmt->bits;
 				samplerate = fmt->sample_rate;
 			}
-			bitrate = mpd_status_get_kbit_rate(st);
+			bitrate = mpd_status_get_kbit_rate(status);
 		}
 
 		S["state"]       = state;
-
-		U["crossfade"]   = mpd_status_get_crossfade(st);
-		U["elapsed"]     = mpd_status_get_elapsed_time(st);
+		B["updating_db"] = mpd_status_get_update_id(status) > 0;
+		B["consume"]     = mpd_status_get_consume_state(status) == MPD_CONSUME_ON;
+		B["random"]      = mpd_status_get_random(status);
+		B["repeat"]      = mpd_status_get_repeat(status);
+		B["single"]      = mpd_status_get_single_state(status) == MPD_SINGLE_ON;
+		U["crossfade"]   = mpd_status_get_crossfade(status);
+		U["elapsed"]     = mpd_status_get_elapsed_time(status);
 		U["pllength"]    = pllength;
-		U["pos"]         = mpd_status_get_song_pos(st);
+		U["pos"]         = mpd_status_get_song_pos(status);
 		U["timestamp"]   = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-		U["volume"]      = mpd_status_get_volume(st);
+		U["volume"]      = mpd_status_get_volume(status);
 
-		B["updating_db"] = mpd_status_get_update_id(st) > 0;
-		B["consume"]     = mpd_status_get_consume_state(st) == MPD_CONSUME_ON;
-		B["random"]      = mpd_status_get_random(st);
-		B["repeat"]      = mpd_status_get_repeat(st);
-		B["single"]      = mpd_status_get_single_state(st) == MPD_SINGLE_ON;
-
-		mpd_status_free(st);
-//......................................
+		mpd_status_free(status);
+//////////
 		if (pllength == 0) { // empty playlist
 			statusOutput();
 			return;
+//..............................................................................
 		}
 
 		int i = 0;
 		mpd_song* song = nullptr;
 		while ((song = mpd_run_current_song(conn)) == nullptr && i < 8) { // add to playlist without play - no current song
-//..............................................................................
 			if (mpd_connection_get_error(conn) != MPD_ERROR_SUCCESS) return;
-
+//..............................................................................
+			if ( i == 0 ) { // trigger play - stop once
+				mpd_run_play(conn);
+				mpd_run_stop(conn);
+			}
 			usleep(250000);
-			mpd_run_play(conn);
-			mpd_run_stop(conn);
 			i++;
 		}
-
-		uri       = mpd_song_get_uri(song);
-		F         = "/mnt/MPD/"+ uri;
-		uri_ini   = uri.substr(0, 4);
-		stream    = uri_ini == "http" || uri_ini == "rtmp" || uri_ini == "rtp:" || uri_ini == "rtsp";
+//////////
+		uri           = mpd_song_get_uri(song);
+		F             = "/mnt/MPD/"+ uri;
+		uri_ini       = uri.substr(0, 4);
+		stream        = uri_ini == "http" || uri_ini == "rtmp" || uri_ini == "rtp:" || uri_ini == "rtsp";
 		S["file"]     = uri;
 		S["file_ini"] = uri_ini;
 		B["stream"]   = stream;
@@ -224,12 +226,12 @@ public:
 			for (unsigned i = 0;; i++) {
 				const char *value = mpd_song_get_tag(song, type, i);
 				if (value == nullptr) break;
-
+//..............................................................................
 				S[mpd_tag_name(type)] = value;
 			}
 		}
 		mpd_song_free(song);
-//......................................
+//////////
 		if (!stream && samplerate == 0 && state == "stop") {
 			TagLib::FileRef f(F.c_str());
 			TagLib::AudioProperties *p = f.audioProperties();
@@ -242,24 +244,24 @@ public:
 		}
 
 		if (uri_ini == "cdda") {
-			ext       = "CD";
-			icon      = "audiocd";
+			ext                 = "CD";
+			icon                = "audiocd";
 			std::string discid  = fileContent("/srv/http/data/shm/audiocd")[0];
 			std::string file_id = "/srv/http/data/audiocd/"+ discid;
+			coverart            = "/data/audiocd/"+ discid +".jpg";
 			if (std::filesystem::exists(file_id)) {
 				std::vector<std::string> data = fileContent(file_id);
-				size_t p               = uri.find("://");
-				int track              = std::stoi(uri.substr(p + 3)); // after '://'
-				std::string disciddata = data[track];
-				std::vector<std::string> k = {"Artist", "Album", "Title", "Time"};
+				size_t p                      = uri.find("://");
+				int track                     = std::stoi(uri.substr(p + 3)); // after '://'
+				std::string disciddata        = data[track];
+				std::vector<std::string> k    = {"Artist", "Album", "Title", "Time"};
 				for (size_t i = 0; i < k.size(); i++) S[k[i]] = disciddata[i];
-				coverart = "/data/audiocd/"+ discid +".jpg";
 			} else {
 				if (state == "stop") U["Time"] = 0;
 			}
 		} else if (stream) {
 			if (S["player"] == "upnp") {
-				ext = "UPnP";
+				ext      = "UPnP";
 				coverart = "/data/shm/online/"+ alphaNumeric(S["Album"] + S["Artist"]) +".jpg";
 			} else {
 				webradio = true;
@@ -321,12 +323,14 @@ int main(int argc, char **argv) {
 	if (!mpd.ok()) {
 		std::cerr << "MPD connection failed\n";
 		return 1;
+//..............................................................................
 	}
 
 	if (argc == 1) {           // key=val
 		json_format = false;
 		mpd.status();
 		return 0;
+//..............................................................................
 	}
 
 	std::string mode = argv[1];
