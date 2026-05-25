@@ -23,6 +23,7 @@
 #include <vector>
 
 bool json_format = false;
+bool line_0      = true;
 bool no_brace    = false;
 
 int Br = 7; // field count for map reserve memory
@@ -77,41 +78,50 @@ std::string fileCover(const std::string file) {
 	return "";
 }
 
-std::string quoteEscape(const char *value) {
-	if (!value) return "";
-//..............................................................................
-	std::string result;
-	result.reserve(std::string_view(value).size() * 1.1);
-	for (const char *p = value; *p != '\0'; ++p) {
-		if (*p == '"') result.push_back('\\');
-		result.push_back(*p);
-	}
-	return result;
-}
-
-std::string statusFormat(const std::string k, const std::string v, const bool is_string) {
-	if (json_format) {
-		if (is_string) return ", \""+ k +"\": \""+ quoteEscape(v.c_str()) +"\"";
-//..............................................................................
-		return ", \""+ k +"\": "+ v;
+void statusFormat(const std::string k, std::string v, const bool is_string) {
+	std::string value;
+	if (is_string) {
+		if (v.find('\"') != std::string::npos) { // escape double quotes
+			value.reserve(std::string_view(v).size() * 1.1);
+			for (const char *p = v.c_str(); *p != '\0'; ++p) {
+				if (*p == '"') value.push_back('\\');
+				value.push_back(*p);
+			}
+		} else {
+			value = v;
+		}
 	} else {
-		if (is_string && v.find(' ') != std::string::npos) return k +"=\""+ v +"\"";
-//..............................................................................
-		return k +"="+ v;
+		value = v;
+	}
+	if (json_format) {
+		std::string key = ", \""+ k +"\": ";
+		if (line_0) {
+			if (!no_brace) key = "  \""+ k +"\": ";
+			line_0 = false;
+		}
+		if (is_string) {
+			std::cout << key +"\""+ value +"\"\n";
+		} else {
+			std::cout << key + value +"\n";
+		}
+	} else {
+		if (is_string) {
+			if (v.find(' ') != std::string::npos) {
+				std::cout << k +"=\""+ value +"\"\n";
+			} else {
+				std::cout << k +"="+ value +"\n";
+			}
+		} else {
+			if (value == "false") value = "";
+			std::cout << k +"="+ value +"\n";
+		}
 	}
 }
 
 void statusOutput() {
-	std::vector<std::string> L;
-	L.reserve(Br + Sr + Ur);
-	for (const auto& [k, v] : S) L.push_back(statusFormat(k, v, true));
-	for (const auto& [k, v] : U) L.push_back(statusFormat(k, std::to_string(v), false));
-	for (const auto& [k, v] : B) L.push_back(statusFormat(k, v ? "true" : "false", false));
-
-	for (size_t i = 0; i < L.size(); ++i) {
-		if ( i == 0 && json_format && !no_brace ) L[i].replace(0, 1, " ");
-		std::cout << L[i] << "\n";
-	}
+	for (const auto& [k, v] : S) statusFormat(k, v, true);
+	for (const auto& [k, v] : U) statusFormat(k, std::to_string(v), false);
+	for (const auto& [k, v] : B) statusFormat(k, v ? "true" : "false", false);
 }
 
 class MPDClient {
@@ -139,6 +149,7 @@ public:
 		unsigned pllength   = 0;
 		unsigned pos        = 0;
 		unsigned samplerate = 0;
+		S["player"]         = fileContent("/srv/http/data/shm/player")[0];
 
 		std::filesystem::path F;
 		std::string coverart;
@@ -156,7 +167,6 @@ public:
 		B.reserve(Br);
 		S.reserve(Sr);
 		U.reserve(Ur);
-		S["player"]          = fileContent("/srv/http/data/shm/player")[0];
 
 		mpd_status *status = mpd_run_status(conn);
 //////////
