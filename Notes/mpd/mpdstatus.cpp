@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <chrono>
 #include <cstdio>
 #include <cstring>
@@ -33,9 +34,9 @@ std::unordered_map<std::string, bool> B;
 std::unordered_map<std::string, std::string> S;
 std::unordered_map<std::string, unsigned> U;
 
-std::string alphaNumeric(const std::string input) {
+std::string alphaNumericLower(const std::string str) {
 	std::string result;
-	for (unsigned char c : input) {
+	for (unsigned char c : str) {
 		char lower = std::tolower(c);
 		if (std::isalnum(lower)) result.push_back(lower);
 	}
@@ -48,7 +49,7 @@ std::vector<std::string> fileContent(const std::string& file) {
 	if (!file_object.is_open()) return lines;
 //..............................................................................
 	std::string line;
-	while (std::getline(file_object, line)) { // read line-by-line
+	while (std::getline(file_object, line)) {
 		lines.push_back(line);
 	}
 	return lines; // vetor
@@ -252,27 +253,33 @@ public:
 				if (!bps_str.empty()) bitdepth = std::stoul(bps_str);
 			}
 		}
-
+// coverart, ext, icon, sampling
+		if (pllength > 1) sampling += std::to_string(U["pos"] + 1) +"/"+ std::to_string(pllength) +" • ";
 		if (uri_ini == "cdda") {
 			ext                 = "CD";
 			icon                = "audiocd";
-			std::string discid  = fileContent("/srv/http/data/shm/audiocd")[0];
-			std::string file_id = "/srv/http/data/audiocd/"+ discid;
-			coverart            = "/data/audiocd/"+ discid +".jpg";
-			if (std::filesystem::exists(file_id)) {
-				std::vector<std::string> data = fileContent(file_id);
-				size_t p                      = uri.find("://");
-				int track                     = std::stoi(uri.substr(p + 3)); // after '://'
-				std::string disciddata        = data[track];
-				std::vector<std::string> k    = {"Artist", "Album", "Title", "Time"};
-				for (size_t i = 0; i < k.size(); i++) S[k[i]] = disciddata[i];
-			} else {
-				if (state == "stop") U["Time"] = 0;
+			sampling           += "16 bit 44.1 kHz 1.41 Mbit/s • CD";
+			std::string file_cd = "/srv/http/data/shm/audiocd";
+			if (std::filesystem::exists(file_cd)) {
+				std::string discid  = fileContent(file_cd)[0];
+				std::string file_id = "/srv/http/data/audiocd/"+ discid;
+				coverart            = "/data/audiocd/"+ discid +".jpg";
+				if (std::filesystem::exists(file_id)) {
+					std::vector<std::string> data = fileContent(file_id);
+					size_t p                      = uri.find("://");
+					int track                     = std::stoi(uri.substr(p + 3)); // after '://'
+					std::string disciddata        = data[track];
+					std::vector<std::string> k    = {"Artist", "Album", "Title", "Time"};
+					for (size_t i = 0; i < k.size(); i++) S[k[i]] = disciddata[i];
+				} else {
+					if (state == "stop") U["Time"] = 0;
+				}
 			}
 		} else if (stream) {
 			if (S["player"] == "upnp") {
 				ext      = "UPnP";
-				coverart = "/data/shm/online/"+ alphaNumeric(S["Album"] + S["Artist"]) +".jpg";
+				std::string album_artist = S["Album"] + S["Artist"];
+				coverart = "/data/shm/online/"+ alphaNumericLower(album_artist) +".jpg";
 			} else {
 				webradio = true;
 				size_t p = uri.find("#charset");
@@ -290,27 +297,23 @@ public:
 						icon = "radioparadise";
 					}
 				}
+				if (state == "stop") {
+					std::replace(url.begin(), url.end(), '/', '|');
+					file_radio = "/srv/http/data/"+ dir_radio + url;
+					if (std::filesystem::exists(file_radio)) {
+						std::vector<std::string> radiodata = fileContent(file_radio);
+						S["station"]      = radiodata[0];
+						S["stationcover"] = "/data/"+ dir_radio +"img/"+ url +".jpg";
+						sampling         += ext == "DAB" ?"48 kHz 160 kbit/s • DAB" : radiodata[1] +" • Radio";
+					}
+				}
 			}
 		} else {
 			ext      = F.extension().string().erase(0, 1);
-			std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return std::toupper(c); });
+			std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) {
+				return std::toupper(c);
+			});
 			coverart = fileCover(F);
-		}
-		if (pllength > 1) sampling += std::to_string(U["pos"] + 1) +"/"+ std::to_string(pllength) +" • ";
-		if (uri_ini == "cdda") {
-			sampling += "16 bit 44.1 kHz 1.41 Mbit/s • CD";
-		} else if (ext == "DAB") {
-			sampling += "48 kHz 160 kbit/s • DAB";
-		} else if (webradio && state == "stop") {
-			std::replace(url.begin(), url.end(), '/', '|');
-			file_radio = "/srv/http/data/"+ dir_radio + url;
-			if (std::filesystem::exists(file_radio)) {
-				std::vector<std::string> radiodata = fileContent(file_radio);
-				S["station"]      = radiodata[0];
-				S["stationcover"] = "/data/"+ dir_radio +"img/"+ url +".jpg";
-				sampling         += ext == "DAB" ?"48 kHz 160 kbit/s • DAB" : radiodata[1] +" • Radio";
-			}
-		} else {
 			if (bitdepth   > 0) sampling += std::to_string(bitdepth) +"bit ";
 			if (samplerate > 0) sampling += std::format("{:.1f}", samplerate / 1000.0) +" kHz";
 			if (bitrate    > 0) sampling += " "+ std::to_string(bitrate) +" kHz";
