@@ -1,16 +1,12 @@
-// g++ mpdstatus.cpp $( pkg-config --cflags --libs libmpdclient,taglib ) -o $dirbash/mpdstatus
+// g++ mpdstatus.cpp $( pkg-config --cflags --libs libmpdclient,taglib ) -o /bin/mpdstatus
 
 #include <mpd/client.h>
-#include <taglib/fileref.h>
-#include <taglib/audioproperties.h>
-#include <taglib/dsdifffile.h>
-#include <taglib/dsffile.h>
-#include <taglib/tpropertymap.h>
 
 #include <algorithm>
 #include <array>
 #include <cctype>
 #include <chrono>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
@@ -37,6 +33,219 @@ int // field count for map reserve memory
 std::unordered_map<std::string, bool> B;
 std::unordered_map<std::string, std::string> S;
 std::unordered_map<std::string, int> I;
+
+struct AudioInfo {
+	bool valid     = false;
+	int bitDepth   = 0;
+	int sampleRate = 0;
+};
+
+static uint32_t be32(const uint8_t* p) {
+	return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
+}
+
+static uint32_t le32(const uint8_t* p) {
+	return (p[3] << 24) | (p[2] << 16) | (p[1] << 8) | p[0];
+}
+
+static uint16_t le16(const uint8_t* p) {
+	return (p[1] << 8) | p[0];
+}
+
+AudioInfo parseDFF(const uint8_t* h, size_t size) {
+	AudioInfo A;
+
+	if (size < 128) return A;
+
+	if (memcmp(h, "FRM8", 4) != 0) return A;
+
+	for (size_t j = 0; j + 16 < size; ++j) {
+		if (!memcmp(h + j, "FS  ", 4)) {
+			A.sampleRate = be32(h + j + 12);
+		}
+	}
+	A.bitDepth = 1;
+	A.valid    = (A.sampleRate > 0);
+	return A;
+}
+
+AudioInfo parseDSF(const uint8_t* h, size_t size) {
+	AudioInfo A;
+
+	if (size < 64) return A;
+
+	if (memcmp(h, "DSD ", 4) != 0) return A;
+
+	A.sampleRate = le32(h + 56); // samplerate @56 e.g.: 2822400 / 44100 = (DSD)64
+	A.bitDepth   = 1;
+	A.valid      = true;
+
+	return A;
+}
+
+AudioInfo parseFLAC(const uint8_t* h, size_t) {
+	AudioInfo A;
+
+	if (memcmp(h, "fLaC", 4) != 0) return A;
+
+	const uint8_t* p = h + 18;
+	uint32_t x   = (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
+
+	A.sampleRate = x >> 12;
+	A.bitDepth   = (((p[2] & 1) << 4) | (p[3] >> 4)) + 1;
+	A.valid      = true;
+	return A;
+}
+
+AudioInfo parseWAV(const uint8_t* h, size_t size) {
+	AudioInfo A;
+
+	if (memcmp(h, "RIFF", 4) != 0 || memcmp(h + 8, "WAVE", 4) != 0) return A;
+
+	for (size_t j = 12; j + 32 < size; ++j) {
+		if (!memcmp(h + j, "fmt ", 4)) {
+			const uint8_t* p = h + j + 8;
+			A.sampleRate = le32(p + 4);
+			A.bitDepth   = le16(p + 14);
+			A.valid      = true;
+			break;
+		}
+	}
+	return A;
+}
+
+static const int sr_table[4][3] = {
+	{44100, 48000, 32000}, // MPEG1
+	{22050, 24000, 16000}, // MPEG2
+	{11025, 12000, 8000},  // MPEG2.5
+	{0,     0,     0}
+};
+
+bool isValidFrameHeader(const uint8_t* h) {
+	if (h[0] != 0xFF || (h[1] & 0xE0) != 0xE0) return false; // Must start with sync bits: 11 bits = 0x7FF
+
+	int version = (h[1] >> 3) & 0x03;
+	int layer   = (h[1] >> 1) & 0x03;
+
+	if (version == 1 || layer != 1) return false; // invalid MPEG version or not Layer III
+
+	return true;
+}
+
+AudioInfo parseMP3(const uint8_t* h, size_t size) {
+	AudioInfo A;
+
+	size_t start = 0;
+
+	if (!memcmp(h, "ID3", 3)) start = 10;
+
+	for (size_t j = start; j + 4 < size && j < 4096; ++j) {
+		if (!isValidFrameHeader(h + j)) continue;
+
+		int version  = (h[j + 1] >> 3) & 0x03;
+		int sr_index = (h[j + 2] >> 2) & 0x03;
+
+		int row;
+		switch (version) {
+			case 0: row = 2; break; // MPEG2.5
+			case 2: row = 1; break; // MPEG2
+			case 3: row = 0; break; // MPEG1
+			default: continue;
+		}
+
+		A.sampleRate = sr_table[row][sr_index];
+		int mode     = (h[j + 3] >> 6) & 0x03;
+		A.bitDepth   = 0;
+		A.valid      = (A.sampleRate > 0);
+
+		return A;
+	}
+
+	return A;
+}
+
+AudioInfo parseOGG(const uint8_t* h, size_t size) {
+	AudioInfo A;
+
+	if (memcmp(h,"OggS",4) != 0) return A;
+
+	for (size_t j = 0; j + 16 < size; ++j) {
+		if(!memcmp(h+j, "OpusHead", 8)) {
+			A.sampleRate = 48000;
+			A.bitDepth   = 16;
+			A.valid      = true;
+			return A;
+		}
+
+		if (!memcmp(h + j, "vorbis", 6)) {
+			A.sampleRate =
+				h[j + 12] |
+				(h[j + 13] << 8) |
+				(h[j + 14] << 16) |
+				(h[j + 15] << 24);
+
+			A.bitDepth = 16;
+			A.valid    = true;
+			return A;
+		}
+	}
+	return A;
+}
+
+AudioInfo parseMP4(const uint8_t* h, size_t size) {
+	AudioInfo A;
+
+	bool ok = false;
+
+	for (size_t j = 0; j + 8 < size; ++j) {
+		if (!memcmp(h + j + 4, "ftyp", 4)) ok = true;
+
+		if (!memcmp(h + j, "mp4a", 4)) {
+			A.sampleRate = 44100;
+			A.bitDepth   = 0;
+			ok           = true;
+		}
+
+		if (!memcmp(h + j, "alac", 4)) {
+			A.sampleRate = 44100;
+			A.bitDepth   = 16;
+			ok           = true;
+		}
+	}
+	if (ok) A.valid = true;
+
+	return A;
+}
+
+AudioInfo readFile(const std::string& path) {
+	std::ifstream f(path, std::ios::binary);
+
+	if (!f) return {};
+
+	std::vector<uint8_t> buf(4096);
+	f.read((char*)buf.data(), buf.size());
+
+	size_t size      = f.gcount();
+	const uint8_t* h = buf.data();
+
+	if (size < 16) return {};
+
+	if (!memcmp(h, "FRM8", 4))  return parseDFF(h, size);
+
+	if (!memcmp(h, "DSD ", 4))  return parseDSF(h, size);
+
+	if (!memcmp(h, "fLaC", 4))  return parseFLAC(h, size);
+
+	if (!memcmp(h, "ID3", 3) || h[0] == 0xFF) return parseMP3(h, size);
+
+	if (!memcmp(h, "OggS", 4))  return parseOGG(h, size);
+
+	if (!memcmp(h, "RIFF", 4))  return parseWAV(h, size);
+
+	if (!memcmp(h + 4, "ftyp", 4)) return parseMP4(h, size);
+
+	return {};
+}
 
 std::string alphaNumericLower(const std::string& str) {
 	std::string result;
@@ -166,10 +375,8 @@ public:
 			ext,
 			file_cover,
 			file_radio,
-			file_sampling,
 			icon,
 			player     = fileContent(dir_data +"shm/player")[0],
-			radio_sampling,
 			sampling,
 			state,
 			uri,
@@ -253,7 +460,7 @@ public:
 		if (uri_ini == "cdda") {
 			ext                 = "CD";
 			icon                = "audiocd";
-			sampling            = "16 bit 44.1 kHz 1.41 Mbit/s • CD";
+			sampling            = "16 bit 44.1 kHz 1.41 Mbit/s";
 			std::string file_cd = dir_data +"shm/audiocd";
 			if (std::filesystem::exists(file_cd)) {
 				std::string discid  = fileContent(file_cd)[0];
@@ -299,7 +506,7 @@ public:
 					file_radio = dir_data + dir_radio + url;
 					if (std::filesystem::exists(file_radio)) {
 						std::vector<std::string> data = fileContent(file_radio);
-						if (state == "stop") sampling = ext == "DAB" ? "48 kHz 160 kbit/s • DAB" : data[1] +" • Radio";
+						if (state == "stop") sampling = ext == "DAB" ? "48 kHz 160 kbit/s" : data[1];
 						S["station"]      = data[0];
 						S["stationcover"] = "/data/"+ dir_radio +"img/"+ url +".jpg";
 					}
@@ -312,40 +519,16 @@ public:
 				return std::toupper(c);
 			});
 			if (state == "stop") {
-
-				if (ext == "DSF") {
-					TagLib::DSF::File f(F.c_str());
-					if (f.isValid()) {
-						TagLib::DSF::Properties *p = f.audioProperties();
-						if (p) samplerate = p->sampleRate();
-					}
-					bitdepth = 1;
-				} else if (ext == "DFF") {
-					TagLib::DSDIFF::File f(F.c_str());
-					if (f.isValid()) {
-						TagLib::DSDIFF::Properties *p = f.audioProperties();
-						if (p) samplerate = p->sampleRate();
-					}
-					bitdepth = 1;
-				} else {
-					TagLib::FileRef f(F.c_str());
-					if (!f.isNull()) {
-						TagLib::AudioProperties *p = f.audioProperties();
-						if (p) samplerate          = p->sampleRate();
-						TagLib::PropertyMap map    = f.file()->properties();
-						if (map.contains("BITSPERSAMPLE")) { // available for lossless only
-							std::string bps = map["BITSPERSAMPLE"].front().to8Bit();
-							if (!bps.empty()) bitdepth = std::stoul(bps);
-						}
-					}
-				}
+				AudioInfo A = readFile(F.c_str());
+				samplerate  = A.sampleRate;
+				bitdepth    = A.bitDepth;
 			}
 		}
 		if (bitdepth   > 0) sampling += std::to_string(bitdepth) +"bit ";
 		if (samplerate > 0) sampling += std::format("{:.1f}", samplerate / 1000.0) +" kHz";
 		if (bitrate    > 0) sampling += " "+ std::to_string(bitrate) +" kHz";
 							sampling += " • "+ ext;
-		if (pllength > 1) sampling = std::to_string(pos + 1) +"/"+ std::to_string(pllength) +" • "+ sampling;
+		if (pllength > 1)   sampling  = std::to_string(pos + 1) +"/"+ std::to_string(pllength) +" • "+ sampling;
 		S["coverart"] = coverart;
 		S["ext"]      = ext;
 		S["icon"]     = icon;
