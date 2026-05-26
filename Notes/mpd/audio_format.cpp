@@ -28,74 +28,74 @@ static uint16_t le16(const uint8_t* p) {
 }
 
 AudioInfo parseDFF(const uint8_t* h, size_t size) {
-	AudioInfo i;
+	AudioInfo A;
 
-	if (size < 128) return i;
+	if (size < 128) return A;
 
-	if (memcmp(h, "FRM8", 4) != 0) return i;
+	if (memcmp(h, "FRM8", 4) != 0) return A;
 
-//	i.format = "DFF";
+//	A.format = "DFF";
 	for (size_t j = 0; j + 16 < size; ++j) {
 		if (!memcmp(h + j, "FS  ", 4)) {
-			i.sampleRate = be32(h + j + 12);
+			A.sampleRate = be32(h + j + 12);
 //		} else if (!memcmp(h + j, "CHNL", 4)) {
-//			i.channels   = (h[j + 8] << 8) | h[j + 9];
+//			A.channels   = (h[j + 8] << 8) | h[j + 9];
 		}
 	}
-	i.bitDepth = 1;
-	i.valid    = (i.sampleRate > 0);
-	return i;
+	A.bitDepth = 1;
+	A.valid    = (A.sampleRate > 0);
+	return A;
 }
 
 AudioInfo parseDSF(const uint8_t* h, size_t size) {
-	AudioInfo i;
+	AudioInfo A;
 
-	if (size < 64) return i;
+	if (size < 64) return A;
 
-	if (memcmp(h, "DSD ", 4) != 0) return i;
+	if (memcmp(h, "DSD ", 4) != 0) return A;
 
-//	i.format     = "DSF";
-//	i.channels   = le32(h + 52); // channels   @52
-	i.sampleRate = le32(h + 56); // samplerate @56 e.g.: 2822400 / 44100 = (DSD)64
-	i.bitDepth   = 1;
-	i.valid      = true;
+//	A.format     = "DSF";
+//	A.channels   = le32(h + 52); // channels   @52
+	A.sampleRate = le32(h + 56); // samplerate @56 e.g.: 2822400 / 44100 = (DSD)64
+	A.bitDepth   = 1;
+	A.valid      = true;
 
-	return i;
+	return A;
 }
 
 AudioInfo parseFLAC(const uint8_t* h, size_t) {
-	AudioInfo i;
+	AudioInfo A;
 
-	if (memcmp(h, "fLaC", 4) != 0) return i;
+	if (memcmp(h, "fLaC", 4) != 0) return A;
 
-//	i.format     = "FLAC";
+//	A.format     = "FLAC";
 	const uint8_t* p = h + 18;
 	uint32_t x   = (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
 
-	i.sampleRate = x >> 12;
-//	i.channels   = ((p[2] >> 1) & 7) + 1;
-	i.bitDepth   = (((p[2] & 1) << 4) | (p[3] >> 4)) + 1;
-	i.valid      = true;
-	return i;
+	A.sampleRate = x >> 12;
+//	A.channels   = ((p[2] >> 1) & 7) + 1;
+	A.bitDepth   = (((p[2] & 1) << 4) | (p[3] >> 4)) + 1;
+	A.valid      = true;
+	return A;
 }
 
 AudioInfo parseWAV(const uint8_t* h, size_t size) {
-	AudioInfo i;
+	AudioInfo A;
 
-	if (memcmp(h, "RIFF", 4) != 0 || memcmp(h + 8, "WAVE", 4) != 0) return i;
+	if (memcmp(h, "RIFF", 4) != 0 || memcmp(h + 8, "WAVE", 4) != 0) return A;
 
-//	i.format = "WAV";
+//	A.format = "WAV";
 	for (size_t j = 12; j + 32 < size; ++j) {
 		if (!memcmp(h + j, "fmt ", 4)) {
 			const uint8_t* p = h + j + 8;
-//			i.channels   = le16(p + 2);
-			i.sampleRate = le32(p + 4);
-			i.bitDepth   = le16(p + 14);
-			i.valid      = true;
+//			A.channels   = le16(p + 2);
+			A.sampleRate = le32(p + 4);
+			A.bitDepth   = le16(p + 14);
+			A.valid      = true;
 			break;
 		}
 	}
-	return i;
+	return A;
 }
 
 static const int sr_table[4][3] = {
@@ -117,9 +117,9 @@ bool isValidFrameHeader(const uint8_t* h) {
 }
 
 AudioInfo parseMP3(const uint8_t* h, size_t size) {
-	AudioInfo i;
+	AudioInfo A;
 
-//	i.format     = "MP3";
+//	A.format     = "MP3";
 	size_t start = 0;
 
 	if (!memcmp(h, "ID3", 3)) start = 10;
@@ -138,52 +138,52 @@ AudioInfo parseMP3(const uint8_t* h, size_t size) {
 			default: continue;
 		}
 
-		i.sampleRate = sr_table[row][sr_index];
+		A.sampleRate = sr_table[row][sr_index];
 		int mode     = (h[j + 3] >> 6) & 0x03;
-//		i.channels   = (mode == 3) ? 1 : 2;
-		i.bitDepth   = 0;
-		i.valid      = (i.sampleRate > 0);
+//		A.channels   = (mode == 3) ? 1 : 2;
+		A.bitDepth   = 0;
+		A.valid      = (A.sampleRate > 0);
 
-		return i;
+		return A;
 	}
 
-	return i;
+	return A;
 }
 
 AudioInfo parseOGG(const uint8_t* h, size_t size) {
-	AudioInfo i;
+	AudioInfo A;
 
-	if (memcmp(h,"OggS",4) != 0) return i;
+	if (memcmp(h,"OggS",4) != 0) return A;
 
 	for (size_t j = 0; j + 16 < size; ++j) {
 		if(!memcmp(h+j, "OpusHead", 8)) {
-//			i.format     = "OPUS";
-//			i.channels   = h[j + 9];
-			i.sampleRate = 48000;
-			i.bitDepth   = 16;
-			i.valid      = true;
-			return i;
+//			A.format     = "OPUS";
+//			A.channels   = h[j + 9];
+			A.sampleRate = 48000;
+			A.bitDepth   = 16;
+			A.valid      = true;
+			return A;
 		}
 
 		if (!memcmp(h + j, "vorbis", 6)) {
-//			i.format     = "VORBIS";
-//			i.channels   = h[j + 11];
-			i.sampleRate =
+//			A.format     = "VORBIS";
+//			A.channels   = h[j + 11];
+			A.sampleRate =
 				h[j + 12] |
 				(h[j + 13] << 8) |
 				(h[j + 14] << 16) |
 				(h[j + 15] << 24);
 
-			i.bitDepth = 16;
-			i.valid    = true;
-			return i;
+			A.bitDepth = 16;
+			A.valid    = true;
+			return A;
 		}
 	}
-	return i;
+	return A;
 }
 
 AudioInfo parseMP4(const uint8_t* h, size_t size) {
-	AudioInfo i;
+	AudioInfo A;
 
 	bool ok = false;
 
@@ -191,24 +191,24 @@ AudioInfo parseMP4(const uint8_t* h, size_t size) {
 		if (!memcmp(h + j + 4, "ftyp", 4)) ok = true;
 
 		if (!memcmp(h + j, "mp4a", 4)) {
-//			i.format     = "AAC";
-			i.sampleRate = 44100;
-//			i.channels   = 2;
-			i.bitDepth   = 0;
+//			A.format     = "AAC";
+			A.sampleRate = 44100;
+//			A.channels   = 2;
+			A.bitDepth   = 0;
 			ok           = true;
 		}
 
 		if (!memcmp(h + j, "alac", 4)) {
-//			i.format     = "ALAC";
-			i.sampleRate = 44100;
-//			i.channels   = 2;
-			i.bitDepth   = 16;
+//			A.format     = "ALAC";
+			A.sampleRate = 44100;
+//			A.channels   = 2;
+			A.bitDepth   = 16;
 			ok           = true;
 		}
 	}
-	if (ok) i.valid = true;
+	if (ok) A.valid = true;
 
-	return i;
+	return A;
 }
 
 AudioInfo readFile(const std::string& path) {
@@ -236,7 +236,9 @@ AudioInfo readFile(const std::string& path) {
 
 	if (!memcmp(h, "RIFF", 4))  return parseWAV(h, size);
 
-	return parseMP4(h, size);
+	if (!memcmp(h + 4, "ftyp", 4)) return parseMP4(h, size);
+
+	return {};
 }
 
 int main(int argc,char** argv) {
@@ -247,18 +249,18 @@ int main(int argc,char** argv) {
 		return 0;
 	}
 
-	AudioInfo i = readFile(argv[1]);
+	AudioInfo A = readFile(argv[1]);
 
-	if (!i.valid) {
+	if (!A.valid) {
 		std::cout << "(unknown)\n";
 		return 0;
 	}
-	std::cout << i.bitDepth << ' ' << i.sampleRate << "\n";
+	std::cout << A.bitDepth << ' ' << A.sampleRate << "\n";
 /*
 	std::cout
-		<< i.format   << ' '
-		<< i.channels << ' '
-		<< i.bitDepth << ' '
-		<< i.sampleRate;
+		<< A.format   << ' '
+		<< A.channels << ' '
+		<< A.bitDepth << ' '
+		<< A.sampleRate;
 */
 }
