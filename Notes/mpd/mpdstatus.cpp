@@ -3,6 +3,8 @@
 #include <mpd/client.h>
 #include <taglib/fileref.h>
 #include <taglib/audioproperties.h>
+#include <taglib/dsdifffile.h>
+#include <taglib/dsffile.h>
 #include <taglib/tpropertymap.h>
 
 #include <algorithm>
@@ -23,18 +25,20 @@
 #include <unordered_map>
 #include <vector>
 
-bool json_format = false;
-bool line_0      = true;
-bool no_brace    = false;
+bool
+	json_format = false,
+	line_0      = true,
+	no_brace    = false;
 
-int Br = 7; // field count for map reserve memory
-int Sr = 14;
-int Ur = 7;
+int // field count for map reserve memory
+	Br = 7,
+	Sr = 14,
+	Ir = 7;
 std::unordered_map<std::string, bool> B;
 std::unordered_map<std::string, std::string> S;
-std::unordered_map<std::string, unsigned> U;
+std::unordered_map<std::string, int> I;
 
-std::string alphaNumericLower(const std::string str) {
+std::string alphaNumericLower(const std::string& str) {
 	std::string result;
 	for (unsigned char c : str) {
 		char lower = std::tolower(c);
@@ -43,19 +47,19 @@ std::string alphaNumericLower(const std::string str) {
 	return result;
 }
 
-/*bool fileContain(const std::string& file, const std::string& sub) {
-	std::ifstream file(file);
+bool fileContain(const std::string& file, const std::string& sub) {
+	std::ifstream f(file);
 	std::string line;
-	while (std::getline(file, line)) {
+	while (std::getline(f, line)) {
 		if (line.find(sub) != std::string::npos) {
-			file.close();
+			f.close();
 			return true;
 //..............................................................................
 		}
 	}
-	file.close();
+	f.close();
 	return false;
-}*/
+}
 
 std::vector<std::string> fileContent(const std::string& file) {
 	std::vector<std::string> lines;
@@ -69,7 +73,7 @@ std::vector<std::string> fileContent(const std::string& file) {
 	return lines; // vetor
 }
 
-std::string fileCover(const std::string file) {
+std::string fileCover(const std::string& file) {
 	namespace fs          = std::filesystem;
 	std::filesystem::path pathObj(file);
 	std::string directory = pathObj.parent_path().string();
@@ -93,50 +97,38 @@ std::string fileCover(const std::string file) {
 	return "";
 }
 
-void statusFormat(const std::string k, std::string v, const bool is_string) {
-	std::string value;
-	if (is_string) {
-		if (v.find('\"') != std::string::npos) { // escape double quotes
-			value.reserve(std::string_view(v).size() * 1.1);
-			for (const char *p = v.c_str(); *p != '\0'; ++p) {
-				if (*p == '"') value.push_back('\\');
-				value.push_back(*p);
-			}
-		} else {
-			value = v;
+void statusFormat(const std::string& k, const std::string& v) {
+	std::cout << ( json_format ? ", \""+ k +"\": " : k +'=' ) + v +'\n';
+}
+
+void statusFormatString(const std::string& k, std::string v) {
+	if (v.find('\"') != std::string::npos) { // escape double quotes
+		std::string value;
+		value.reserve(std::string_view(v).size() * 1.1);
+		for (const char *p = v.c_str(); *p != '\0'; ++p) {
+			if (*p == '"') value.push_back('\\');
+			value.push_back(*p);
 		}
-	} else {
-		value = v;
+		v = value;
 	}
 	if (json_format) {
-		std::string key = ", \""+ k +"\": ";
 		if (line_0) {
-			if (!no_brace) key = "  \""+ k +"\": ";
+			if (!no_brace) std::cout << "  \""+ k +"\": \""+ v +"\"\n";
 			line_0 = false;
+			return;
+//..............................................................................
 		}
-		if (is_string) {
-			std::cout << key +'"'+ value +"\"\n";
-		} else {
-			std::cout << key + value +'\n';
-		}
+		std::cout << ", \""+ k +"\": \""+ v +"\"\n";
 	} else {
-		if (is_string) {
-			if (v.find(' ') != std::string::npos) {
-				std::cout << k +"=\""+ value +"\"\n";
-			} else {
-				std::cout << k +'='+ value +'\n';
-			}
-		} else {
-			if (value == "false") value = "";
-			std::cout << k +'='+ value +'\n';
-		}
+		char dq = v.find(' ') != std::string::npos ? '"' : '\0';
+		std::cout << k +'='+ dq + v + dq +'\n';
 	}
 }
 
 void statusOutput() {
-	for (const auto& [k, v] : S) statusFormat(k, v, true);
-	for (const auto& [k, v] : U) statusFormat(k, std::to_string(v), false);
-	for (const auto& [k, v] : B) statusFormat(k, v ? "true" : "false", false);
+	for (const auto& [k, v] : S) statusFormatString(k, v);
+	for (const auto& [k, v] : I) statusFormat(k, std::to_string(v));
+	for (const auto& [k, v] : B) statusFormat(k, v ? "true" : json_format ? "false" : "");
 }
 
 class MPDClient {
@@ -157,34 +149,37 @@ public:
 	}
 
 	void status() {
-		bool stream         = false;
-		bool webradio       = false;
-		unsigned bitdepth   = 0;
-		unsigned bitrate    = 0;
-		unsigned pllength   = 0;
-		unsigned pos        = 0;
-		unsigned samplerate = 0;
-		unsigned Time       = 0;
-		std::string player  = fileContent("/srv/http/data/shm/player")[0];
-
+		bool
+			stream     = false,
+			webradio   = false;
+		int
+			bitdepth   = 0,
+			bitrate    = 0,
+			pllength   = 0,
+			pos        = 0,
+			samplerate = 0,
+			Time       = 0;
+		std::string
+			coverart,
+			dir_data   = "/srv/http/data/",
+			dir_radio,
+			ext,
+			file_cover,
+			file_radio,
+			file_sampling,
+			icon,
+			player     = fileContent(dir_data +"shm/player")[0],
+			radio_sampling,
+			sampling,
+			state,
+			uri,
+			uri_ini,
+			url;
 		std::filesystem::path F;
-		std::string coverart;
-		std::string dir_radio;
-		std::string ext;
-		std::string file_cover;
-		std::string file_radio;
-		std::string file_sampling;
-		std::string icon;
-		std::string radio_sampling;
-		std::string sampling;
-		std::string state;
-		std::string uri;
-		std::string uri_ini;
-		std::string url;
 
 		B.reserve(Br);
 		S.reserve(Sr);
-		U.reserve(Ur);
+		I.reserve(Ir);
 
 		mpd_status *status = mpd_run_status(conn);
 //////////
@@ -199,10 +194,10 @@ public:
 			case MPD_STATE_STOP:  state = "stop";
 		}
 		if (state == "play") {
-			const mpd_audio_format *fmt = mpd_status_get_audio_format(status);
-			if (fmt != nullptr) {
-				bitdepth   = fmt->bits;
-				samplerate = fmt->sample_rate;
+			const mpd_audio_format *audio = mpd_status_get_audio_format(status);
+			if (audio != nullptr) {
+				bitdepth   = audio->bits;
+				samplerate = audio->sample_rate;
 			}
 			bitrate = mpd_status_get_kbit_rate(status);
 		}
@@ -212,10 +207,10 @@ public:
 		B["random"]      = mpd_status_get_random(status);
 		B["repeat"]      = mpd_status_get_repeat(status);
 		B["single"]      = mpd_status_get_single_state(status) == MPD_SINGLE_ON;
-		U["crossfade"]   = mpd_status_get_crossfade(status);
-		U["elapsed"]     = mpd_status_get_elapsed_time(status);
-		U["timestamp"]   = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-		U["volume"]      = mpd_status_get_volume(status);
+		I["crossfade"]   = mpd_status_get_crossfade(status);
+		I["elapsed"]     = mpd_status_get_elapsed_time(status);
+		I["timestamp"]   = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+		I["volume"]      = mpd_status_get_volume(status);
 
 		mpd_status_free(status);
 //////////
@@ -245,7 +240,7 @@ public:
 		Time          = mpd_song_get_duration(song);
 		for (int tag = 0; tag < MPD_TAG_COUNT; tag++) {
 			auto type = static_cast<mpd_tag_type>(tag);
-			for (unsigned i = 0;; i++) {
+			for (int i = 0;; i++) {
 				const char *value = mpd_song_get_tag(song, type, i);
 				if (value == nullptr) break;
 //..............................................................................
@@ -254,15 +249,15 @@ public:
 		}
 		mpd_song_free(song);
 //////////
-// coverart, ext, icon
+// coverart, ext, icon, sampling
 		if (uri_ini == "cdda") {
 			ext                 = "CD";
 			icon                = "audiocd";
-			sampling           += "16 bit 44.1 kHz 1.41 Mbit/s • CD";
-			std::string file_cd = "/srv/http/data/shm/audiocd";
+			sampling            = "16 bit 44.1 kHz 1.41 Mbit/s • CD";
+			std::string file_cd = dir_data +"shm/audiocd";
 			if (std::filesystem::exists(file_cd)) {
 				std::string discid  = fileContent(file_cd)[0];
-				std::string file_id = "/srv/http/data/audiocd/"+ discid;
+				std::string file_id = dir_data +"audiocd/"+ discid;
 				coverart            = "/data/audiocd/"+ discid +".jpg";
 				if (std::filesystem::exists(file_id)) {
 					std::vector<std::string> data = fileContent(file_id);
@@ -301,42 +296,56 @@ public:
 						icon = "radioparadise";
 					}
 					std::replace(url.begin(), url.end(), '/', '|');
-					file_radio = "/srv/http/data/"+ dir_radio + url;
+					file_radio = dir_data + dir_radio + url;
 					if (std::filesystem::exists(file_radio)) {
 						std::vector<std::string> data = fileContent(file_radio);
-						radio_sampling    = ext == "DAB" ? "48 kHz 160 kbit/s • DAB" : data[1] +" • Radio";
+						if (state == "stop") sampling = ext == "DAB" ? "48 kHz 160 kbit/s • DAB" : data[1] +" • Radio";
 						S["station"]      = data[0];
 						S["stationcover"] = "/data/"+ dir_radio +"img/"+ url +".jpg";
 					}
 				}
 			}
-		}
-// sampling
-		if (!stream && samplerate == 0 && state == "stop") {
-			TagLib::FileRef f(F.c_str());
-			TagLib::AudioProperties *p = f.audioProperties();
-			if (p) samplerate = p->sampleRate();
-			TagLib::PropertyMap map = f.file()->properties();
-			if (map.contains("BITSPERSAMPLE")) { // only lossless
-				std::string bps_str = map["BITSPERSAMPLE"].front().to8Bit();
-				if (!bps_str.empty()) bitdepth = std::stoul(bps_str);
-			}
-		}
-		if (pllength > 1) sampling += std::to_string(pos + 1) +"/"+ std::to_string(pllength) +" • ";
-		if (webradio && state == "stop") {
-			sampling += radio_sampling;
 		} else {
-			ext       = F.extension().string().erase(0, 1);
+			coverart = fileCover(F);
+			ext      = F.extension().string().erase(0, 1);
 			std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) {
 				return std::toupper(c);
 			});
-			coverart  = fileCover(F);
-			if (bitdepth   > 0) sampling += std::to_string(bitdepth) +"bit ";
-			if (samplerate > 0) sampling += std::format("{:.1f}", samplerate / 1000.0) +" kHz";
-			if (bitrate    > 0) sampling += " "+ std::to_string(bitrate) +" kHz";
-								sampling += " • "+ ext;
+			if (state == "stop") {
+
+				if (ext == "DSF") {
+					TagLib::DSF::File f(F.c_str());
+					if (f.isValid()) {
+						TagLib::DSF::Properties *p = f.audioProperties();
+						if (p) samplerate = p->sampleRate();
+					}
+					bitdepth = 1;
+				} else if (ext == "DFF") {
+					TagLib::DSDIFF::File f(F.c_str());
+					if (f.isValid()) {
+						TagLib::DSDIFF::Properties *p = f.audioProperties();
+						if (p) samplerate = p->sampleRate();
+					}
+					bitdepth = 1;
+				} else {
+					TagLib::FileRef f(F.c_str());
+					if (!f.isNull()) {
+						TagLib::AudioProperties *p = f.audioProperties();
+						if (p) samplerate          = p->sampleRate();
+						TagLib::PropertyMap map    = f.file()->properties();
+						if (map.contains("BITSPERSAMPLE")) { // available for lossless only
+							std::string bps = map["BITSPERSAMPLE"].front().to8Bit();
+							if (!bps.empty()) bitdepth = std::stoul(bps);
+						}
+					}
+				}
+			}
 		}
-//		if (ext == "DSF" || ext == "DFF") bitdepth = "dsd";
+		if (bitdepth   > 0) sampling += std::to_string(bitdepth) +"bit ";
+		if (samplerate > 0) sampling += std::format("{:.1f}", samplerate / 1000.0) +" kHz";
+		if (bitrate    > 0) sampling += " "+ std::to_string(bitrate) +" kHz";
+							sampling += " • "+ ext;
+		if (pllength > 1) sampling = std::to_string(pos + 1) +"/"+ std::to_string(pllength) +" • "+ sampling;
 		S["coverart"] = coverart;
 		S["ext"]      = ext;
 		S["icon"]     = icon;
@@ -347,9 +356,9 @@ public:
 		S["state"]    = state;
 		B["stream"]   = stream;
 		B["webradio"] = webradio;
-		U["pllength"] = pllength;
-		U["pos"]      = pos;
-		U["Time"]     = Time;
+		I["pllength"] = pllength;
+		I["pos"]      = pos;
+		I["Time"]     = Time;
 
 		statusOutput();
 	}
