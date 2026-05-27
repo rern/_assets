@@ -35,9 +35,10 @@ std::unordered_map<std::string, std::string> S;
 std::unordered_map<std::string, int> I;
 
 struct AudioInfo {
+	int  bitDepth   = 0;
+	int  sampleRate = 0;
+	bool hasLyrics  = false;
 	bool valid     = false;
-	int bitDepth   = 0;
-	int sampleRate = 0;
 };
 
 static uint32_t be32(const uint8_t* p) {
@@ -97,54 +98,32 @@ AudioInfo parseFLAC(const uint8_t* h, size_t) {
 	return A;
 }
 
-AudioInfo parseWAV(const uint8_t* h, size_t size) {
-	AudioInfo A;
-
-	if (memcmp(h, "RIFF", 4) != 0 || memcmp(h + 8, "WAVE", 4) != 0) return A;
-
-	for (size_t j = 12; j + 32 < size; ++j) {
-		if (!memcmp(h + j, "fmt ", 4)) {
-			const uint8_t* p = h + j + 8;
-			A.sampleRate = le32(p + 4);
-			A.bitDepth   = le16(p + 14);
-			A.valid      = true;
-			break;
-		}
-	}
-	return A;
-}
-
-static const int sr_table[4][3] = {
-	{44100, 48000, 32000}, // MPEG1
-	{22050, 24000, 16000}, // MPEG2
-	{11025, 12000, 8000},  // MPEG2.5
-	{0,     0,     0}
-};
-
-bool isValidFrameHeader(const uint8_t* h) {
-	if (h[0] != 0xFF || (h[1] & 0xE0) != 0xE0) return false; // Must start with sync bits: 11 bits = 0x7FF
-
-	int version = (h[1] >> 3) & 0x03;
-	int layer   = (h[1] >> 1) & 0x03;
-
-	if (version == 1 || layer != 1) return false; // invalid MPEG version or not Layer III
-
-	return true;
-}
-
 AudioInfo parseMP3(const uint8_t* h, size_t size) {
 	AudioInfo A;
 
+	auto isValidFrameHeader = [](const uint8_t* h) -> bool {
+        if (h[0] != 0xFF || (h[1] & 0xE0) != 0xE0) return false; // sync bits
+
+        int version = (h[1] >> 3) & 0x03;
+        int layer   =   (h[1] >> 1) & 0x03;
+        if (version == 1 || layer != 1) return false; // invalid version or not Layer III
+
+        return true;
+    };
+
 	size_t start = 0;
-
 	if (!memcmp(h, "ID3", 3)) start = 10;
-
+	const int sr_table[4][3] = {
+		{44100, 48000, 32000}, // MPEG1
+		{22050, 24000, 16000}, // MPEG2
+		{11025, 12000, 8000},  // MPEG2.5
+		{0,     0,     0}
+	};
 	for (size_t j = start; j + 4 < size && j < 4096; ++j) {
 		if (!isValidFrameHeader(h + j)) continue;
 
 		int version  = (h[j + 1] >> 3) & 0x03;
 		int sr_index = (h[j + 2] >> 2) & 0x03;
-
 		int row;
 		switch (version) {
 			case 0: row = 2; break; // MPEG2.5
@@ -154,12 +133,36 @@ AudioInfo parseMP3(const uint8_t* h, size_t size) {
 		}
 
 		A.sampleRate = sr_table[row][sr_index];
-		int mode     = (h[j + 3] >> 6) & 0x03;
 		A.bitDepth   = 0;
 		A.valid      = (A.sampleRate > 0);
 
 		return A;
 	}
+
+	return A;
+}
+
+AudioInfo parseMP4(const uint8_t* h, size_t size) {
+	AudioInfo A;
+
+	bool ok = false;
+
+	for (size_t j = 0; j + 8 < size; ++j) {
+		if (!memcmp(h + j + 4, "ftyp", 4)) ok = true;
+
+		if (!memcmp(h + j, "mp4a", 4)) {
+			A.sampleRate = 44100;
+			A.bitDepth   = 0;
+			ok           = true;
+		}
+
+		if (!memcmp(h + j, "alac", 4)) {
+			A.sampleRate = 44100;
+			A.bitDepth   = 16;
+			ok           = true;
+		}
+	}
+	if (ok) A.valid = true;
 
 	return A;
 }
@@ -192,28 +195,20 @@ AudioInfo parseOGG(const uint8_t* h, size_t size) {
 	return A;
 }
 
-AudioInfo parseMP4(const uint8_t* h, size_t size) {
+AudioInfo parseWAV(const uint8_t* h, size_t size) {
 	AudioInfo A;
 
-	bool ok = false;
+	if (memcmp(h, "RIFF", 4) != 0 || memcmp(h + 8, "WAVE", 4) != 0) return A;
 
-	for (size_t j = 0; j + 8 < size; ++j) {
-		if (!memcmp(h + j + 4, "ftyp", 4)) ok = true;
-
-		if (!memcmp(h + j, "mp4a", 4)) {
-			A.sampleRate = 44100;
-			A.bitDepth   = 0;
-			ok           = true;
-		}
-
-		if (!memcmp(h + j, "alac", 4)) {
-			A.sampleRate = 44100;
-			A.bitDepth   = 16;
-			ok           = true;
+	for (size_t j = 12; j + 32 < size; ++j) {
+		if (!memcmp(h + j, "fmt ", 4)) {
+			const uint8_t* p = h + j + 8;
+			A.sampleRate = le32(p + 4);
+			A.bitDepth   = le16(p + 14);
+			A.valid      = true;
+			break;
 		}
 	}
-	if (ok) A.valid = true;
-
 	return A;
 }
 
