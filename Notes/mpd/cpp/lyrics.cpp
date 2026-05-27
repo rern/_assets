@@ -1,26 +1,31 @@
 #include <iostream>
 #include <cstring>
-#include <string>
-#include <cstdint>
-
 #include "mmap_io.hpp"
 #include "simd_core.hpp"
 
 static bool g_extract = false;
+
+struct Result
+{
+	bool ok = false;
+	bool synced = false;
+	const char* text = nullptr;
+	size_t len = 0;
+};
 
 static inline bool tag4(const uint8_t* p, const char* s)
 {
 	return std::memcmp(p, s, 4) == 0;
 }
 
-// ========================= MP3 (APIC) =========================
-static bool parseMP3(io::View v, const uint8_t*& img, size_t& imgSize)
+// ========================= MP3 =========================
+static bool parseMP3(io::View v, Result& r)
 {
-	if (v.size < 10 || !tag4(v.data, "ID3"))
-		return false;
+	if (v.size < 10 || !tag4(v.data, "ID3")) return false;
 
-	// SIMD prefilter: skip file if no APIC likely exists
-	if (!simd::contains4(v.data, std::min(v.size, (size_t)256 * 1024), "APIC"))
+	// SIMD prefilter: skip if no lyric tags exist
+	if (!simd::contains4(v.data, std::min(v.size, (size_t)128 * 1024), "USLT") &&
+		!simd::contains4(v.data, std::min(v.size, (size_t)128 * 1024), "SYLT"))
 		return false;
 
 	size_t pos = 10;
@@ -39,10 +44,20 @@ static bool parseMP3(io::View v, const uint8_t*& img, size_t& imgSize)
 		if (!fs || pos + 10 + fs > limit)
 			break;
 
-		if (tag4(f, "APIC"))
+		const uint8_t* d = f + 10;
+
+		if (tag4(f, "USLT"))
 		{
-			img = f + 10;
-			imgSize = fs;
+			r.ok = true;
+			if (g_extract) { r.text = (const char*)d; r.len = fs; }
+			return true;
+		}
+
+		if (tag4(f, "SYLT"))
+		{
+			r.ok = true;
+			r.synced = true;
+			if (g_extract) { r.text = (const char*)d; r.len = fs; }
 			return true;
 		}
 
@@ -52,14 +67,14 @@ static bool parseMP3(io::View v, const uint8_t*& img, size_t& imgSize)
 	return false;
 }
 
-// ========================= FLAC (PICTURE) =========================
-static bool parseFLAC(io::View v, const uint8_t*& img, size_t& imgSize)
+// ========================= FLAC =========================
+static bool parseFLAC(io::View v, Result& r)
 {
-	if (v.size < 4 || !tag4(v.data, "fLaC"))
-		return false;
+	if (v.size < 4 || !tag4(v.data, "fLaC")) return false;
 
-	// SIMD prefilter: skip if no picture metadata likely present
-	if (!simd::contains4(v.data, std::min(v.size, (size_t)256 * 1024), "PICTURE"))
+	// SIMD prefilter
+	if (!simd::contains4(v.data, std::min(v.size, (size_t)128 * 1024), "VORBIS") &&
+		!simd::contains4(v.data, std::min(v.size, (size_t)128 * 1024), "COMMENT"))
 		return false;
 
 	size_t pos = 4;
@@ -77,14 +92,13 @@ static bool parseFLAC(io::View v, const uint8_t*& img, size_t& imgSize)
 
 		pos += 4;
 
-		if (pos + sz > v.size)
-			break;
+		if (pos + sz > v.size) break;
 
-		// FLAC picture block
-		if (type == 6)
+		if (type == 4)
 		{
-			img = v.data + pos;
-			imgSize = sz;
+			r.ok = true;
+			if (g_extract)
+				r.text = (const char*)v.data + pos, r.len = sz;
 			return true;
 		}
 
@@ -95,54 +109,24 @@ static bool parseFLAC(io::View v, const uint8_t*& img, size_t& imgSize)
 	return false;
 }
 
-// ========================= MP4 (covr) =========================
-static bool parseMP4(io::View v, const uint8_t*& img, size_t& imgSize)
-{
-	size_t limit = std::min(v.size, (size_t)256 * 1024);
-
-	for (size_t i = 0; i + 8 < limit; i += 4)
-	{
-		if (tag4(v.data + i + 4, "covr"))
-		{
-			size_t sz =
-				(v.data[i] << 24) |
-				(v.data[i+1] << 16) |
-				(v.data[i+2] << 8) |
-				(v.data[i+3]);
-
-			if (i + sz > v.size)
-				continue;
-
-			img = v.data + i + 8;
-			imgSize = sz - 8;
-			return true;
-		}
-	}
-
-	return false;
-}
-
 // ========================= ENGINE =========================
-static bool process(io::View v, const uint8_t*& img, size_t& imgSize)
+static Result process(io::View v)
 {
-	if (tag4(v.data, "ID3") && parseMP3(v, img, imgSize))
-		return true;
+	Result r;
 
-	if (tag4(v.data, "fLaC") && parseFLAC(v, img, imgSize))
-		return true;
+	if (tag4(v.data, "ID3") && parseMP3(v, r)) return r;
+	if (tag4(v.data, "fLaC") && parseFLAC(v, r)) return r;
 
-	if (tag4(v.data + 4, "ftyp") && parseMP4(v, img, imgSize))
-		return true;
-
-	return false;
+	return r;
 }
 
 // ========================= MAIN =========================
 int main(int argc, char** argv)
 {
+	std::string usage = "Usage: lyrics [-x] FILE\n";;
 	if (argc < 2)
 	{
-		std::cout << "usage: [-x] file\n";
+			std::cout << usage;
 		return 0;
 	}
 
@@ -151,13 +135,6 @@ int main(int argc, char** argv)
 	if (std::string(argv[1]) == "-x")
 	{
 		g_extract = true;
-
-		if (argc < 3)
-		{
-			std::cout << "usage: -x file\n";
-			return 0;
-		}
-
 		path = argv[2];
 	}
 	else
@@ -166,24 +143,19 @@ int main(int argc, char** argv)
 	}
 
 	io::File f;
-
 	if (!io::open(path, f))
 	{
-		std::cout << "file not found\n";
+		std::cout << usage;
 		return 1;
 	}
 
 	auto v = io::view(f);
+	Result r = process(v);
 
-	const uint8_t* img = nullptr;
-	size_t imgSize = 0;
-
-	bool ok = process(v, img, imgSize);
-
-	if (g_extract && ok && img)
-		std::cout.write(reinterpret_cast<const char*>(img), imgSize);
+	if (g_extract && r.ok && r.text)
+		std::cout.write(r.text, r.len);
 	else
-		std::cout << "album_art: " << (ok ? "yes" : "no") << "\n";
+		std::cout << (r.ok ? "true\n" : "false\n");
 
 	io::close(f);
 }

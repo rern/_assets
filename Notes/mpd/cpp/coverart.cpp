@@ -140,9 +140,10 @@ static bool process(io::View v, const uint8_t*& img, size_t& imgSize)
 // ========================= MAIN =========================
 int main(int argc, char** argv)
 {
+	std::string usage = "Usage: coverart [-x] FILE\n";;
 	if (argc < 2)
 	{
-		std::cout << "usage: [-x] file\n";
+		std::cout << usage;
 		return 0;
 	}
 
@@ -154,7 +155,7 @@ int main(int argc, char** argv)
 
 		if (argc < 3)
 		{
-			std::cout << "usage: -x file\n";
+			std::cout << usage;
 			return 0;
 		}
 
@@ -169,7 +170,7 @@ int main(int argc, char** argv)
 
 	if (!io::open(path, f))
 	{
-		std::cout << "file not found\n";
+		std::cout << "File not found:" << path << "\n";
 		return 1;
 	}
 
@@ -183,7 +184,7 @@ int main(int argc, char** argv)
 	if (g_extract && ok && img)
 		std::cout.write(reinterpret_cast<const char*>(img), imgSize);
 	else
-		std::cout << "album_art: " << (ok ? "yes" : "no") << "\n";
+		std::cout << (ok ? "true\n" : "false\n");
 
 	io::close(f);
 }
