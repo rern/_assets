@@ -111,14 +111,14 @@ AudioInfo parseMP3(const uint8_t* h, size_t size) {
         return true;
     };
 
-	size_t start = 0;
-	if (!memcmp(h, "ID3", 3)) start = 10;
 	const int sr_table[4][3] = {
 		{44100, 48000, 32000}, // MPEG1
 		{22050, 24000, 16000}, // MPEG2
 		{11025, 12000, 8000},  // MPEG2.5
 		{0,     0,     0}
 	};
+	size_t start = 0;
+	if (!memcmp(h, "ID3", 3)) start = 10;
 	for (size_t j = start; j + 4 < size && j < 4096; ++j) {
 		if (!isValidFrameHeader(h + j)) continue;
 
