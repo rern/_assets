@@ -81,6 +81,55 @@ void parseNativePictureBlock(const char* d, size_t size, AudioMetaReport& r, siz
 	}
 }
 
+// Strips LRC-style timestamps like [00:12.50], [01:23.00], [02:14], or [00:00:00]
+std::string stripTimeSync(const std::string& input) {
+	std::string result;
+	result.reserve(input.size()); // Optimize memory allocation upfront
+
+	size_t i = 0;
+	while (i < input.size()) {
+		if (input[i] == '[') {
+			size_t closeBracket = input.find(']', i);
+			if (closeBracket != std::string::npos) {
+				// Safely inspect if the contents inside look like a timestamp
+				bool isTimestamp = false;
+				size_t insideLen = closeBracket - i - 1;
+
+				if (insideLen >= 4) { // Minimum template: "0:00"
+					size_t colonPos = input.find(':', i);
+					if (colonPos != std::string::npos && colonPos < closeBracket) {
+						// Ensure characters around the colon are numeric digits
+						if (isdigit(input[colonPos - 1]) && isdigit(input[colonPos + 1])) {
+							isTimestamp = true;
+						}
+					}
+				}
+
+				if (isTimestamp) {
+					// Skip past the closing bracket entirely
+					i = closeBracket + 1;
+
+					// Optional: Clean trailing spaces immediately following a stripped timestamp
+					while (i < input.size() && (input[i] == ' ' || input[i] == '\t')) {
+						i++;
+					}
+					continue;
+				}
+			}
+		}
+		result += input[i];
+		i++;
+	}
+
+	// Structural cleanup: Strip leading empty lines that occur if timestamps were on their own lines
+	size_t startPos = 0;
+	while (startPos < result.size() && (result[startPos] == '\r' || result[startPos] == '\n')) {
+		startPos++;
+	}
+
+	return (startPos > 0) ? result.substr(startPos) : result;
+}
+
 // ============================================================================
 // CORE SUB-PARSERS
 // ============================================================================
@@ -414,40 +463,35 @@ AudioMetaReport parseDFF(std::ifstream& file) {
 // PROCESSING ROUTING EXPORT MATRIX
 // ============================================================================
 
-bool executeExtraction(std::ifstream& file, const AudioMetaReport& report, bool extArt, bool extLyr, const std::string& customArtPath) {
+bool executeExtraction(std::ifstream& file, const AudioMetaReport& report, bool extArt, bool extLyr, const std::string& file_target) {
 	if (extArt) {
 		if (!report.hasArt || report.artSize == 0) return false;
 
 		// 1. Determine the correct extension based on internal metadata
 		std::string correctExt = (report.mimeType.find("png") != std::string::npos) ? ".png" : ".jpg";
-		std::string finalPath = customArtPath;
+		std::string finalPath = file_target;
 
-		if (finalPath.empty()) {
-			// Default template if no path is provided
-			finalPath = "extracted_cover" + correctExt;
-		} else {
-			// Auto-correction logic: Ensure the user's path ends with the correct extension
-			std::string lowerPath = finalPath;
-			std::transform(lowerPath.begin(), lowerPath.end(), lowerPath.begin(), ::tolower);
+		// Auto-correction logic: Ensure the user's path ends with the correct extension
+		std::string lowerPath = finalPath;
+		std::transform(lowerPath.begin(), lowerPath.end(), lowerPath.begin(), ::tolower);
 
-			if (correctExt == ".png") {
-				// If it's a PNG but user wrote .jpg/.jpeg, fix it
-				if (lowerPath.rfind(".jpg") == lowerPath.length() - 4 || lowerPath.rfind(".jpeg") == lowerPath.length() - 5) {
-					size_t lastDot = finalPath.find_last_of(".");
-					finalPath = finalPath.substr(0, lastDot) + ".png";
-				} else if (lowerPath.rfind(".png") != lowerPath.length() - 4) {
-					// If no extension or different extension, just append .png
-					finalPath += ".png";
-				}
-			} else if (correctExt == ".jpg") {
-				// If it's a JPG but user wrote .png, fix it
-				if (lowerPath.rfind(".png") == lowerPath.length() - 4) {
-					size_t lastDot = finalPath.find_last_of(".");
-					finalPath = finalPath.substr(0, lastDot) + ".jpg";
-				} else if (lowerPath.rfind(".jpg") != lowerPath.length() - 4 && lowerPath.rfind(".jpeg") != lowerPath.length() - 5) {
-					// If no extension or different extension, just append .jpg
-					finalPath += ".jpg";
-				}
+		if (correctExt == ".png") {
+			// If it's a PNG but user wrote .jpg/.jpeg, fix it
+			if (lowerPath.rfind(".jpg") == lowerPath.length() - 4 || lowerPath.rfind(".jpeg") == lowerPath.length() - 5) {
+				size_t lastDot = finalPath.find_last_of(".");
+				finalPath = finalPath.substr(0, lastDot) + ".png";
+			} else if (lowerPath.rfind(".png") != lowerPath.length() - 4) {
+				// If no extension or different extension, just append .png
+				finalPath += ".png";
+			}
+		} else if (correctExt == ".jpg") {
+			// If it's a JPG but user wrote .png, fix it
+			if (lowerPath.rfind(".png") == lowerPath.length() - 4) {
+				size_t lastDot = finalPath.find_last_of(".");
+				finalPath = finalPath.substr(0, lastDot) + ".jpg";
+			} else if (lowerPath.rfind(".jpg") != lowerPath.length() - 4 && lowerPath.rfind(".jpeg") != lowerPath.length() - 5) {
+				// If no extension or different extension, just append .jpg
+				finalPath += ".jpg";
 			}
 		}
 
@@ -483,11 +527,29 @@ bool executeExtraction(std::ifstream& file, const AudioMetaReport& report, bool 
 		if (!report.hasLyrics || report.lyricsText.empty()) return false;
 		size_t marker = report.lyricsText.find("\n[BUFFERED_ART_PAYLOAD:");
 		std::string cleanedText = (marker != std::string::npos) ? report.lyricsText.substr(0, marker) : report.lyricsText;
-		std::cout << cleanedText << std::flush;
+		cleanedText = stripTimeSync(cleanedText);
+		if (file_target.empty()) {
+			std::cout << cleanedText << std::flush;
+		} else {
+			std::ofstream lyricsFile(file_target);
+			if (!lyricsFile) return false;
+
+			lyricsFile << cleanedText;
+		}
 		return true;
 	}
 
 	return false;
+}
+
+void help(char*& argv0) {
+	std::cerr
+		<< "\nUsage: " << argv0 << " <-c|-l> [-x [FILE_TARGET]] <FILE_SOURCE>\n"
+		<< "  -c    coverart exists - return 0/1\n"
+		<< "  -l    lyrics exists   - return 0/1\n"
+		<< "  -x    extract (time-sync removed, if any)\n"
+		<< "        -c -x  to [default: cover  | FILE_TARGET] (auto append .jpg/.png)\n"
+		<< "        -l -x  to [default: stdout | FILE_TARGET] (auto append .txt)\n\n";
 }
 
 // ============================================================================
@@ -495,19 +557,17 @@ bool executeExtraction(std::ifstream& file, const AudioMetaReport& report, bool 
 // ============================================================================
 
 int main(int argc, char* argv[]) {
-	if (argc < 3) {
-		std::cerr << "Syntax Error: Insufficient execution arguments.\n\n";
-		std::cerr << "Usage: " << argv[0] << " <-c | -l> [-x [output_art_file]] <audio_file_path>\n";
+	if (argc < 3 || argv[1] == "-h") {
+		help(argv[0]);
 		return 2;
 	}
 
-	std::string filePath = "";
-	std::string customArtPath = "";
+	std::string file_source = "";
+	std::string file_target = "";
 	bool optArt = false;
 	bool optLyrics = false;
 	bool optExtract = false;
 
-	// Improved state machine argument scanning
 	for (int i = 1; i < argc; ++i) {
 		std::string arg = argv[i];
 		if (arg == "-c") {
@@ -516,36 +576,35 @@ int main(int argc, char* argv[]) {
 			optLyrics = true;
 		} else if (arg == "-x") {
 			optExtract = true;
-			// Look ahead: If next parameter exists and does not start with a dash, treat it as custom artwork output destination
 			if (i + 1 < argc && argv[i + 1][0] != '-') {
-				// Only map if targeting artwork mode
-				customArtPath = argv[i + 1];
-				i++; // Consume look-ahead path token
+				i++;
+				file_target = argv[i];
 			}
 		} else {
-			filePath = arg;
+			file_source = arg;
 		}
 	}
+	if (optExtract && file_source.empty()) {
+		file_source = file_target;
+		file_target = optArt ? "cover" : "";
+	}
 
-	// Enforce mutual exclusivity constraints
-	if (optArt && optLyrics) {
-		std::cerr << "Execution Error: Options '-c' and '-l' are mutually exclusive.\n";
+	if ((optArt && optLyrics) || (!optArt && !optLyrics)) {
+		std::cerr << "Execution Error: Must specify either '-c' or '-l'.\n";
+		help(argv[0]);
 		return 2;
 	}
 
-	if (!optArt && !optLyrics) {
-		std::cerr << "Execution Error: Must specify either '-c' (Artwork) or '-l' (Lyrics) parsing mode.\n";
+	if (file_source.empty()) {
+		std::cerr << "Execution Error: Must specify source file.\n";
+		help(argv[0]);
 		return 2;
 	}
 
-	if (filePath.empty()) {
-		std::cerr << "Execution Error: Missing target binary audio path variable reference.\n";
-		return 2;
-	}
-
-	std::ifstream file(filePath, std::ios::binary);
+	std::ifstream file(file_source, std::ios::binary);
 	if (!file) {
-		std::cerr << "FileSystem Error: Unable to open file: " << filePath << "\n";
+		std::cerr << "FileSystem Error: Unable to open file: " << file_source << "\n";
+		help(argv[0]);
 		return 2;
 	}
 
@@ -584,7 +643,7 @@ int main(int argc, char* argv[]) {
 		if (optArt) return report.hasArt ? 0 : 1;
 		if (optLyrics) return report.hasLyrics ? 0 : 1;
 	} else {
-		bool extractionSuccess = executeExtraction(file, report, optArt, optLyrics, customArtPath);
+		bool extractionSuccess = executeExtraction(file, report, optArt, optLyrics, file_target);
 		return extractionSuccess ? 0 : 1;
 	}
 
