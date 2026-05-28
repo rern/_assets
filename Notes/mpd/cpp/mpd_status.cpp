@@ -1,4 +1,4 @@
-// g++ mpdstatus.cpp $( pkg-config --cflags --libs libmpdclient,taglib ) -o /bin/mpdstatus
+// g++ mpd_status.cpp $( pkg-config --cflags --libs libmpdclient,taglib ) -o /bin/mpdstatus
 
 #include <mpd/client.h>
 
@@ -570,7 +570,8 @@ int main(int argc, char **argv) {
 		mpd.status();
 	} else {                   // help
 		std::cout
-			<< "Usage: mpdstatus [option]\n"
+			<< "\nGet status and data for rAudio\n\n"
+			<< "Usage: " << argv[0] << " [-j|-n]\n"
 			<< "        key=value format (no option)\n"
 			<< "  -j    json format\n"
 			<< "  -n    json-like with no braces\n";
