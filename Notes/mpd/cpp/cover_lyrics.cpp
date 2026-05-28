@@ -1,9 +1,9 @@
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <string>
-#include <cstdint>
 #include <algorithm>
+#include <cstdint>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <vector>
 
 // ============================================================================
 // STRUCTS & UTILITIES
@@ -463,8 +463,8 @@ AudioMetaReport parseDFF(std::ifstream& file) {
 // PROCESSING ROUTING EXPORT MATRIX
 // ============================================================================
 
-bool executeExtraction(std::ifstream& file, const AudioMetaReport& report, bool extArt, bool extLyr, const std::string& file_target) {
-	if (extArt) {
+bool executeExtraction(std::ifstream& file, const AudioMetaReport& report, bool coverart, const std::string& file_target) {
+	if (coverart) {
 		if (!report.hasArt || report.artSize == 0) return false;
 
 		// 1. Determine the correct extension based on internal metadata
@@ -521,35 +521,16 @@ bool executeExtraction(std::ifstream& file, const AudioMetaReport& report, bool 
 			artFile.write(buffer.data(), report.artSize);
 			return true;
 		}
-	}
-
-	if (extLyr) {
+	} else {
 		if (!report.hasLyrics || report.lyricsText.empty()) return false;
 		size_t marker = report.lyricsText.find("\n[BUFFERED_ART_PAYLOAD:");
 		std::string cleanedText = (marker != std::string::npos) ? report.lyricsText.substr(0, marker) : report.lyricsText;
 		cleanedText = stripTimeSync(cleanedText);
-		if (file_target.empty()) {
-			std::cout << cleanedText << std::flush;
-		} else {
-			std::ofstream lyricsFile(file_target);
-			if (!lyricsFile) return false;
-
-			lyricsFile << cleanedText;
-		}
+		std::cout << cleanedText << std::flush;
 		return true;
 	}
 
 	return false;
-}
-
-void help(char*& argv0) {
-	std::cerr
-		<< "\nUsage: " << argv0 << " <-c|-l> [-x [FILE_TARGET]] <FILE_SOURCE>\n"
-		<< "  -c    coverart exists - return 0/1\n"
-		<< "  -l    lyrics exists   - return 0/1\n"
-		<< "  -x    extract (time-sync removed, if any)\n"
-		<< "        -c -x  to [default: cover  | FILE_TARGET] (auto append .jpg/.png)\n"
-		<< "        -l -x  to [default: stdout | FILE_TARGET] (auto append .txt)\n\n";
 }
 
 // ============================================================================
@@ -557,56 +538,20 @@ void help(char*& argv0) {
 // ============================================================================
 
 int main(int argc, char* argv[]) {
-	if (argc < 3 || argv[1] == "-h") {
-		help(argv[0]);
-		return 2;
+	if (argc < 2) {
+		std::cout
+			<< "Usage:\n"
+			<< argv[0] << " FILE_SOURCE FILE_TARGET - extract coverart and save (auto append .jpg/.png)\n"
+			<< argv[0] << " FILE_SOURCE             - extract lyrics to stdout  (time-sync removed, if any)\n";
+		return 0;
 	}
 
-	std::string file_source = "";
-	std::string file_target = "";
-	bool optArt = false;
-	bool optLyrics = false;
-	bool optExtract = false;
-
-	for (int i = 1; i < argc; ++i) {
-		std::string arg = argv[i];
-		if (arg == "-c") {
-			optArt = true;
-		} else if (arg == "-l") {
-			optLyrics = true;
-		} else if (arg == "-x") {
-			optExtract = true;
-			if (i + 1 < argc && argv[i + 1][0] != '-') {
-				i++;
-				file_target = argv[i];
-			}
-		} else {
-			file_source = arg;
-		}
-	}
-	if (optExtract && file_source.empty()) {
-		file_source = file_target;
-		file_target = optArt ? "cover" : "";
-	}
-
-	if ((optArt && optLyrics) || (!optArt && !optLyrics)) {
-		std::cerr << "Execution Error: Must specify either '-c' or '-l'.\n";
-		help(argv[0]);
-		return 2;
-	}
-
-	if (file_source.empty()) {
-		std::cerr << "Execution Error: Must specify source file.\n";
-		help(argv[0]);
-		return 2;
-	}
+	bool coverart           = argc == 3;
+	std::string file_source = argv[1];
+	std::string file_target = coverart ? argv[2] : "";
 
 	std::ifstream file(file_source, std::ios::binary);
-	if (!file) {
-		std::cerr << "FileSystem Error: Unable to open file: " << file_source << "\n";
-		help(argv[0]);
-		return 2;
-	}
+	if (!file) return 2;
 
 	char magicBytes[12];
 	file.read(magicBytes, 12);
@@ -639,13 +584,8 @@ int main(int argc, char* argv[]) {
 		report = parseID3v2Data(file, 0);
 	}
 
-	if (!optExtract) {
-		if (optArt) return report.hasArt ? 0 : 1;
-		if (optLyrics) return report.hasLyrics ? 0 : 1;
-	} else {
-		bool extractionSuccess = executeExtraction(file, report, optArt, optLyrics, file_target);
-		return extractionSuccess ? 0 : 1;
-	}
+	bool extractionSuccess = executeExtraction(file, report, coverart, file_target);
+	return extractionSuccess ? 0 : 1;
 
 	return 1;
 }
