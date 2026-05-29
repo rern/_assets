@@ -1,4 +1,3 @@
-// g++ -O2 albumartist_wav.cpp -O2 /bin/albumartist_wav
 #include <cstdint>
 #include <fstream>
 #include <iostream>
@@ -45,7 +44,7 @@ std::string parseID3v2AlbumArtist(std::ifstream& file, size_t startOffset) {
 		if (frameID[0] == 0) break; // Hit padding nulls
 
 		uint32_t frameSize = readUint32BE(tagData.data() + offset + 4);
-
+		
 		// Ensure we don't read out of bounds
 		if (offset + 10 + frameSize > bytesRead) break;
 
@@ -110,7 +109,7 @@ std::string extractWavAlbumArtist(const std::string& filePath) {
 		if (chunkSize % 2 != 0) {
 			chunkSize++;
 		}
-
+		
 		// Skip past this chunk payload
 		file.seekg(chunkSize, std::ios::cur);
 	}

@@ -30,7 +30,7 @@ std::unordered_map<std::string, bool> B;
 std::unordered_map<std::string, std::string> S;
 std::unordered_map<std::string, int> I;
 
-struct AudioInfo {
+struct AudioFormat {
 	int  bitDepth   = 0;
 	int  sampleRate = 0;
 	bool hasLyrics  = false;
@@ -49,8 +49,85 @@ static uint16_t le16(const uint8_t* p) {
 	return (p[1] << 8) | p[0];
 }
 
-AudioInfo parseDFF(const uint8_t* h, size_t size) {
-	AudioInfo A;
+AudioFormat parseAIFF(const uint8_t* h, size_t size) {
+    AudioFormat A;
+
+    // Validate FORM container and AIFF/AIFC type signatures
+    if (size < 12 || memcmp(h, "FORM", 4) != 0) return A;
+    if (memcmp(h + 8, "AIFF", 4) != 0 && memcmp(h + 8, "AIFC", 4) != 0) return A;
+
+    size_t i = 12;
+    while (i + 8 < size) {
+        const uint8_t* chunkID = h + i;
+        
+        // AIFF chunk sizes are Big-Endian 32-bit integers
+        uint32_t chunkSize = (chunkID[4] << 24) | (chunkID[5] << 16) | 
+                             (chunkID[6] << 8)  | chunkID[7];
+        
+        size_t nextChunkOffset = i + 8 + chunkSize;
+        if (nextChunkOffset > size) break;
+
+        // Parse Common Chunk (COMM)
+        if (memcmp(chunkID, "COMM", 4) == 0 && chunkSize >= 18) {
+            const uint8_t* commData = chunkID + 8;
+            
+            // Channels: commData[0..1]
+            // Sample Frames: commData[2..5]
+            
+            // Bit Depth is a Big-Endian 16-bit integer
+            A.bitDepth = (commData[6] << 8) | commData[7];
+
+            // Sample Rate is a Big-Endian 80-bit IEEE 754 Extended Float (commData[8..17])
+            // Standard conversion logic extracting integer sample rate directly:
+            uint16_t exp = (commData[8] << 8) | commData[9];
+            uint32_t hiMant = (commData[10] << 24) | (commData[11] << 16) | 
+                              (commData[12] << 8)  | commData[13];
+            
+            int shift = 16398 - exp;
+            if (shift >= 0 && shift < 32) {
+                A.sampleRate = hiMant >> shift;
+                A.valid = true;
+            }
+            return A;
+        }
+
+        // Align to even byte boundaries per AIFF spec
+        i = nextChunkOffset + (chunkSize % 2);
+    }
+    return A;
+}
+
+AudioFormat parseAPE(const uint8_t* h, size_t size) {
+    AudioFormat A;
+
+    // APE files must begin with the "MAC " magic signature
+    if (size < 52 || memcmp(h, "MAC ", 4) != 0) return A;
+
+    // Validate file version (stored as Little-Endian 16-bit integer at index 4)
+    uint16_t version = h[4] | (h[5] << 8);
+
+    // Version >= 3.98 uses standard descriptor tags
+    if (version >= 3980) {
+        // Descriptor tags contain properties at strict byte index limits
+        // BitsPerSample (Little-Endian 16-bit) at offset 38
+        A.bitDepth = h[38] | (h[39] << 8);
+        
+        // SampleRate (Little-Endian 32-bit) at offset 40
+        A.sampleRate = h[40] | (h[41] << 8) | (h[42] << 16) | (h[43] << 24);
+        A.valid = true;
+    } 
+    // Fallback logic processing legacy versions (Old APE < 3.98)
+    else {
+        A.bitDepth = h[14] | (h[15] << 8);
+        A.sampleRate = h[16] | (h[17] << 8) | (h[18] << 16) | (h[19] << 24);
+        A.valid = true;
+    }
+
+    return A;
+}
+
+AudioFormat parseDFF(const uint8_t* h, size_t size) {
+	AudioFormat A;
 
 	if (size < 128) return A;
 
@@ -66,8 +143,8 @@ AudioInfo parseDFF(const uint8_t* h, size_t size) {
 	return A;
 }
 
-AudioInfo parseDSF(const uint8_t* h, size_t size) {
-	AudioInfo A;
+AudioFormat parseDSF(const uint8_t* h, size_t size) {
+	AudioFormat A;
 
 	if (size < 64) return A;
 
@@ -80,8 +157,8 @@ AudioInfo parseDSF(const uint8_t* h, size_t size) {
 	return A;
 }
 
-AudioInfo parseFLAC(const uint8_t* h, size_t) {
-	AudioInfo A;
+AudioFormat parseFLAC(const uint8_t* h, size_t) {
+	AudioFormat A;
 
 	if (memcmp(h, "fLaC", 4) != 0) return A;
 
@@ -94,19 +171,19 @@ AudioInfo parseFLAC(const uint8_t* h, size_t) {
 	return A;
 }
 
-AudioInfo parseMP3(const uint8_t* h, size_t size) {
-	AudioInfo A;
-
+AudioFormat parseMP3(const uint8_t* h, size_t size) {
+	AudioFormat A;
+	
 	auto isValidFrameHeader = [](const uint8_t* h) -> bool {
         if (h[0] != 0xFF || (h[1] & 0xE0) != 0xE0) return false; // sync bits
 
         int version = (h[1] >> 3) & 0x03;
         int layer   =   (h[1] >> 1) & 0x03;
         if (version == 1 || layer != 1) return false; // invalid version or not Layer III
-
+		
         return true;
     };
-
+	
 	const int sr_table[4][3] = {
 		{44100, 48000, 32000}, // MPEG1
 		{22050, 24000, 16000}, // MPEG2
@@ -138,8 +215,8 @@ AudioInfo parseMP3(const uint8_t* h, size_t size) {
 	return A;
 }
 
-AudioInfo parseMP4(const uint8_t* h, size_t size) {
-	AudioInfo A;
+AudioFormat parseMP4(const uint8_t* h, size_t size) {
+	AudioFormat A;
 
 	bool ok = false;
 
@@ -163,8 +240,8 @@ AudioInfo parseMP4(const uint8_t* h, size_t size) {
 	return A;
 }
 
-AudioInfo parseOGG(const uint8_t* h, size_t size) {
-	AudioInfo A;
+AudioFormat parseOGG(const uint8_t* h, size_t size) {
+	AudioFormat A;
 
 	if (memcmp(h,"OggS",4) != 0) return A;
 
@@ -191,8 +268,8 @@ AudioInfo parseOGG(const uint8_t* h, size_t size) {
 	return A;
 }
 
-AudioInfo parseWAV(const uint8_t* h, size_t size) {
-	AudioInfo A;
+AudioFormat parseWAV(const uint8_t* h, size_t size) {
+	AudioFormat A;
 
 	if (memcmp(h, "RIFF", 4) != 0 || memcmp(h + 8, "WAVE", 4) != 0) return A;
 
@@ -208,33 +285,114 @@ AudioInfo parseWAV(const uint8_t* h, size_t size) {
 	return A;
 }
 
-AudioInfo readFile(const std::string& path) {
+AudioFormat parseWMA(const uint8_t* h, size_t size) {
+    AudioFormat A;
+
+    // Verify outer ASF Container Master Header GUID Object
+    const uint8_t asfHeaderGUID[16] = {0x30, 0x26, 0xB2, 0x75, 0x8E, 0x66, 0xCF, 0x11, 0xA6, 0xD9, 0x00, 0xAA, 0x00, 0x62, 0xCE, 0x6C};
+    if (size < 30 || memcmp(h, asfHeaderGUID, 16) != 0) return A;
+
+    // Extract sub-object loop definitions
+    uint32_t totalHeaderObjects = h[24] | (h[25] << 8) | (h[26] << 16) | (h[27] << 24);
+    
+    // Scan buffer space for the Stream Properties Object GUID
+    const uint8_t streamPropertiesGUID[16] = {0x91, 0x07, 0xDC, 0xB7, 0x0E, 0xA9, 0xCF, 0x11, 0x8E, 0x6E, 0x00, 0xC0, 0x0C, 0x20, 0x53, 0x65};
+    const uint8_t audioStreamTypeGUID[16]   = {0x40, 0x9E, 0x69, 0xF8, 0x4D, 0x5B, 0xCF, 0x11, 0xA8, 0xFD, 0x00, 0x80, 0x5F, 0x5C, 0x44, 0x2B};
+
+    size_t i = 30; // Shift past the fixed segment of the main header object
+    for (uint32_t objCount = 0; objCount < totalHeaderObjects && (i + 24) < size; ++objCount) {
+        const uint8_t* curObjGUID = h + i;
+        
+        // Read 64-bit size values natively (Little-Endian)
+        uint64_t objSize = 0;
+        for (int b = 0; b < 8; ++b) {
+            objSize |= (static_cast<uint64_t>(curObjGUID[16 + b]) << (b * 8));
+        }
+
+        if (i + objSize > size || objSize < 24) break;
+
+        // Match Stream Properties Object
+        if (memcmp(curObjGUID, streamPropertiesGUID, 16) == 0 && objSize >= 78) {
+            const uint8_t* streamData = curObjGUID + 24;
+            
+            // Validate that this particular stream is an Audio Stream
+            if (memcmp(streamData, audioStreamTypeGUID, 16) == 0) {
+                // Skip Correction Type GUID (16 bytes) + Time Offset (8 bytes) + Type Data Length (4 bytes)
+                // Inside the Type Data Payload sits the standard WAVEFORMATEX struct
+                const uint8_t* waveFormatEx = streamData + 54;
+                
+                // Sample Rate is a Little-Endian 32-bit integer at offset 4
+                A.sampleRate = waveFormatEx[4] | (waveFormatEx[5] << 8) | 
+                               (waveFormatEx[6] << 16) | (waveFormatEx[7] << 24);
+                
+                // Bit Depth is a Little-Endian 16-bit integer at offset 14
+                A.bitDepth = waveFormatEx[14] | (waveFormatEx[15] << 8);
+                
+                // Safety check for empty or unpopulated bit depth fields typical in old WMA lossy files
+                if (A.bitDepth == 0) A.bitDepth = 16; 
+                
+                A.valid = true;
+                return A;
+            }
+        }
+        
+        i += objSize;
+    }
+    return A;
+}
+
+AudioFormat readFile(const std::string& path) {
 	std::ifstream f(path, std::ios::binary);
 
 	if (!f) return {};
 
+	// 1. Allocate a generous stack/heap block to comfortably hold file container headers
 	std::vector<uint8_t> buf(4096);
 	f.read((char*)buf.data(), buf.size());
-
 	size_t size      = f.gcount();
 	const uint8_t* h = buf.data();
-
 	if (size < 16) return {};
 
-	if (!memcmp(h, "FRM8", 4))  return parseDFF(h, size);
+	// DFF (DSD Audio)
+	if (!memcmp(h, "FRM8", 4))                      return parseDFF(h, size);
 
-	if (!memcmp(h, "DSD ", 4))  return parseDSF(h, size);
+	// DSF (DSD Audio alternative)
+	if (!memcmp(h, "DSD ", 4))                      return parseDSF(h, size);
 
-	if (!memcmp(h, "fLaC", 4))  return parseFLAC(h, size);
+	// Native FLAC
+	if (!memcmp(h, "fLaC", 4))                      return parseFLAC(h, size);
 
-	if (!memcmp(h, "ID3", 3) || h[0] == 0xFF) return parseMP3(h, size);
+	// OGG Container (Vorbis / Opus)
+	if (!memcmp(h, "OggS", 4))                      return parseOGG(h, size);
 
-	if (!memcmp(h, "OggS", 4))  return parseOGG(h, size);
+	// WAV (RIFF Container)
+	if (!memcmp(h, "RIFF", 4))                      return parseWAV(h, size);
 
-	if (!memcmp(h, "RIFF", 4))  return parseWAV(h, size);
+	// MP4 Container (M4A / AAC / ALAC)
+	if (!memcmp(h + 4, "ftyp", 4))                  return parseMP4(h, size);
 
-	if (!memcmp(h + 4, "ftyp", 4)) return parseMP4(h, size);
+	// Monkey's Audio (APE)
+	if (!memcmp(h, "MAC ", 4))                      return parseAPE(h, size);
 
+	// AIFF / AIFC (FORM Container with length buffer safety check)
+	if (!memcmp(h, "FORM", 4) && size >= 12 && 
+	   (!memcmp(h + 8, "AIFF", 4) || !memcmp(h + 8, "AIFC", 4))) {
+		return parseAIFF(h, size);
+	}
+
+	// WMA (ASF Container Guid: 75B22630-668E-11CF-A6D9-00AA0062CE6C)
+	if (size >= 16 && 
+		h[0] == 0x30 && h[1] == 0x26 && h[2] == 0xB2 && h[3] == 0x75 &&
+		h[4] == 0x8E && h[5] == 0x66 && h[6] == 0xCF && h[7] == 0x11) {
+		return parseWMA(h, size);
+	}
+
+	// MP3 (ID3v2 tags or raw MPEG-1 Layer III Sync Frames)
+	if (!memcmp(h, "ID3", 3) || h[0] == 0xFF)       return parseMP3(h, size);
+
+	// Fallback to strict ID3 parser if tags might sit in unknown stream formats
+	return parseMP3(h, size);
+	
 	return {};
 }
 
@@ -374,11 +532,11 @@ public:
 			uri_ini,
 			url;
 		std::filesystem::path F;
-
+		
 		B.reserve(7);
 		S.reserve(14);
 		I.reserve(7);
-
+		
 		mpd_status *status = mpd_run_status(conn);
 //////////
 		if (status == nullptr) return;
@@ -399,7 +557,7 @@ public:
 			}
 			bitrate = mpd_status_get_kbit_rate(status);
 		}
-
+		
 		B["updating_db"] = mpd_status_get_update_id(status) > 0;
 		B["consume"]     = mpd_status_get_consume_state(status) == MPD_CONSUME_ON;
 		B["random"]      = mpd_status_get_random(status);
@@ -409,7 +567,7 @@ public:
 		I["elapsed"]     = mpd_status_get_elapsed_time(status);
 		I["timestamp"]   = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
 		I["volume"]      = mpd_status_get_volume(status);
-
+		
 		mpd_status_free(status);
 //////////
 		if (pllength == 0) { // empty playlist
@@ -417,7 +575,7 @@ public:
 			return;
 //..............................................................................
 		}
-
+		
 		int i = 0;
 		mpd_song* song = nullptr;
 		while ((song = mpd_run_current_song(conn)) == nullptr && i < 8) { // add to playlist without play - no current song
@@ -510,7 +668,7 @@ public:
 				return std::toupper(c);
 			});
 			if (state == "stop") {
-				AudioInfo A = readFile(F.c_str());
+				AudioFormat A = readFile(F.c_str());
 				samplerate  = A.sampleRate;
 				bitdepth    = A.bitDepth;
 			}
@@ -533,7 +691,7 @@ public:
 		I["pllength"] = pllength;
 		I["pos"]      = pos;
 		I["Time"]     = Time;
-
+		
 		statusOutput();
 	}
 };

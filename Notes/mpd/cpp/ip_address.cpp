@@ -1,4 +1,3 @@
-// g++ -O2 ip_address.cpp -o /bin/ip_address
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -32,7 +31,7 @@ std::string getLinuxLocalIP() {
 	if (connect(sock, reinterpret_cast<struct sockaddr*>(&loopback), sizeof(loopback)) == 0) {
 		struct sockaddr_in name;
 		socklen_t namelen = sizeof(name);
-
+		
 		// Extract local networking attributes mapped to our socket descriptor
 		if (getsockname(sock, reinterpret_cast<struct sockaddr*>(&name), &namelen) == 0) {
 			char buffer[INET_ADDRSTRLEN];
@@ -50,6 +49,6 @@ std::string getLinuxLocalIP() {
 int main() {
 	std::string localIP = getLinuxLocalIP();
 	std::cout << localIP;
-
+	
 	return 0;
 }
