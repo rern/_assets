@@ -1,4 +1,4 @@
-// g++ mpd_status.cpp $( pkg-config --cflags --libs libmpdclient,taglib ) -o /bin/mpdstatus
+// g++ -O2 mpd_status.cpp $( pkg-config --cflags --libs libmpdclient,taglib ) -o /bin/mpdstatus
 
 #include <mpd/client.h>
 
@@ -26,10 +26,6 @@ bool
 	line_0      = true,
 	no_brace    = false;
 
-int // field count for map reserve memory
-	Br = 7,
-	Sr = 14,
-	Ir = 7;
 std::unordered_map<std::string, bool> B;
 std::unordered_map<std::string, std::string> S;
 std::unordered_map<std::string, int> I;
@@ -379,9 +375,9 @@ public:
 			url;
 		std::filesystem::path F;
 
-		B.reserve(Br);
-		S.reserve(Sr);
-		I.reserve(Ir);
+		B.reserve(7);
+		S.reserve(14);
+		I.reserve(7);
 
 		mpd_status *status = mpd_run_status(conn);
 //////////

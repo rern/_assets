@@ -1,4 +1,4 @@
-// g++ audio_format.cpp -o /bin/audio_format
+// g++ -O2 audio_format.cpp -o /bin/audio_format
 
 #include <cstdint>
 #include <cstring>

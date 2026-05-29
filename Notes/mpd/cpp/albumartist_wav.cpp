@@ -1,3 +1,4 @@
+// g++ -O2 albumartist_wav.cpp -O2 /bin/albumartist_wav
 #include <cstdint>
 #include <fstream>
 #include <iostream>

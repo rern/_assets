@@ -1,3 +1,4 @@
+// g++ -O2 ip_address.cpp -o /bin/ip_address
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
