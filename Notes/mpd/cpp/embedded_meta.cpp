@@ -1,7 +1,7 @@
 /*
 g++ -O3 embedded_meta.cpp -o /bin/embedded_meta
-ln -sf /bin/embedded_meta /bin/embedded.coverart
-ln -sf /bin/embedded_meta /bin/embedded.lyrics
+ln -s /bin/embedded_meta /bin/embedded.coverart
+ln -s /bin/embedded_meta /bin/embedded.lyrics
 */
 #include <algorithm>
 #include <cstdint>
