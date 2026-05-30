@@ -1,3 +1,5 @@
+// g++ -O2 albumartist_wav.cpp -o /bin/albumartist_wav
+
 #include <cstdint>
 #include <fstream>
 #include <iostream>
@@ -29,9 +31,7 @@ std::string parseID3v2AlbumArtist(std::ifstream& file, size_t startOffset) {
 	char header[10];
 	file.seekg(startOffset, std::ios::beg);
 	file.read(header, 10);
-	if (file.gcount() < 10 || std::string(header, 3) != "ID3") {
-		return "";
-	}
+	if (file.gcount() < 10 || std::string(header, 3) != "ID3") return "";
 
 	uint32_t tagSize = readSynchsafeInt32(header + 6);
 	std::vector<char> tagData(tagSize);

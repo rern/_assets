@@ -1,3 +1,5 @@
+// g++ -O2 ip_address.cpp -o /bin/albumartist_wav
+
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
