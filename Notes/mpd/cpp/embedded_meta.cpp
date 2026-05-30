@@ -10,12 +10,13 @@ ln -s /bin/embedded{_meta,-lyrics}
 #include <iostream>
 #include <string>
 #include <vector>
+#include "audio_format.hpp"
 
 // ============================================================================
 // STRUCTS & UTILITIES
 // ============================================================================
 
-struct AudioMetaReport {
+struct AudioMeta {
     bool hasArt            = false;
     bool hasLyrics         = false;
     size_t artOffset       = 0;
@@ -72,7 +73,7 @@ std::vector<char> decodeBase64(const std::string& input) {
     return out;
 }
 
-void parseNativePictureBlock(const char* d, size_t size, AudioMetaReport& r, size_t absoluteOffset) {
+void parseNativePictureBlock(const char* d, size_t size, AudioMeta& r, size_t absoluteOffset) {
     if (size < 32) return;
     r.hasArt = true;
     uint32_t mimeLen = readUint32BE(d + 4);
@@ -134,8 +135,8 @@ std::string stripTimeSync(const std::string& input) {
 // CORE SUB-PARSERS
 // ============================================================================
 
-AudioMetaReport parseID3v2Data(std::ifstream& file, size_t startOffset) {
-    AudioMetaReport r;
+AudioMeta parseID3v2(std::ifstream& file, size_t startOffset) {
+    AudioMeta r;
     char header[10];
     file.seekg(startOffset, std::ios::beg);
     file.read(header, 10);
@@ -245,8 +246,8 @@ AudioMetaReport parseID3v2Data(std::ifstream& file, size_t startOffset) {
     return r;
 }
 
-AudioMetaReport parseAIFF(std::ifstream& file) {
-    AudioMetaReport r; 
+AudioMeta parseAIFF(std::ifstream& file) {
+    AudioMeta r; 
     file.seekg(0, std::ios::beg);
 
     char formHeader[12];
@@ -274,7 +275,7 @@ AudioMetaReport parseAIFF(std::ifstream& file) {
         std::streampos nextChunkPos = chunkDataPos + paddedSize;
 
         if (memcmp(chunkID, "ID3 ", 4) == 0) {
-            r = parseID3v2Data(file, static_cast<size_t>(chunkDataPos));
+            r = parseID3v2(file, static_cast<size_t>(chunkDataPos));
             break; 
         }
         
@@ -283,8 +284,8 @@ AudioMetaReport parseAIFF(std::ifstream& file) {
     return r;
 }
 
-AudioMetaReport parseAPE(std::ifstream& file) {
-    AudioMetaReport r = parseID3v2Data(file, 0);
+AudioMeta parseAPE(std::ifstream& file) {
+    AudioMeta r = parseID3v2(file, 0);
     if (r.hasLyrics && r.hasArt) return r;
 
     file.seekg(0, std::ios::end);
@@ -352,8 +353,8 @@ AudioMetaReport parseAPE(std::ifstream& file) {
     return r;
 }
 
-AudioMetaReport parseDFF(std::ifstream& file) {
-    AudioMetaReport r;
+AudioMeta parseDFF(std::ifstream& file) {
+    AudioMeta r;
     file.seekg(0, std::ios::end);
     size_t fileSize = file.tellg();
     if (fileSize < 1024) return r;
@@ -366,13 +367,13 @@ AudioMetaReport parseDFF(std::ifstream& file) {
 
     size_t id3Pos = tailStr.find("ID3");
     if (id3Pos != std::string::npos) {
-        r = parseID3v2Data(file, checkOffset + id3Pos);
+        r = parseID3v2(file, checkOffset + id3Pos);
     }
     return r;
 }
 
-AudioMetaReport parseDSF(std::ifstream& file) {
-    AudioMetaReport r;
+AudioMeta parseDSF(std::ifstream& file) {
+    AudioMeta r;
     char dsdChunk[28];
     file.seekg(0, std::ios::beg);
     file.read(dsdChunk, 28);
@@ -380,13 +381,13 @@ AudioMetaReport parseDSF(std::ifstream& file) {
 
     uint64_t id3Pointer = readUint64LE(dsdChunk + 20);
     if (id3Pointer > 0) {
-        r = parseID3v2Data(file, id3Pointer);
+        r = parseID3v2(file, id3Pointer);
     }
     return r;
 }
 
-AudioMetaReport parseFLAC(std::ifstream& file) {
-    AudioMetaReport r;
+AudioMeta parseFLAC(std::ifstream& file) {
+    AudioMeta r;
     file.seekg(4, std::ios::beg); 
 
     bool isLast = false;
@@ -447,8 +448,8 @@ AudioMetaReport parseFLAC(std::ifstream& file) {
     return r;
 }
 
-AudioMetaReport parseM4A(std::ifstream& file) {
-    AudioMetaReport r;
+AudioMeta parseM4A(std::ifstream& file) {
+    AudioMeta r;
     file.seekg(0, std::ios::end);
     size_t fileSize = file.tellg();
     file.seekg(0, std::ios::beg);
@@ -483,8 +484,8 @@ AudioMetaReport parseM4A(std::ifstream& file) {
     return r;
 }
 
-AudioMetaReport parseOGG(std::ifstream& file) {
-    AudioMetaReport r;
+AudioMeta parseOGG(std::ifstream& file) {
+    AudioMeta r;
     file.seekg(0, std::ios::end);
     size_t sizeToRead = std::min(static_cast<size_t>(file.tellg()), static_cast<size_t>(256000));
     file.seekg(0, std::ios::beg);
@@ -528,8 +529,8 @@ AudioMetaReport parseOGG(std::ifstream& file) {
     return r;
 }
 
-AudioMetaReport parseWAV(std::ifstream& file) {
-    AudioMetaReport r;
+AudioMeta parseWAV(std::ifstream& file) {
+    AudioMeta r;
     file.seekg(12, std::ios::beg);
 
     while (true) {
@@ -541,7 +542,7 @@ AudioMetaReport parseWAV(std::ifstream& file) {
 
         if (memcmp(chunkHeader, "id3 ", 4) == 0 || memcmp(chunkHeader, "ID3 ", 4) == 0) {
             size_t currentPos = file.tellg();
-            r = parseID3v2Data(file, currentPos);
+            r = parseID3v2(file, currentPos);
             break;
         }
         if (chunkSize % 2 != 0) chunkSize++;
@@ -550,8 +551,8 @@ AudioMetaReport parseWAV(std::ifstream& file) {
     return r;
 }
 
-AudioMetaReport parseWMA(std::ifstream& file) {
-    AudioMetaReport r; 
+AudioMeta parseWMA(std::ifstream& file) {
+    AudioMeta r; 
     file.seekg(0, std::ios::beg);
 
     const uint8_t asfHeaderGUID[16]  = {0x30,0x26,0xB2,0x75,0x8E,0x66,0xCF,0x11,0xA6,0xD9,0x00,0xAA,0x00,0x62,0xCE,0x6C};
@@ -582,9 +583,9 @@ AudioMetaReport parseWMA(std::ifstream& file) {
             file.seekg(4, std::ios::cur); 
             size_t id3AbsOffset = static_cast<size_t>(file.tellg());
             
-            AudioMetaReport id3Report = parseID3v2Data(file, id3AbsOffset);
-            if (id3Report.hasLyrics || id3Report.hasArt) {
-                return id3Report; 
+            AudioMeta id3data = parseID3v2(file, id3AbsOffset);
+            if (id3data.hasLyrics || id3data.hasArt) {
+                return id3data; 
             }
         }
         else if (memcmp(extContentGUID, objGUID, 16) == 0) {
@@ -628,62 +629,45 @@ AudioMetaReport parseWMA(std::ifstream& file) {
 // PROCESSING ROUTING EXPORT MATRIX
 // ============================================================================
 
-bool executeExtraction(std::ifstream& file, const AudioMetaReport& report, bool coverart, const std::string& file_target) {
+bool executeExtraction(std::ifstream& file, const AudioMeta& data, bool coverart, const std::string& file_source) {
     if (coverart) {
-        if (!report.hasArt || report.artSize == 0) return false;
+        if (!data.hasArt || data.artSize == 0) return false;
         
-        std::string correctExt = (report.mimeType.find("png") != std::string::npos) ? ".png" : ".jpg";
-        std::string finalPath = file_target;
+		std::string file_coverart = file_source.substr(0, file_source.find_last_of("/\\")) +"/cover";
+        file_coverart            += (data.mimeType.find("png") != std::string::npos) ? ".png" : ".jpg";
+        std::ofstream file_out(file_coverart, std::ios::binary);
+        if (!file_out) return false;
 
-        std::string lowerPath = finalPath;
-        std::transform(lowerPath.begin(), lowerPath.end(), lowerPath.begin(), ::tolower);
-
-        if (correctExt == ".png") {
-            if (lowerPath.rfind(".jpg") == lowerPath.length() - 4 || lowerPath.rfind(".jpeg") == lowerPath.length() - 5) {
-                size_t lastDot = finalPath.find_last_of(".");
-                finalPath = finalPath.substr(0, lastDot) + ".png";
-            } else if (lowerPath.rfind(".png") != lowerPath.length() - 4) {
-                finalPath += ".png";
-            }
-        } else if (correctExt == ".jpg") {
-            if (lowerPath.rfind(".png") == lowerPath.length() - 4) {
-                size_t lastDot = finalPath.find_last_of(".");
-                finalPath = finalPath.substr(0, lastDot) + ".jpg";
-            } else if (lowerPath.rfind(".jpg") != lowerPath.length() - 4 && lowerPath.rfind(".jpeg") != lowerPath.length() - 5) {
-                finalPath += ".jpg";
-            }
-        }
-
-        std::ofstream artFile(finalPath, std::ios::binary);
-        if (!artFile) return false;
-
-        if (report.artOffset == 0) { 
-            size_t marker = report.lyricsText.find("[BUFFERED_ART_PAYLOAD:");
+        if (data.artOffset == 0) { 
+            size_t marker = data.lyricsText.find("[BUFFERED_ART_PAYLOAD:");
             if (marker != std::string::npos) {
                 size_t start = marker + 22;
-                size_t end = report.lyricsText.find("]", start);
+                size_t end = data.lyricsText.find("]", start);
                 if (end != std::string::npos) {
-                    std::vector<char> decryptedRaw = decodeBase64(report.lyricsText.substr(start, end - start));
+                    std::vector<char> decryptedRaw = decodeBase64(data.lyricsText.substr(start, end - start));
                     const char* d = decryptedRaw.data();
                     uint32_t mLen = readUint32BE(d + 4);
                     uint32_t dLen = readUint32BE(d + 8 + mLen);
                     size_t payloadStart = 8 + mLen + 4 + dLen + 16 + 4;
-                    artFile.write(d + payloadStart, report.artSize);
+                    file_out.write(d + payloadStart, data.artSize);
+					std::cout << file_coverart;
                     return true;
                 }
             }
             return false;
         } else { 
-            file.seekg(report.artOffset, std::ios::beg);
-            std::vector<char> buffer(report.artSize);
-            file.read(buffer.data(), report.artSize);
-            artFile.write(buffer.data(), report.artSize);
+            file.seekg(data.artOffset, std::ios::beg);
+            std::vector<char> buffer(data.artSize);
+            file.read(buffer.data(), data.artSize);
+            file_out.write(buffer.data(), data.artSize);
+			std::cout << file_coverart;
             return true;
         }
     } else {
-        if (!report.hasLyrics || report.lyricsText.empty()) return false;
-        size_t marker = report.lyricsText.find("\n[BUFFERED_ART_PAYLOAD:");
-        std::string cleanedText = (marker != std::string::npos) ? report.lyricsText.substr(0, marker) : report.lyricsText;
+        if (!data.hasLyrics || data.lyricsText.empty()) return false;
+		
+        size_t marker = data.lyricsText.find("\n[BUFFERED_ART_PAYLOAD:");
+        std::string cleanedText = (marker != std::string::npos) ? data.lyricsText.substr(0, marker) : data.lyricsText;
         cleanedText = stripTimeSync(cleanedText);
         std::cout << cleanedText << std::flush;
         return true;
@@ -699,64 +683,45 @@ int main(int argc, char* argv[]) {
 	bool modeCoverArt  = argv_0 == "embedded.coverart";
 	bool modeLyrics    = !modeCoverArt;
     
-	if (argc < 2 || (modeCoverArt && argc < 3)) {
+	if (argc < 2) {
 		bool cmd_embedded = argv_0 == "embedded_meta";
 		std::cerr << "Usage:\n";
 		if (modeCoverArt || cmd_embedded)
-			std::cerr << argv_0 << " FILE_SOURCE FILE_TARGET    # Extract coverart to file (auto append/corect .jpg/.png)\n";
+			std::cerr << argv_0 << " FILE_SOURCE\n# Extract coverart to and stdout FILE_SOURCE_DIR/cover.jpg(.png)\n";
 		if (modeLyrics   || cmd_embedded)
-			std::cerr << argv_0 << " FILE_SOURCE    # Extract lyrics to stdout\n";
+			std::cerr << argv_0 << " FILE_SOURCE\n# Extract lyrics to stdout\n";
 		std::cerr << "Support:\naac, aiff, ape, dsf, dff, flac, mp3, mp4, ogg, opus, wav, wma\n";
 		return 1;
 	}
     
     std::string file_source = argv[1];
-    std::string file_target = (argc >= 3) ? argv[2] : "";
-
     std::ifstream file(file_source, std::ios::binary);
     if (!file) return 2;
 
-    char magicBytes[12];
-    file.read(magicBytes, 12);
-    size_t readSize = file.gcount();
-    if (readSize < 4) return 1; 
+	std::vector<uint8_t> buf(4096);
+	file.read((char*)buf.data(), buf.size());
+	size_t readSize = file.gcount();
+	if (readSize < 16) return {};
+	
+	const uint8_t* h = buf.data();
 
-    const uint8_t* h = reinterpret_cast<const uint8_t*>(magicBytes);
-    AudioMetaReport report;
+    AudioMeta data;
 
-    // --- High Performance File Identification Framework (Zero Heap Slicing) ---
-    if (!memcmp(h, "fLaC", 4)) {
-        report = parseFLAC(file);
-    } 
-    else if (readSize >= 12 && !memcmp(h, "RIFF", 4) && !memcmp(h + 8, "WAVE", 4)) {
-        report = parseWAV(file);
-    } 
-    else if (readSize >= 12 && !memcmp(h, "FORM", 4) && (!memcmp(h + 8, "AIFF", 4) || !memcmp(h + 8, "AIFC", 4))) {
-        report = parseAIFF(file);
-    } 
-    else if (!memcmp(h, "MAC ", 4)) {
-        report = parseAPE(file);
-    } 
-    else if (readSize >= 8 && !memcmp(h + 4, "ftyp", 4)) {
-        report = parseM4A(file);
-    } 
-    else if (!memcmp(h, "OggS", 4)) {
-        report = parseOGG(file);
-    } 
-    else if (!memcmp(h, "DSD ", 4)) {
-        report = parseDSF(file);
-    } 
-    else if (!memcmp(h, "FRM9", 4)) {
-        report = parseDFF(file);
-    } 
-    else if (h[0] == 0x30 && h[1] == 0x26 && h[2] == 0xB2 && h[3] == 0x75) {
-        report = parseWMA(file);
-    } 
-    else {
-        // Fallback processing targets common raw MP3 setups (ID3v2 tags or standard Sync frames)
-        report = parseID3v2Data(file, 0); 
-    }
+    AudioFormat format = Utils::audioFormat(h, readSize);
+	switch (format) {
+		case AudioFormat::aiff: data = parseAIFF(file);     break;
+		case AudioFormat::ape:  data = parseAPE(file);      break;
+		case AudioFormat::dsf:  data = parseDSF(file);      break;
+		case AudioFormat::dff:  data = parseDFF(file);      break;
+		case AudioFormat::flac: data = parseFLAC(file);     break;
+		case AudioFormat::m4a:  data = parseM4A(file);      break;
+		case AudioFormat::mp3:
+		case AudioFormat::na:   data = parseID3v2(file, 0); break; // na fallback
+		case AudioFormat::ogg:  data = parseOGG(file);      break;
+		case AudioFormat::wav:  data = parseWAV(file);      break;
+		case AudioFormat::wma:  data = parseWMA(file);      break;
+	}
 
-    bool extractionSuccess = executeExtraction(file, report, modeCoverArt, file_target);
+    bool extractionSuccess = executeExtraction(file, data, modeCoverArt, file_source);
     return extractionSuccess ? 0 : 1;
 }
