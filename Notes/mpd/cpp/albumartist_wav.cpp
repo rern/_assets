@@ -27,13 +27,13 @@ uint32_t readSynchsafeInt32(const char* b) {
 /**
  * Parses an isolated ID3v2 block and looks explicitly for the 'TPE2' (Album Artist) frame
  */
-std::string parseID3v2AlbumArtist(std::ifstream& file, size_t startOffset) {
-	char header[10];
+std::string parseID3v2(std::ifstream& file, size_t startOffset) {
+	char h[10];
 	file.seekg(startOffset, std::ios::beg);
-	file.read(header, 10);
-	if (file.gcount() < 10 || std::string(header, 3) != "ID3") return "";
+	file.read(h, 10);
+	if (file.gcount() < 10 || std::string(h, 3) != "ID3") return "";
 
-	uint32_t tagSize = readSynchsafeInt32(header + 6);
+	uint32_t tagSize = readSynchsafeInt32(h + 6);
 	std::vector<char> tagData(tagSize);
 	file.read(tagData.data(), tagSize);
 	size_t bytesRead = file.gcount();
@@ -78,55 +78,56 @@ std::string parseID3v2AlbumArtist(std::ifstream& file, size_t startOffset) {
 /**
  * Iterates through the WAV file chunk architecture to locate the embedded ID3 data
  */
-std::string extractWavAlbumArtist(const std::string& filePath) {
-	std::ifstream file(filePath, std::ios::binary);
-	if (!file) {
-		return "Error: Cannot open file.";
-	}
+std::string parseWAV(const std::string& file_source) {
+	std::ifstream file(file_source, std::ios::binary);
+	if (!file) return "error_file";
 
-	char riffHeader[12];
-	file.read(riffHeader, 12);
-	if (file.gcount() < 12 || std::string(riffHeader, 4) != "RIFF" || std::string(riffHeader + 8, 4) != "WAVE") {
-		return "Error: Not a valid RIFF/WAVE file.";
+	char h[12];
+	file.read(h, 12);
+	if (file.gcount() < 12 || std::string(h, 4) != "RIFF" || std::string(h + 8, 4) != "WAVE") {
+		return "error_format";
 	}
 
 	// Read chunks sequentially
 	while (true) {
-		char chunkHeader[8];
-		file.read(chunkHeader, 8);
+		char h[8];
+		file.read(h, 8);
 		if (file.gcount() < 8) break;
 
-		std::string chunkID(chunkHeader, 4);
-		uint32_t chunkSize = readUint32LE(chunkHeader + 4);
-
+		std::string chunkID(h, 4);
+		uint32_t chunkSize = readUint32LE(h + 4);
 		// Modern WAV metadata places a standard ID3 block inside an "id3 " or "ID3 " chunk
 		if (chunkID == "id3 " || chunkID == "ID3 ") {
 			size_t currentPos = file.tellg();
-			return parseID3v2AlbumArtist(file, currentPos);
+			return parseID3v2(file, currentPos);
 		}
-
 		// WAV chunks must align to even byte boundaries
 		if (chunkSize % 2 != 0) {
 			chunkSize++;
 		}
-		
 		// Skip past this chunk payload
 		file.seekg(chunkSize, std::ios::cur);
 	}
 
-	return "Not Found (No embedded ID3v2 TPE2 tag)";
+	return "";
 }
 
 int main(int argc, char* argv[]) {
 	if (argc < 2) {
-		std::cerr << "Usage: " << argv[0] << " <wav_file>\n";
+		std::cerr << "Usage: " << argv[0] << " <FILE_SOURCE>\n";
 		return 1;
 	}
 
-	std::string path = argv[1];
-	std::string albumArtist = extractWavAlbumArtist(path);
-
-	std::cout << albumArtist;
-
+	std::string file_source = argv[1];
+	std::string albumArtist = parseWAV(file_source);
+	if (albumArtist == "error_file") {
+		std::cerr << "Filesystem error\n";
+		return 1;
+	} else if (albumArtist == "error_format") {
+		std::cerr << "Not a wave file\n";
+		return 1;
+	} else if (!albumArtist.empty()) {
+		std::cout << albumArtist;
+	}
 	return 0;
 }
