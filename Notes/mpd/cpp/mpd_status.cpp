@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <unordered_map>
 #include <vector>
+#include "audio_format.hpp"
 
 bool
 	json_format = false,
@@ -30,7 +31,7 @@ std::unordered_map<std::string, bool> B;
 std::unordered_map<std::string, std::string> S;
 std::unordered_map<std::string, int> I;
 
-struct AudioFormat {
+struct AudioMeta {
 	int  bitDepth   = 0;
 	int  sampleRate = 0;
 	bool hasLyrics  = false;
@@ -49,8 +50,8 @@ static uint16_t le16(const uint8_t* p) {
 	return (p[1] << 8) | p[0];
 }
 
-AudioFormat parseAIFF(const uint8_t* h, size_t size) {
-    AudioFormat A;
+AudioMeta parseAIFF(const uint8_t* h, size_t size) {
+    AudioMeta A;
 
     // Validate FORM container and AIFF/AIFC type signatures
     if (size < 12 || memcmp(h, "FORM", 4) != 0) return A;
@@ -97,8 +98,8 @@ AudioFormat parseAIFF(const uint8_t* h, size_t size) {
     return A;
 }
 
-AudioFormat parseAPE(const uint8_t* h, size_t size) {
-    AudioFormat A;
+AudioMeta parseAPE(const uint8_t* h, size_t size) {
+    AudioMeta A;
 
     // APE files must begin with the "MAC " magic signature
     if (size < 52 || memcmp(h, "MAC ", 4) != 0) return A;
@@ -126,8 +127,8 @@ AudioFormat parseAPE(const uint8_t* h, size_t size) {
     return A;
 }
 
-AudioFormat parseDFF(const uint8_t* h, size_t size) {
-	AudioFormat A;
+AudioMeta parseDFF(const uint8_t* h, size_t size) {
+	AudioMeta A;
 
 	if (size < 128) return A;
 
@@ -143,8 +144,8 @@ AudioFormat parseDFF(const uint8_t* h, size_t size) {
 	return A;
 }
 
-AudioFormat parseDSF(const uint8_t* h, size_t size) {
-	AudioFormat A;
+AudioMeta parseDSF(const uint8_t* h, size_t size) {
+	AudioMeta A;
 
 	if (size < 64) return A;
 
@@ -157,8 +158,8 @@ AudioFormat parseDSF(const uint8_t* h, size_t size) {
 	return A;
 }
 
-AudioFormat parseFLAC(const uint8_t* h, size_t) {
-	AudioFormat A;
+AudioMeta parseFLAC(const uint8_t* h, size_t) {
+	AudioMeta A;
 
 	if (memcmp(h, "fLaC", 4) != 0) return A;
 
@@ -171,8 +172,8 @@ AudioFormat parseFLAC(const uint8_t* h, size_t) {
 	return A;
 }
 
-AudioFormat parseMP3(const uint8_t* h, size_t size) {
-	AudioFormat A;
+AudioMeta parseID3v2(const uint8_t* h, size_t size) {
+	AudioMeta A;
 	
 	auto isValidFrameHeader = [](const uint8_t* h) -> bool {
         if (h[0] != 0xFF || (h[1] & 0xE0) != 0xE0) return false; // sync bits
@@ -215,8 +216,8 @@ AudioFormat parseMP3(const uint8_t* h, size_t size) {
 	return A;
 }
 
-AudioFormat parseMP4(const uint8_t* h, size_t size) {
-	AudioFormat A;
+AudioMeta parseM4A(const uint8_t* h, size_t size) {
+	AudioMeta A;
 
 	bool ok = false;
 
@@ -240,8 +241,8 @@ AudioFormat parseMP4(const uint8_t* h, size_t size) {
 	return A;
 }
 
-AudioFormat parseOGG(const uint8_t* h, size_t size) {
-	AudioFormat A;
+AudioMeta parseOGG(const uint8_t* h, size_t size) {
+	AudioMeta A;
 
 	if (memcmp(h,"OggS",4) != 0) return A;
 
@@ -268,8 +269,8 @@ AudioFormat parseOGG(const uint8_t* h, size_t size) {
 	return A;
 }
 
-AudioFormat parseWAV(const uint8_t* h, size_t size) {
-	AudioFormat A;
+AudioMeta parseWAV(const uint8_t* h, size_t size) {
+	AudioMeta A;
 
 	if (memcmp(h, "RIFF", 4) != 0 || memcmp(h + 8, "WAVE", 4) != 0) return A;
 
@@ -285,8 +286,8 @@ AudioFormat parseWAV(const uint8_t* h, size_t size) {
 	return A;
 }
 
-AudioFormat parseWMA(const uint8_t* h, size_t size) {
-    AudioFormat A;
+AudioMeta parseWMA(const uint8_t* h, size_t size) {
+    AudioMeta A;
 
     // Verify outer ASF Container Master Header GUID Object
     const uint8_t asfHeaderGUID[16] = {0x30, 0x26, 0xB2, 0x75, 0x8E, 0x66, 0xCF, 0x11, 0xA6, 0xD9, 0x00, 0xAA, 0x00, 0x62, 0xCE, 0x6C};
@@ -341,58 +342,31 @@ AudioFormat parseWMA(const uint8_t* h, size_t size) {
     return A;
 }
 
-AudioFormat readFile(const std::string& path) {
-	std::ifstream f(path, std::ios::binary);
+AudioMeta readFile(const std::string& path) {
+	std::ifstream file(path, std::ios::binary);
+	if (!file) return {};
 
-	if (!f) return {};
-
-	// 1. Allocate a generous stack/heap block to comfortably hold file container headers
 	std::vector<uint8_t> buf(4096);
-	f.read((char*)buf.data(), buf.size());
-	size_t size      = f.gcount();
-	const uint8_t* h = buf.data();
+	file.read((char*)buf.data(), buf.size());
+	size_t size = file.gcount();
 	if (size < 16) return {};
-
-	// DFF (DSD Audio)
-	if (!memcmp(h, "FRM8", 4))                      return parseDFF(h, size);
-
-	// DSF (DSD Audio alternative)
-	if (!memcmp(h, "DSD ", 4))                      return parseDSF(h, size);
-
-	// Native FLAC
-	if (!memcmp(h, "fLaC", 4))                      return parseFLAC(h, size);
-
-	// OGG Container (Vorbis / Opus)
-	if (!memcmp(h, "OggS", 4))                      return parseOGG(h, size);
-
-	// WAV (RIFF Container)
-	if (!memcmp(h, "RIFF", 4))                      return parseWAV(h, size);
-
-	// MP4 Container (M4A / AAC / ALAC)
-	if (!memcmp(h + 4, "ftyp", 4))                  return parseMP4(h, size);
-
-	// Monkey's Audio (APE)
-	if (!memcmp(h, "MAC ", 4))                      return parseAPE(h, size);
-
-	// AIFF / AIFC (FORM Container with length buffer safety check)
-	if (!memcmp(h, "FORM", 4) && size >= 12 && 
-	   (!memcmp(h + 8, "AIFF", 4) || !memcmp(h + 8, "AIFC", 4))) {
-		return parseAIFF(h, size);
-	}
-
-	// WMA (ASF Container Guid: 75B22630-668E-11CF-A6D9-00AA0062CE6C)
-	if (size >= 16 && 
-		h[0] == 0x30 && h[1] == 0x26 && h[2] == 0xB2 && h[3] == 0x75 &&
-		h[4] == 0x8E && h[5] == 0x66 && h[6] == 0xCF && h[7] == 0x11) {
-		return parseWMA(h, size);
-	}
-
-	// MP3 (ID3v2 tags or raw MPEG-1 Layer III Sync Frames)
-	if (!memcmp(h, "ID3", 3) || h[0] == 0xFF)       return parseMP3(h, size);
-
-	// Fallback to strict ID3 parser if tags might sit in unknown stream formats
-	return parseMP3(h, size);
 	
+	const uint8_t* h = buf.data();
+    AudioMeta data;
+    AudioFormat format = Utils::audioFormat(h, size);
+	switch (format) {
+		case AudioFormat::aiff: return parseAIFF(h, size);
+		case AudioFormat::ape:  return parseAPE(h, size);
+		case AudioFormat::dsf:  return parseDSF(h, size);
+		case AudioFormat::dff:  return parseDFF(h, size);
+		case AudioFormat::flac: return parseFLAC(h, size);
+		case AudioFormat::m4a:  return parseM4A(h, size);
+		case AudioFormat::mp3:
+		case AudioFormat::na:   return parseID3v2(h, size); // na fallback
+		case AudioFormat::ogg:  return parseOGG(h, size);
+		case AudioFormat::wav:  return parseWAV(h, size);
+		case AudioFormat::wma:  return parseWMA(h, size);
+	}
 	return {};
 }
 
@@ -668,7 +642,7 @@ public:
 				return std::toupper(c);
 			});
 			if (state == "stop") {
-				AudioFormat A = readFile(F.c_str());
+				AudioMeta A = readFile(F.c_str());
 				samplerate  = A.sampleRate;
 				bitdepth    = A.bitDepth;
 			}
