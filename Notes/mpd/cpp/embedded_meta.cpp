@@ -534,7 +534,6 @@ AudioMeta parseWAV(std::ifstream& file) {
         if (file.gcount() < 8) break;
 
         uint32_t chunkSize = readUint32LE(chunkHeader + 4);
-
         if (memcmp(chunkHeader, "id3 ", 4) == 0 || memcmp(chunkHeader, "ID3 ", 4) == 0) {
             size_t currentPos = file.tellg();
             r = parseID3v2(file, currentPos);
@@ -691,7 +690,10 @@ int main(int argc, char* argv[]) {
     
     std::string file_source = argv[1];
 	AudioData d = Utils::readFile(file_source, true);
-	if (d.file_error) return {};
+	if (d.file_error) {
+		std::cerr << "Filesystem error\n";
+		return 1;
+	}
 	
     AudioFormat format = Utils::audioFormat(d.h, d.size);
     AudioMeta data;
