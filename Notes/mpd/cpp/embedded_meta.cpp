@@ -1,15 +1,10 @@
 /*
-g++ -O3 embedded_meta.cpp -o /bin/embedded_meta
+g++ -O2 embedded_meta.cpp -o /bin/embedded_meta
 ln -s /bin/embedded{_meta,-coverart}
 ln -s /bin/embedded{_meta,-lyrics}
 */
-#include <algorithm>
 #include <cstdint>
-#include <cstring>
-#include <fstream>
-#include <iostream>
-#include <string>
-#include <vector>
+
 #include "audio_format.hpp"
 
 // ============================================================================
@@ -695,33 +690,25 @@ int main(int argc, char* argv[]) {
 	}
     
     std::string file_source = argv[1];
-    std::ifstream file(file_source, std::ios::binary);
-    if (!file) return 2;
-
-	std::vector<uint8_t> buf(4096);
-	file.read((char*)buf.data(), buf.size());
-	size_t readSize = file.gcount();
-	if (readSize < 16) return {};
+	AudioData d = Utils::readFile(file_source, true);
+	if (d.file_error) return {};
 	
-	const uint8_t* h = buf.data();
-
+    AudioFormat format = Utils::audioFormat(d.h, d.size);
     AudioMeta data;
-
-    AudioFormat format = Utils::audioFormat(h, readSize);
 	switch (format) {
-		case AudioFormat::aiff: data = parseAIFF(file);     break;
-		case AudioFormat::ape:  data = parseAPE(file);      break;
-		case AudioFormat::dsf:  data = parseDSF(file);      break;
-		case AudioFormat::dff:  data = parseDFF(file);      break;
-		case AudioFormat::flac: data = parseFLAC(file);     break;
-		case AudioFormat::m4a:  data = parseM4A(file);      break;
+		case AudioFormat::aiff: data = parseAIFF(d.file);     break;
+		case AudioFormat::ape:  data = parseAPE(d.file);      break;
+		case AudioFormat::dsf:  data = parseDSF(d.file);      break;
+		case AudioFormat::dff:  data = parseDFF(d.file);      break;
+		case AudioFormat::flac: data = parseFLAC(d.file);     break;
+		case AudioFormat::m4a:  data = parseM4A(d.file);      break;
 		case AudioFormat::mp3:
-		case AudioFormat::na:   data = parseID3v2(file, 0); break; // na fallback
-		case AudioFormat::ogg:  data = parseOGG(file);      break;
-		case AudioFormat::wav:  data = parseWAV(file);      break;
-		case AudioFormat::wma:  data = parseWMA(file);      break;
+		case AudioFormat::na:   data = parseID3v2(d.file, 0); break; // na fallback
+		case AudioFormat::ogg:  data = parseOGG(d.file);      break;
+		case AudioFormat::wav:  data = parseWAV(d.file);      break;
+		case AudioFormat::wma:  data = parseWMA(d.file);      break;
 	}
 
-    bool extractionSuccess = executeExtraction(file, data, modeCoverArt, file_source);
+    bool extractionSuccess = executeExtraction(d.file, data, modeCoverArt, file_source);
     return extractionSuccess ? 0 : 1;
 }

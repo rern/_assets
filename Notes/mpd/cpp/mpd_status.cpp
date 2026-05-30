@@ -1,26 +1,12 @@
 // g++ -O2 mpd_status.cpp $( pkg-config --cflags --libs libmpdclient,taglib ) -o /bin/mpdstatus
 
 #include <mpd/client.h>
-
-#include <algorithm>
-#include <array>
-#include <cctype>
-#include <chrono>
-#include <cstdint>
-#include <cstdio>
-#include <cstring>
-#include <filesystem>
-#include <format>
-#include <fstream>
-#include <iostream>
-#include <memory>
-#include <sstream>
-#include <string>
-#include <string_view>
-#include <unistd.h>
-#include <unordered_map>
-#include <vector>
 #include "audio_format.hpp"
+
+#include <chrono>
+#include <filesystem>
+#include <thread>
+#include <unordered_map>
 
 bool
 	json_format = false,
@@ -34,7 +20,6 @@ std::unordered_map<std::string, int> I;
 struct AudioMeta {
 	int  bitDepth   = 0;
 	int  sampleRate = 0;
-	bool hasLyrics  = false;
 	bool valid     = false;
 };
 
@@ -208,8 +193,7 @@ AudioMeta parseID3v2(const uint8_t* h, size_t size) {
 
 		A.sampleRate = sr_table[row][sr_index];
 		A.bitDepth   = 0;
-		A.valid      = (A.sampleRate > 0);
-
+		A.valid      = A.sampleRate > 0;
 		return A;
 	}
 
@@ -340,34 +324,6 @@ AudioMeta parseWMA(const uint8_t* h, size_t size) {
         i += objSize;
     }
     return A;
-}
-
-AudioMeta readFile(const std::string& path) {
-	std::ifstream file(path, std::ios::binary);
-	if (!file) return {};
-
-	std::vector<uint8_t> buf(4096);
-	file.read((char*)buf.data(), buf.size());
-	size_t size = file.gcount();
-	if (size < 16) return {};
-	
-	const uint8_t* h = buf.data();
-    AudioMeta data;
-    AudioFormat format = Utils::audioFormat(h, size);
-	switch (format) {
-		case AudioFormat::aiff: return parseAIFF(h, size);
-		case AudioFormat::ape:  return parseAPE(h, size);
-		case AudioFormat::dsf:  return parseDSF(h, size);
-		case AudioFormat::dff:  return parseDFF(h, size);
-		case AudioFormat::flac: return parseFLAC(h, size);
-		case AudioFormat::m4a:  return parseM4A(h, size);
-		case AudioFormat::mp3:
-		case AudioFormat::na:   return parseID3v2(h, size); // na fallback
-		case AudioFormat::ogg:  return parseOGG(h, size);
-		case AudioFormat::wav:  return parseWAV(h, size);
-		case AudioFormat::wma:  return parseWMA(h, size);
-	}
-	return {};
 }
 
 std::string alphaNumericLower(const std::string& str) {
@@ -559,7 +515,7 @@ public:
 				mpd_run_play(conn);
 				mpd_run_stop(conn);
 			}
-			usleep(250000);
+			std::this_thread::sleep_for(std::chrono::seconds(2));
 			i++;
 		}
 //////////
@@ -642,9 +598,26 @@ public:
 				return std::toupper(c);
 			});
 			if (state == "stop") {
-				AudioMeta A = readFile(F.c_str());
-				samplerate  = A.sampleRate;
-				bitdepth    = A.bitDepth;
+				AudioData d = Utils::readFile(F.c_str(), false);
+				if (!d.file_error) {
+					AudioMeta data;
+					AudioFormat format = Utils::audioFormat(d.h, d.size);
+					switch (format) {
+						case AudioFormat::aiff: data = parseAIFF(d.h, d.size);  break;
+						case AudioFormat::ape:  data = parseAPE(d.h, d.size);   break;
+						case AudioFormat::dsf:  data = parseDSF(d.h, d.size);   break;
+						case AudioFormat::dff:  data = parseDFF(d.h, d.size);   break;
+						case AudioFormat::flac: data = parseFLAC(d.h, d.size);  break;
+						case AudioFormat::m4a:  data = parseM4A(d.h, d.size);   break;
+						case AudioFormat::mp3:
+						case AudioFormat::na:   data = parseID3v2(d.h, d.size); break; // na fallback
+						case AudioFormat::ogg:  data = parseOGG(d.h, d.size);   break;
+						case AudioFormat::wav:  data = parseWAV(d.h, d.size);   break;
+						case AudioFormat::wma:  data = parseWMA(d.h, d.size);   break;
+					}
+					samplerate  = data.sampleRate;
+					bitdepth    = data.bitDepth;
+				}
 			}
 		}
 		if (bitdepth   > 0) sampling += std::to_string(bitdepth) +"bit ";

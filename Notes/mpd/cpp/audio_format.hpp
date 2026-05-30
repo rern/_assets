@@ -1,13 +1,44 @@
 #pragma once
 
+#include <algorithm>
+#include <cctype>
 #include <cstddef>
+#include <cstring>
+#include <fstream>
+#include <iostream>
+#include <string>
 #include <string_view>
+#include <vector>
 
 enum class AudioFormat {
-    aiff, ape, dsf, dff, flac, m4a, mp3, na, ogg, wav, wma
+    aiff, ape, dsf, dff, flac, m4a, mp3, ogg, wav, wma,
+	na
 };
-
+struct AudioData {
+	std::ifstream file;
+	bool file_error = false;
+	uint8_t* h      = 0;
+	size_t size     = 0;
+};
 namespace Utils {
+	AudioData readFile(const std::string& file_source, const bool return_file) {
+		AudioData d;
+		std::ifstream file(file_source, std::ios::binary);
+		if (!file) {
+			d.file_error = true;
+		} else {
+			std::vector<uint8_t> buf(4096);
+			file.read((char*)buf.data(), buf.size());
+			d.size = file.gcount();
+			if (d.size < 16) {
+				d.file_error = true;
+			} else {
+				d.h = buf.data();
+				if (return_file) d.file = std::move(file); // for process file
+			}
+		}
+		return d;
+	}
     // A lightweight, zero-cost compile-time string comparator
     // Replaces std::memcmp safely for constexpr contexts
     constexpr bool matchMagic(const uint8_t* data, std::string_view magic, size_t offset = 0) noexcept {
