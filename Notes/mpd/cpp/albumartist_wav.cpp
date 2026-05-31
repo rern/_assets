@@ -31,7 +31,7 @@ std::string parseID3v2(std::ifstream& file, size_t startOffset) {
 	char h[10];
 	file.seekg(startOffset, std::ios::beg);
 	file.read(h, 10);
-	if (file.gcount() < 10 || std::string(h, 3) != "ID3") return "";
+	if (file.gcount() < 10 || std::string(h, 3) != "ID3") return false;
 
 	uint32_t tagSize = readSynchsafeInt32(h + 6);
 	std::vector<char> tagData(tagSize);
@@ -57,7 +57,8 @@ std::string parseID3v2(std::ifstream& file, size_t startOffset) {
 			size_t stringLen = frameSize - 1;
 
 			if (encoding == 0x00 || encoding == 0x03) {
-				return std::string(tagData.data() + stringStart, stringLen);
+				std::cout << std::string(tagData.data() + stringStart, stringLen);
+				return true;
 			} else if (encoding == 0x01) {
 				// Crude UTF-16 to ASCII conversion for terminal visualization
 				// (Skips the BOM bytes and null markers)
@@ -66,13 +67,14 @@ std::string parseID3v2(std::ifstream& file, size_t startOffset) {
 					char c = tagData[stringStart + i];
 					if (c != 0) asciiStr += c;
 				}
-				return asciiStr;
+				std::cout << asciiStr;
+				return true;
 			}
 		}
 
 		offset += 10 + frameSize; // Advance to next frame header
 	}
-	return "";
+	return false;
 }
 
 /**
@@ -119,15 +121,6 @@ int main(int argc, char* argv[]) {
 	}
 
 	std::string file_source = argv[1];
-	std::string albumArtist = parseWAV(file_source);
-	if (albumArtist == "error_file") {
-		std::cerr << "Filesystem error\n";
-		return 1;
-	} else if (albumArtist == "error_format") {
-		std::cerr << "Not a wave file\n";
-		return 1;
-	} else if (!albumArtist.empty()) {
-		std::cout << albumArtist;
-	}
-	return 0;
+	bool parse_ok = parseWAV(file_source);
+    return parse_ok ? 0 : 1;
 }

@@ -10,35 +10,59 @@
 #include <string_view>
 #include <vector>
 
+// BITWISE UTILITIES ----------------------------------------
+inline uint16_t readUint16LE(const uint8_t* bytes) noexcept {
+    return static_cast<uint16_t>(bytes[0] | (bytes[1] << 8));
+}
+
+inline uint32_t readUint32LE(const uint8_t* bytes) noexcept {
+    return static_cast<uint32_t>(bytes[0])        |
+           (static_cast<uint32_t>(bytes[1]) << 8)  |
+           (static_cast<uint32_t>(bytes[2]) << 16) |
+           (static_cast<uint32_t>(bytes[3]) << 24);
+}
+
+inline uint32_t readUint32BE(const uint8_t* bytes) noexcept {
+    return (static_cast<uint32_t>(bytes[0]) << 24) |
+           (static_cast<uint32_t>(bytes[1]) << 16) |
+           (static_cast<uint32_t>(bytes[2]) << 8)  |
+           static_cast<uint32_t>(bytes[3]);
+}
+
+inline uint64_t readUint64LE(const uint8_t* bytes) noexcept {
+    return static_cast<uint64_t>(bytes[0])        |
+           (static_cast<uint64_t>(bytes[1]) << 8)  |
+           (static_cast<uint64_t>(bytes[2]) << 16) |
+           (static_cast<uint64_t>(bytes[3]) << 24) |
+           (static_cast<uint64_t>(bytes[4]) << 32) |
+           (static_cast<uint64_t>(bytes[5]) << 40) |
+           (static_cast<uint64_t>(bytes[6]) << 48) |
+           (static_cast<uint64_t>(bytes[7]) << 56);
+}
+
+inline uint64_t readUint64BE(const uint8_t* bytes) noexcept {
+    return (static_cast<uint64_t>(bytes[0]) << 56) |
+           (static_cast<uint64_t>(bytes[1]) << 48) |
+           (static_cast<uint64_t>(bytes[2]) << 40) |
+           (static_cast<uint64_t>(bytes[3]) << 32) |
+           (static_cast<uint64_t>(bytes[4]) << 24) |
+           (static_cast<uint64_t>(bytes[5]) << 16) |
+           (static_cast<uint64_t>(bytes[6]) << 8)  |
+           static_cast<uint64_t>(bytes[7]);
+}
+// ----------------------------------------------------------
 enum class AudioFormat {
     aiff, ape, dsf, dff, flac, m4a, mp3, ogg, wav, wma,
 	na
 };
 struct AudioData {
+	AudioFormat format;
 	std::ifstream file;
-	bool file_error = false;
+	bool error      = true;
 	uint8_t* h      = 0;
 	size_t size     = 0;
 };
 namespace Utils {
-	AudioData readFile(const std::string& file_source, const bool return_file) {
-		AudioData d;
-		std::ifstream file(file_source, std::ios::binary);
-		if (!file) {
-			d.file_error = true;
-		} else {
-			std::vector<uint8_t> buf(4096);
-			file.read((char*)buf.data(), buf.size());
-			d.size = file.gcount();
-			if (d.size < 16) {
-				d.file_error = true;
-			} else {
-				d.h = buf.data();
-				if (return_file) d.file = std::move(file); // for process file
-			}
-		}
-		return d;
-	}
     // A lightweight, zero-cost compile-time string comparator
     // Replaces std::memcmp safely for constexpr contexts
     constexpr bool matchMagic(const uint8_t* data, std::string_view magic, size_t offset = 0) noexcept {
@@ -114,4 +138,24 @@ namespace Utils {
         return AudioFormat::na; 
     }
 
+	AudioData readFile(const std::string& file_source, const bool return_file) {
+		AudioData d;
+		std::ifstream file(file_source, std::ios::binary);
+		if (!file) {
+			std::cerr << "Error: std::ifstream\n";
+		} else {
+			std::vector<uint8_t> buf(4096);
+			file.read((char*)buf.data(), buf.size());
+			d.size = file.gcount();
+			if (d.size < 16) {
+				std::cerr << "Error: d.size < 16\n";
+			} else {
+				d.error = false;
+				d.h = buf.data();
+				d.format = audioFormat(d.h, d.size);
+				if (return_file) d.file = std::move(file); // for process file
+			}
+		}
+		return d;
+	}
 } // namespace Utils

@@ -1,12 +1,13 @@
 // g++ -O2 mpd_status.cpp $( pkg-config --cflags --libs libmpdclient,taglib ) -o /bin/mpdstatus
 
 #include <mpd/client.h>
-#include "audio_format.hpp"
 
 #include <chrono>
 #include <filesystem>
 #include <thread>
 #include <unordered_map>
+
+#include "audio_sampling.hpp"
 
 bool
 	json_format = false,
@@ -17,314 +18,6 @@ std::unordered_map<std::string, bool> B;
 std::unordered_map<std::string, std::string> S;
 std::unordered_map<std::string, int> I;
 
-struct AudioMeta {
-	int  bitDepth   = 0;
-	int  sampleRate = 0;
-	bool valid     = false;
-};
-
-static uint32_t be32(const uint8_t* p) {
-	return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
-}
-
-static uint32_t le32(const uint8_t* p) {
-	return (p[3] << 24) | (p[2] << 16) | (p[1] << 8) | p[0];
-}
-
-static uint16_t le16(const uint8_t* p) {
-	return (p[1] << 8) | p[0];
-}
-
-AudioMeta parseAIFF(const uint8_t* h, size_t size) {
-    AudioMeta A;
-
-    // Validate FORM container and AIFF/AIFC type signatures
-    if (size < 12 || memcmp(h, "FORM", 4) != 0) return A;
-    if (memcmp(h + 8, "AIFF", 4) != 0 && memcmp(h + 8, "AIFC", 4) != 0) return A;
-
-    size_t i = 12;
-    while (i + 8 < size) {
-        const uint8_t* chunkID = h + i;
-        
-        // AIFF chunk sizes are Big-Endian 32-bit integers
-        uint32_t chunkSize = (chunkID[4] << 24) | (chunkID[5] << 16) | 
-                             (chunkID[6] << 8)  | chunkID[7];
-        
-        size_t nextChunkOffset = i + 8 + chunkSize;
-        if (nextChunkOffset > size) break;
-
-        // Parse Common Chunk (COMM)
-        if (memcmp(chunkID, "COMM", 4) == 0 && chunkSize >= 18) {
-            const uint8_t* commData = chunkID + 8;
-            
-            // Channels: commData[0..1]
-            // Sample Frames: commData[2..5]
-            
-            // Bit Depth is a Big-Endian 16-bit integer
-            A.bitDepth = (commData[6] << 8) | commData[7];
-
-            // Sample Rate is a Big-Endian 80-bit IEEE 754 Extended Float (commData[8..17])
-            // Standard conversion logic extracting integer sample rate directly:
-            uint16_t exp = (commData[8] << 8) | commData[9];
-            uint32_t hiMant = (commData[10] << 24) | (commData[11] << 16) | 
-                              (commData[12] << 8)  | commData[13];
-            
-            int shift = 16398 - exp;
-            if (shift >= 0 && shift < 32) {
-                A.sampleRate = hiMant >> shift;
-                A.valid = true;
-            }
-            return A;
-        }
-
-        // Align to even byte boundaries per AIFF spec
-        i = nextChunkOffset + (chunkSize % 2);
-    }
-    return A;
-}
-
-AudioMeta parseAPE(const uint8_t* h, size_t size) {
-    AudioMeta A;
-
-    // APE files must begin with the "MAC " magic signature
-    if (size < 52 || memcmp(h, "MAC ", 4) != 0) return A;
-
-    // Validate file version (stored as Little-Endian 16-bit integer at index 4)
-    uint16_t version = h[4] | (h[5] << 8);
-
-    // Version >= 3.98 uses standard descriptor tags
-    if (version >= 3980) {
-        // Descriptor tags contain properties at strict byte index limits
-        // BitsPerSample (Little-Endian 16-bit) at offset 38
-        A.bitDepth = h[38] | (h[39] << 8);
-        
-        // SampleRate (Little-Endian 32-bit) at offset 40
-        A.sampleRate = h[40] | (h[41] << 8) | (h[42] << 16) | (h[43] << 24);
-        A.valid = true;
-    } 
-    // Fallback logic processing legacy versions (Old APE < 3.98)
-    else {
-        A.bitDepth = h[14] | (h[15] << 8);
-        A.sampleRate = h[16] | (h[17] << 8) | (h[18] << 16) | (h[19] << 24);
-        A.valid = true;
-    }
-
-    return A;
-}
-
-AudioMeta parseDFF(const uint8_t* h, size_t size) {
-	AudioMeta A;
-
-	if (size < 128) return A;
-
-	if (memcmp(h, "FRM8", 4) != 0) return A;
-
-	for (size_t j = 0; j + 16 < size; ++j) {
-		if (!memcmp(h + j, "FS  ", 4)) {
-			A.sampleRate = be32(h + j + 12);
-		}
-	}
-	A.bitDepth = 1;
-	A.valid    = (A.sampleRate > 0);
-	return A;
-}
-
-AudioMeta parseDSF(const uint8_t* h, size_t size) {
-	AudioMeta A;
-
-	if (size < 64) return A;
-
-	if (memcmp(h, "DSD ", 4) != 0) return A;
-
-	A.sampleRate = le32(h + 56); // samplerate @56 e.g.: 2822400 / 44100 = (DSD)64
-	A.bitDepth   = 1;
-	A.valid      = true;
-
-	return A;
-}
-
-AudioMeta parseFLAC(const uint8_t* h, size_t) {
-	AudioMeta A;
-
-	if (memcmp(h, "fLaC", 4) != 0) return A;
-
-	const uint8_t* p = h + 18;
-	uint32_t x   = (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
-
-	A.sampleRate = x >> 12;
-	A.bitDepth   = (((p[2] & 1) << 4) | (p[3] >> 4)) + 1;
-	A.valid      = true;
-	return A;
-}
-
-AudioMeta parseID3v2(const uint8_t* h, size_t size) {
-	AudioMeta A;
-	
-	auto isValidFrameHeader = [](const uint8_t* h) -> bool {
-        if (h[0] != 0xFF || (h[1] & 0xE0) != 0xE0) return false; // sync bits
-
-        int version = (h[1] >> 3) & 0x03;
-        int layer   =   (h[1] >> 1) & 0x03;
-        if (version == 1 || layer != 1) return false; // invalid version or not Layer III
-		
-        return true;
-    };
-	
-	const int sr_table[4][3] = {
-		{44100, 48000, 32000}, // MPEG1
-		{22050, 24000, 16000}, // MPEG2
-		{11025, 12000, 8000},  // MPEG2.5
-		{0,     0,     0}
-	};
-	size_t start = 0;
-	if (!memcmp(h, "ID3", 3)) start = 10;
-	for (size_t j = start; j + 4 < size && j < 4096; ++j) {
-		if (!isValidFrameHeader(h + j)) continue;
-
-		int version  = (h[j + 1] >> 3) & 0x03;
-		int sr_index = (h[j + 2] >> 2) & 0x03;
-		int row;
-		switch (version) {
-			case 0: row = 2; break; // MPEG2.5
-			case 2: row = 1; break; // MPEG2
-			case 3: row = 0; break; // MPEG1
-			default: continue;
-		}
-
-		A.sampleRate = sr_table[row][sr_index];
-		A.bitDepth   = 0;
-		A.valid      = A.sampleRate > 0;
-		return A;
-	}
-
-	return A;
-}
-
-AudioMeta parseM4A(const uint8_t* h, size_t size) {
-	AudioMeta A;
-
-	bool ok = false;
-
-	for (size_t j = 0; j + 8 < size; ++j) {
-		if (!memcmp(h + j + 4, "ftyp", 4)) ok = true;
-
-		if (!memcmp(h + j, "mp4a", 4)) {
-			A.sampleRate = 44100;
-			A.bitDepth   = 0;
-			ok           = true;
-		}
-
-		if (!memcmp(h + j, "alac", 4)) {
-			A.sampleRate = 44100;
-			A.bitDepth   = 16;
-			ok           = true;
-		}
-	}
-	if (ok) A.valid = true;
-
-	return A;
-}
-
-AudioMeta parseOGG(const uint8_t* h, size_t size) {
-	AudioMeta A;
-
-	if (memcmp(h,"OggS",4) != 0) return A;
-
-	for (size_t j = 0; j + 16 < size; ++j) {
-		if(!memcmp(h+j, "OpusHead", 8)) {
-			A.sampleRate = 48000;
-			A.bitDepth   = 16;
-			A.valid      = true;
-			return A;
-		}
-
-		if (!memcmp(h + j, "vorbis", 6)) {
-			A.sampleRate =
-				h[j + 12] |
-				(h[j + 13] << 8) |
-				(h[j + 14] << 16) |
-				(h[j + 15] << 24);
-
-			A.bitDepth = 16;
-			A.valid    = true;
-			return A;
-		}
-	}
-	return A;
-}
-
-AudioMeta parseWAV(const uint8_t* h, size_t size) {
-	AudioMeta A;
-
-	if (memcmp(h, "RIFF", 4) != 0 || memcmp(h + 8, "WAVE", 4) != 0) return A;
-
-	for (size_t j = 12; j + 32 < size; ++j) {
-		if (!memcmp(h + j, "fmt ", 4)) {
-			const uint8_t* p = h + j + 8;
-			A.sampleRate = le32(p + 4);
-			A.bitDepth   = le16(p + 14);
-			A.valid      = true;
-			break;
-		}
-	}
-	return A;
-}
-
-AudioMeta parseWMA(const uint8_t* h, size_t size) {
-    AudioMeta A;
-
-    // Verify outer ASF Container Master Header GUID Object
-    const uint8_t asfHeaderGUID[16] = {0x30, 0x26, 0xB2, 0x75, 0x8E, 0x66, 0xCF, 0x11, 0xA6, 0xD9, 0x00, 0xAA, 0x00, 0x62, 0xCE, 0x6C};
-    if (size < 30 || memcmp(h, asfHeaderGUID, 16) != 0) return A;
-
-    // Extract sub-object loop definitions
-    uint32_t totalHeaderObjects = h[24] | (h[25] << 8) | (h[26] << 16) | (h[27] << 24);
-    
-    // Scan buffer space for the Stream Properties Object GUID
-    const uint8_t streamPropertiesGUID[16] = {0x91, 0x07, 0xDC, 0xB7, 0x0E, 0xA9, 0xCF, 0x11, 0x8E, 0x6E, 0x00, 0xC0, 0x0C, 0x20, 0x53, 0x65};
-    const uint8_t audioStreamTypeGUID[16]   = {0x40, 0x9E, 0x69, 0xF8, 0x4D, 0x5B, 0xCF, 0x11, 0xA8, 0xFD, 0x00, 0x80, 0x5F, 0x5C, 0x44, 0x2B};
-
-    size_t i = 30; // Shift past the fixed segment of the main header object
-    for (uint32_t objCount = 0; objCount < totalHeaderObjects && (i + 24) < size; ++objCount) {
-        const uint8_t* curObjGUID = h + i;
-        
-        // Read 64-bit size values natively (Little-Endian)
-        uint64_t objSize = 0;
-        for (int b = 0; b < 8; ++b) {
-            objSize |= (static_cast<uint64_t>(curObjGUID[16 + b]) << (b * 8));
-        }
-
-        if (i + objSize > size || objSize < 24) break;
-
-        // Match Stream Properties Object
-        if (memcmp(curObjGUID, streamPropertiesGUID, 16) == 0 && objSize >= 78) {
-            const uint8_t* streamData = curObjGUID + 24;
-            
-            // Validate that this particular stream is an Audio Stream
-            if (memcmp(streamData, audioStreamTypeGUID, 16) == 0) {
-                // Skip Correction Type GUID (16 bytes) + Time Offset (8 bytes) + Type Data Length (4 bytes)
-                // Inside the Type Data Payload sits the standard WAVEFORMATEX struct
-                const uint8_t* waveFormatEx = streamData + 54;
-                
-                // Sample Rate is a Little-Endian 32-bit integer at offset 4
-                A.sampleRate = waveFormatEx[4] | (waveFormatEx[5] << 8) | 
-                               (waveFormatEx[6] << 16) | (waveFormatEx[7] << 24);
-                
-                // Bit Depth is a Little-Endian 16-bit integer at offset 14
-                A.bitDepth = waveFormatEx[14] | (waveFormatEx[15] << 8);
-                
-                // Safety check for empty or unpopulated bit depth fields typical in old WMA lossy files
-                if (A.bitDepth == 0) A.bitDepth = 16; 
-                
-                A.valid = true;
-                return A;
-            }
-        }
-        
-        i += objSize;
-    }
-    return A;
-}
 
 std::string alphaNumericLower(const std::string& str) {
 	std::string result;
@@ -599,21 +292,20 @@ public:
 			});
 			if (state == "stop") {
 				AudioData d = Utils::readFile(F.c_str(), false);
-				if (!d.file_error) {
+				if (!d.error) {
 					AudioMeta data;
-					AudioFormat format = Utils::audioFormat(d.h, d.size);
-					switch (format) {
-						case AudioFormat::aiff: data = parseAIFF(d.h, d.size);  break;
-						case AudioFormat::ape:  data = parseAPE(d.h, d.size);   break;
-						case AudioFormat::dsf:  data = parseDSF(d.h, d.size);   break;
-						case AudioFormat::dff:  data = parseDFF(d.h, d.size);   break;
-						case AudioFormat::flac: data = parseFLAC(d.h, d.size);  break;
-						case AudioFormat::m4a:  data = parseM4A(d.h, d.size);   break;
+					switch (d.format) {
+						case AudioFormat::aiff: data = parseAIFF(d);  break;
+						case AudioFormat::ape:  data = parseAPE(d);   break;
+						case AudioFormat::dsf:  data = parseDSF(d);   break;
+						case AudioFormat::dff:  data = parseDFF(d);   break;
+						case AudioFormat::flac: data = parseFLAC(d);  break;
+						case AudioFormat::m4a:  data = parseM4A(d);   break;
 						case AudioFormat::mp3:
-						case AudioFormat::na:   data = parseID3v2(d.h, d.size); break; // na fallback
-						case AudioFormat::ogg:  data = parseOGG(d.h, d.size);   break;
-						case AudioFormat::wav:  data = parseWAV(d.h, d.size);   break;
-						case AudioFormat::wma:  data = parseWMA(d.h, d.size);   break;
+						case AudioFormat::na:   data = parseID3v2(d); break; // na fallback
+						case AudioFormat::ogg:  data = parseOGG(d);   break;
+						case AudioFormat::wav:  data = parseWAV(d);   break;
+						case AudioFormat::wma:  data = parseWMA(d);   break;
 					}
 					samplerate  = data.sampleRate;
 					bitdepth    = data.bitDepth;
