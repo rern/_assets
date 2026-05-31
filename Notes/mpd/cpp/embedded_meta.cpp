@@ -667,18 +667,17 @@ int main(int argc, char* argv[]) {
     
     AudioMeta AM;
     switch (AD.format) {
-        case AudioFormat::aiff: AM = parseAIFF(AD); break;
-        case AudioFormat::ape:  AM = parseAPE(AD);  break;
-        case AudioFormat::dsf:  AM = parseDSF(AD);  break;
-        case AudioFormat::dff:  AM = parseDFF(AD);  break;
-        case AudioFormat::flac: AM = parseFLAC(AD); break;
-        case AudioFormat::m4a:  AM = parseM4A(AD);  break;
-        case AudioFormat::ogg:  AM = parseOGG(AD);  break;
-        case AudioFormat::wav:  AM = parseWAV(AD);  break;
-        case AudioFormat::wma:  AM = parseWMA(AD);  break;
-        case AudioFormat::mp3:
-        case AudioFormat::na:   
-        default:                AM = parseID3v2(AD); break; 
+        case AF::aiff: AM = parseAIFF(AD);  break;
+        case AF::ape:  AM = parseAPE(AD);   break;
+        case AF::dsf:  AM = parseDSF(AD);   break;
+        case AF::dff:  AM = parseDFF(AD);   break;
+        case AF::flac: AM = parseFLAC(AD);  break;
+        case AF::mp3:
+        case AF::na:   AM = parseID3v2(AD); break; 
+        case AF::m4a:  AM = parseM4A(AD);   break;
+        case AF::ogg:  AM = parseOGG(AD);   break;
+        case AF::wav:  AM = parseWAV(AD);   break;
+        case AF::wma:  AM = parseWMA(AD);   break;
     }
 
     bool extractionSuccess = executeExtraction(AD, AM, modeCoverArt, FILE_SOURCE);
