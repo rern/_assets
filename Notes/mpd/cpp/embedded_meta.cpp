@@ -4,13 +4,6 @@ ln -s /bin/embedded_meta /bin/embedded-coverart
 ln -s /bin/embedded_meta /bin/embedded-lyrics
 */
 #include <cstdint>
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <string>
-#include <cstring>
-#include <cctype>
-#include <algorithm>
 
 #include "audio_format.hpp"
 
