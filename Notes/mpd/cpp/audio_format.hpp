@@ -138,24 +138,24 @@ namespace Utils {
         return AudioFormat::na; 
     }
 
-	AudioData readFile(const std::string& file_source, const bool return_file) {
-		AudioData d;
-		std::ifstream file(file_source, std::ios::binary);
+	AudioData readFile(const std::string& FILE_SOURCE, const bool return_file) {
+		AudioData AD;
+		std::ifstream file(FILE_SOURCE, std::ios::binary);
 		if (!file) {
 			std::cerr << "Error: std::ifstream\n";
 		} else {
 			std::vector<uint8_t> buf(4096);
 			file.read((char*)buf.data(), buf.size());
-			d.size = file.gcount();
-			if (d.size < 16) {
-				std::cerr << "Error: d.size < 16\n";
+			AD.size = file.gcount();
+			if (AD.size < 16) {
+				std::cerr << "Error: AD.size < 16\n";
 			} else {
-				d.error = false;
-				d.h = buf.data();
-				d.format = audioFormat(d.h, d.size);
-				if (return_file) d.file = std::move(file); // for process file
+				AD.error = false;
+				AD.h = buf.data();
+				AD.format = audioFormat(AD.h, AD.size);
+				if (return_file) AD.file = std::move(file); // for process file
 			}
 		}
-		return d;
+		return AD;
 	}
 } // namespace Utils

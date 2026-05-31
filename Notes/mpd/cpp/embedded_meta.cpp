@@ -49,18 +49,18 @@ std::vector<uint8_t> decodeBase64(const std::string& input) {
     return out;
 }
 
-void parseNativePictureBlock(const uint8_t* d, size_t size, AudioMeta& r, size_t absoluteOffset) {
+void parseNativePictureBlock(const uint8_t* d, size_t size, AudioMeta& AM, size_t absoluteOffset) {
     if (size < 32) return;
     uint32_t mimeLen = readUint32BE(d + 4);
     if (8 + mimeLen + 4 < size) {
-        r.mimeType = std::string(reinterpret_cast<const char*>(d + 8), mimeLen);
+        AM.mimeType = std::string(reinterpret_cast<const char*>(d + 8), mimeLen);
         uint32_t descLen = readUint32BE(d + 8 + mimeLen);
         size_t cur = 8 + mimeLen + 4 + descLen + 16;
         if (cur + 4 <= size) {
             uint32_t imgSize = readUint32BE(d + cur);
-            r.hasArt = true;
-            r.artOffset = absoluteOffset + cur + 4;
-            r.artSize = imgSize;
+            AM.hasArt = true;
+            AM.artOffset = absoluteOffset + cur + 4;
+            AM.artSize = imgSize;
         }
     }
 }
@@ -111,18 +111,18 @@ std::string stripTimeSync(const std::string& input) {
 // ============================================================================
 // CORE SUB-PARSERS
 // ============================================================================
-AudioMeta parseID3v2(AudioData& d, size_t startOffset = 0) {
-    AudioMeta r;
+AudioMeta parseID3v2(AudioData& AD, size_t startOffset = 0) {
+    AudioMeta AM;
     uint8_t header[10];
-    d.file.seekg(startOffset, std::ios::beg);
-    d.file.read(reinterpret_cast<char*>(header), 10);
-    if (static_cast<size_t>(d.file.gcount()) < 10 || std::memcmp(header, "ID3", 3) != 0) return r;
+    AD.file.seekg(startOffset, std::ios::beg);
+    AD.file.read(reinterpret_cast<char*>(header), 10);
+    if (static_cast<size_t>(AD.file.gcount()) < 10 || std::memcmp(header, "ID3", 3) != 0) return AM;
 
     uint32_t tagSize = readSynchsafeInt32(header + 6);
     size_t tagDataStart = startOffset + 10;
     std::vector<uint8_t> tagData(tagSize);
-    d.file.read(reinterpret_cast<char*>(tagData.data()), tagSize);
-    size_t bytesRead = d.file.gcount();
+    AD.file.read(reinterpret_cast<char*>(tagData.data()), tagSize);
+    size_t bytesRead = AD.file.gcount();
 
     size_t offset = 0;
     while (offset + 10 < bytesRead) {
@@ -144,10 +144,10 @@ AudioMeta parseID3v2(AudioData& d, size_t startOffset = 0) {
             while (cur < bytesRead && tagData[cur] != 0) cur++; 
             cur += 1; // Skip description string null terminator
 
-            r.hasArt = true;
-            r.mimeType = mime;
-            r.artOffset = tagDataStart + cur;
-            r.artSize = frameSize - (cur - (offset + 10));
+            AM.hasArt = true;
+            AM.mimeType = mime;
+            AM.artOffset = tagDataStart + cur;
+            AM.artSize = frameSize - (cur - (offset + 10));
         }
         else if (std::memcmp(tagData.data() + offset, "USLT", 4) == 0) {
             size_t cur = offset + 10;
@@ -167,11 +167,11 @@ AudioMeta parseID3v2(AudioData& d, size_t startOffset = 0) {
 
             size_t payloadLen = frameSize - (cur - (offset + 10));
             if (cur + payloadLen <= bytesRead && payloadLen > 0) {
-                r.hasLyrics = true;
+                AM.hasLyrics = true;
                 const uint8_t* textPtr = tagData.data() + cur;
 
                 if (encoding == 0x00 || encoding == 0x03) {
-                    r.lyricsText = std::string(reinterpret_cast<const char*>(textPtr), payloadLen);
+                    AM.lyricsText = std::string(reinterpret_cast<const char*>(textPtr), payloadLen);
                 } 
                 else if (encoding == 0x01 || encoding == 0x02) {
                     std::string converted = "";
@@ -203,157 +203,157 @@ AudioMeta parseID3v2(AudioData& d, size_t startOffset = 0) {
                             converted += static_cast<char>((unicodeChar & 0x3F) | 0x80);
                         }
                     }
-                    r.lyricsText = converted;
+                    AM.lyricsText = converted;
                 }
             }
         }
         
         offset += 10 + frameSize;
     }
-    return r;
+    return AM;
 }
 
-AudioMeta parseAIFF(AudioData& d) {
-    AudioMeta r; 
-    d.file.seekg(0, std::ios::beg);
+AudioMeta parseAIFF(AudioData& AD) {
+    AudioMeta AM; 
+    AD.file.seekg(0, std::ios::beg);
 
     uint8_t formHeader[12];
-    d.file.read(reinterpret_cast<char*>(formHeader), 12);
-    if (static_cast<size_t>(d.file.gcount()) < 12 || std::memcmp(formHeader, "FORM", 4) != 0) return r;
-    if (std::memcmp(formHeader + 8, "AIFF", 4) != 0 && std::memcmp(formHeader + 8, "AIFC", 4) != 0) return r;
+    AD.file.read(reinterpret_cast<char*>(formHeader), 12);
+    if (static_cast<size_t>(AD.file.gcount()) < 12 || std::memcmp(formHeader, "FORM", 4) != 0) return AM;
+    if (std::memcmp(formHeader + 8, "AIFF", 4) != 0 && std::memcmp(formHeader + 8, "AIFC", 4) != 0) return AM;
 
-    while (d.file.good()) {
+    while (AD.file.good()) {
         uint8_t chunkHeader[8];
-        d.file.read(reinterpret_cast<char*>(chunkHeader), 8);
-        if (d.file.gcount() < 8) break;
+        AD.file.read(reinterpret_cast<char*>(chunkHeader), 8);
+        if (AD.file.gcount() < 8) break;
 
         uint32_t chunkSize = readUint32BE(chunkHeader + 4);
-        std::streampos chunkDataPos = d.file.tellg();
+        std::streampos chunkDataPos = AD.file.tellg();
         std::streamoff paddedSize = chunkSize + (chunkSize % 2); 
         std::streampos nextChunkPos = chunkDataPos + paddedSize;
 
         if (std::memcmp(chunkHeader, "ID3 ", 4) == 0) {
-            r = parseID3v2(d, static_cast<size_t>(chunkDataPos));
+            AM = parseID3v2(AD, static_cast<size_t>(chunkDataPos));
             break; 
         }
         
-        d.file.seekg(nextChunkPos, std::ios::beg);
+        AD.file.seekg(nextChunkPos, std::ios::beg);
     }
-    return r;
+    return AM;
 }
 
-AudioMeta parseAPE(AudioData& d) {
-    AudioMeta r = parseID3v2(d, 0);
-    if (r.hasLyrics && r.hasArt) return r;
+AudioMeta parseAPE(AudioData& AD) {
+    AudioMeta AM = parseID3v2(AD, 0);
+    if (AM.hasLyrics && AM.hasArt) return AM;
 
-    d.file.seekg(0, std::ios::end);
-    std::streampos fileSize = d.file.tellg();
-    if (fileSize < 32) return r;
+    AD.file.seekg(0, std::ios::end);
+    std::streampos fileSize = AD.file.tellg();
+    if (fileSize < 32) return AM;
 
-    d.file.seekg(-32, std::ios::end);
+    AD.file.seekg(-32, std::ios::end);
     uint8_t footer[32];
-    d.file.read(reinterpret_cast<char*>(footer), 32);
+    AD.file.read(reinterpret_cast<char*>(footer), 32);
 
-    if (std::memcmp(footer, "APETAGEX", 8) != 0) return r;
+    if (std::memcmp(footer, "APETAGEX", 8) != 0) return AM;
 
     uint32_t tagSize = readUint32LE(footer + 12);
     uint32_t itemCount = readUint32LE(footer + 16);
     
     std::streamoff tagOffsetAdjustment = (footer[23] & 0x80) ? 0 : 32;
-    d.file.seekg(fileSize - std::streamoff(tagSize) - tagOffsetAdjustment, std::ios::beg);
+    AD.file.seekg(fileSize - std::streamoff(tagSize) - tagOffsetAdjustment, std::ios::beg);
     
     if (tagOffsetAdjustment == 32) {
         uint8_t headerCheck[32];
-        d.file.read(reinterpret_cast<char*>(headerCheck), 32);
-        if (std::memcmp(headerCheck, "APETAGEX", 8) != 0) return r;
+        AD.file.read(reinterpret_cast<char*>(headerCheck), 32);
+        if (std::memcmp(headerCheck, "APETAGEX", 8) != 0) return AM;
     }
 
     for (uint32_t i = 0; i < itemCount; ++i) {
-        if (!d.file.good()) break;
+        if (!AD.file.good()) break;
 
         uint8_t lenBuf[4]; 
-        d.file.read(reinterpret_cast<char*>(lenBuf), 4);
+        AD.file.read(reinterpret_cast<char*>(lenBuf), 4);
         uint32_t valueLength = readUint32LE(lenBuf);
         
-        d.file.seekg(4, std::ios::cur); // Skip itemFlags segment
+        AD.file.seekg(4, std::ios::cur); // Skip itemFlags segment
 
         std::string key = "";
         char ch;
-        while (d.file.get(ch) && ch != '\0') {
+        while (AD.file.get(ch) && ch != '\0') {
             key += ch;
         }
 
-        std::streampos itemPayloadStart = d.file.tellg();
+        std::streampos itemPayloadStart = AD.file.tellg();
         std::streampos nextItemPos = itemPayloadStart + std::streamoff(valueLength);
 
-        if ((key == "Lyrics" || key == "LYRICS") && !r.hasLyrics) {
+        if ((key == "Lyrics" || key == "LYRICS") && !AM.hasLyrics) {
             std::vector<char> valBuf(valueLength);
-            d.file.read(valBuf.data(), valueLength);
-            r.hasLyrics = true;
-            r.lyricsText = std::string(valBuf.data(), valueLength);
+            AD.file.read(valBuf.data(), valueLength);
+            AM.hasLyrics = true;
+            AM.lyricsText = std::string(valBuf.data(), valueLength);
         } 
-        else if (key == "Cover Art (Front)" && !r.hasArt) {
+        else if (key == "Cover Art (Front)" && !AM.hasArt) {
             std::vector<char> nameBuf(valueLength);
-            d.file.read(nameBuf.data(), valueLength);
+            AD.file.read(nameBuf.data(), valueLength);
             
             std::string filename(nameBuf.data()); 
             size_t nameLen = filename.length() + 1; 
             
             if (nameLen < valueLength) {
-                r.hasArt = true;
-                r.artOffset = static_cast<size_t>(itemPayloadStart) + nameLen;
-                r.artSize = valueLength - nameLen;
-                r.mimeType = "image/"; 
+                AM.hasArt = true;
+                AM.artOffset = static_cast<size_t>(itemPayloadStart) + nameLen;
+                AM.artSize = valueLength - nameLen;
+                AM.mimeType = "image/"; 
             }
         }
 
-        d.file.seekg(nextItemPos, std::ios::beg);
+        AD.file.seekg(nextItemPos, std::ios::beg);
     }
-    return r;
+    return AM;
 }
 
-AudioMeta parseDFF(AudioData& d) {
-    AudioMeta r;
-    d.file.seekg(0, std::ios::end);
-    size_t fileSize = d.file.tellg();
-    if (fileSize < 1024) return r;
+AudioMeta parseDFF(AudioData& AD) {
+    AudioMeta AM;
+    AD.file.seekg(0, std::ios::end);
+    size_t fileSize = AD.file.tellg();
+    if (fileSize < 1024) return AM;
 
     size_t checkOffset = fileSize - 1024;
-    d.file.seekg(checkOffset, std::ios::beg);
+    AD.file.seekg(checkOffset, std::ios::beg);
     std::vector<char> tailBuffer(1024);
-    d.file.read(tailBuffer.data(), 1024);
+    AD.file.read(tailBuffer.data(), 1024);
     std::string tailStr(tailBuffer.data(), 1024);
 
     size_t id3Pos = tailStr.find("ID3");
     if (id3Pos != std::string::npos) {
-        r = parseID3v2(d, checkOffset + id3Pos);
+        AM = parseID3v2(AD, checkOffset + id3Pos);
     }
-    return r;
+    return AM;
 }
 
-AudioMeta parseDSF(AudioData& d) {
-    AudioMeta r;
+AudioMeta parseDSF(AudioData& AD) {
+    AudioMeta AM;
     uint8_t dsdChunk[28];
-    d.file.seekg(0, std::ios::beg);
-    d.file.read(reinterpret_cast<char*>(dsdChunk), 28);
-    if (d.file.gcount() < 28) return r;
+    AD.file.seekg(0, std::ios::beg);
+    AD.file.read(reinterpret_cast<char*>(dsdChunk), 28);
+    if (AD.file.gcount() < 28) return AM;
 
     uint64_t id3Pointer = readUint64LE(dsdChunk + 20);
     if (id3Pointer > 0) {
-        r = parseID3v2(d, static_cast<size_t>(id3Pointer));
+        AM = parseID3v2(AD, static_cast<size_t>(id3Pointer));
     }
-    return r;
+    return AM;
 }
 
-AudioMeta parseFLAC(AudioData& d) {
-    AudioMeta r;
-    d.file.seekg(4, std::ios::beg); 
+AudioMeta parseFLAC(AudioData& AD) {
+    AudioMeta AM;
+    AD.file.seekg(4, std::ios::beg); 
 
     bool isLast = false;
     while (!isLast) {
         uint8_t blockHeader[4];
-        d.file.read(reinterpret_cast<char*>(blockHeader), 4);
-        if (d.file.gcount() < 4) break;
+        AD.file.read(reinterpret_cast<char*>(blockHeader), 4);
+        if (AD.file.gcount() < 4) break;
 
         isLast = (blockHeader[0] & 0x80) != 0;
         int type = blockHeader[0] & 0x7F;
@@ -361,29 +361,29 @@ AudioMeta parseFLAC(AudioData& d) {
                         (static_cast<uint32_t>(blockHeader[2]) << 8)  |
                         static_cast<uint32_t>(blockHeader[3]);
 
-        size_t absolutePayloadPos = static_cast<size_t>(d.file.tellg());
-        std::streampos nextBlockPos = d.file.tellg() + std::streamoff(size);
+        size_t absolutePayloadPos = static_cast<size_t>(AD.file.tellg());
+        std::streampos nextBlockPos = AD.file.tellg() + std::streamoff(size);
 
         if (type == 6) { // Metadata block type PICTURE
             std::vector<uint8_t> blockData(size);
-            d.file.read(reinterpret_cast<char*>(blockData.data()), size);
-            parseNativePictureBlock(blockData.data(), size, r, absolutePayloadPos);
+            AD.file.read(reinterpret_cast<char*>(blockData.data()), size);
+            parseNativePictureBlock(blockData.data(), size, AM, absolutePayloadPos);
         } 
         else if (type == 4) { // Metadata block type VORBIS_COMMENT
             std::vector<char> commentData(size);
-            d.file.read(commentData.data(), size);
+            AD.file.read(commentData.data(), size);
             std::string comments(commentData.data(), size);
             
             size_t lyrPos = comments.find("LYRICS=");
             if (lyrPos == std::string::npos) lyrPos = comments.find("UNSYNCEDLYRICS=");
             if (lyrPos != std::string::npos) {
-                r.hasLyrics = true;
+                AM.hasLyrics = true;
                 size_t start = comments.find("=", lyrPos) + 1;
                 size_t length = 0;
                 while (start + length < comments.size() && comments[start + length] != '\n' && comments[start + length] != '\0') {
                     length++;
                 }
-                r.lyricsText = comments.substr(start, length);
+                AM.lyricsText = comments.substr(start, length);
             }
             
             size_t b64ArtPos = comments.find("METADATA_BLOCK_PICTURE=");
@@ -394,28 +394,28 @@ AudioMeta parseFLAC(AudioData& d) {
                     b64Str += comments[start++];
                 }
                 std::vector<uint8_t> rawPicBlock = decodeBase64(b64Str);
-                parseNativePictureBlock(rawPicBlock.data(), rawPicBlock.size(), r, 0);
-                if (r.artSize > 0) {
-                    r.artOffset = 0; 
-                    r.lyricsText += "\n[BUFFERED_ART_PAYLOAD:" + b64Str + "]";
+                parseNativePictureBlock(rawPicBlock.data(), rawPicBlock.size(), AM, 0);
+                if (AM.artSize > 0) {
+                    AM.artOffset = 0; 
+                    AM.lyricsText += "\n[BUFFERED_ART_PAYLOAD:" + b64Str + "]";
                 }
             }
         }
 
-        d.file.seekg(nextBlockPos, std::ios::beg);
+        AD.file.seekg(nextBlockPos, std::ios::beg);
     }
-    return r;
+    return AM;
 }
 
-AudioMeta parseM4A(AudioData& d) {
-    AudioMeta r;
-    d.file.seekg(0, std::ios::end);
-    size_t fileSize = d.file.tellg();
-    d.file.seekg(0, std::ios::beg);
+AudioMeta parseM4A(AudioData& AD) {
+    AudioMeta AM;
+    AD.file.seekg(0, std::ios::end);
+    size_t fileSize = AD.file.tellg();
+    AD.file.seekg(0, std::ios::beg);
 
     size_t sizeToRead = std::min(fileSize, static_cast<size_t>(1024000)); 
     std::vector<uint8_t> atomBuffer(sizeToRead);
-    d.file.read(reinterpret_cast<char*>(atomBuffer.data()), sizeToRead);
+    AD.file.read(reinterpret_cast<char*>(atomBuffer.data()), sizeToRead);
     std::string dataBlock(reinterpret_cast<const char*>(atomBuffer.data()), sizeToRead);
 
     size_t covrPos = dataBlock.find("covr");
@@ -424,10 +424,10 @@ AudioMeta parseM4A(AudioData& d) {
         if (atomDataOffset + 16 < sizeToRead) {
             uint32_t dataAtomSize = readUint32BE(atomBuffer.data() + atomDataOffset);
             uint32_t dataType = readUint32BE(atomBuffer.data() + atomDataOffset + 8);
-            r.hasArt = true;
-            r.mimeType = (dataType == 14) ? "image/png" : "image/jpeg";
-            r.artOffset = atomDataOffset + 16; 
-            r.artSize = dataAtomSize - 16;
+            AM.hasArt = true;
+            AM.mimeType = (dataType == 14) ? "image/png" : "image/jpeg";
+            AM.artOffset = atomDataOffset + 16; 
+            AM.artSize = dataAtomSize - 16;
         }
     }
     
@@ -436,27 +436,27 @@ AudioMeta parseM4A(AudioData& d) {
         size_t atomDataOffset = lyrPos + 8;
         if (atomDataOffset + 16 < sizeToRead) {
             uint32_t dataAtomSize = readUint32BE(atomBuffer.data() + atomDataOffset);
-            r.hasLyrics = true;
-            r.lyricsText = std::string(reinterpret_cast<const char*>(atomBuffer.data() + atomDataOffset + 16), dataAtomSize - 16);
+            AM.hasLyrics = true;
+            AM.lyricsText = std::string(reinterpret_cast<const char*>(atomBuffer.data() + atomDataOffset + 16), dataAtomSize - 16);
         }
     }
-    return r;
+    return AM;
 }
 
-AudioMeta parseOGG(AudioData& d) {
-    AudioMeta r;
-    d.file.seekg(0, std::ios::end);
-    size_t sizeToRead = std::min(static_cast<size_t>(d.file.tellg()), static_cast<size_t>(512000));
-    d.file.seekg(0, std::ios::beg);
+AudioMeta parseOGG(AudioData& AD) {
+    AudioMeta AM;
+    AD.file.seekg(0, std::ios::end);
+    size_t sizeToRead = std::min(static_cast<size_t>(AD.file.tellg()), static_cast<size_t>(512000));
+    AD.file.seekg(0, std::ios::beg);
 
     std::vector<uint8_t> buffer(sizeToRead);
-    d.file.read(reinterpret_cast<char*>(buffer.data()), sizeToRead);
+    AD.file.read(reinterpret_cast<char*>(buffer.data()), sizeToRead);
     std::string dataBlock(reinterpret_cast<const char*>(buffer.data()), sizeToRead);
 
     size_t lyrPos = dataBlock.find("LYRICS=");
     if (lyrPos == std::string::npos) lyrPos = dataBlock.find("UNSYNCEDLYRICS=");
     if (lyrPos != std::string::npos) {
-        r.hasLyrics = true;
+        AM.hasLyrics = true;
         size_t start = dataBlock.find("=", lyrPos) + 1;
         size_t length = 0;
         while (start + length < dataBlock.size() && dataBlock[start + length] != '\n' && dataBlock[start + length] != '\0') {
@@ -465,7 +465,7 @@ AudioMeta parseOGG(AudioData& d) {
             }
             length++;
         }
-        r.lyricsText = dataBlock.substr(start, length);
+        AM.lyricsText = dataBlock.substr(start, length);
     }
 
     size_t b64ArtPos = dataBlock.find("METADATA_BLOCK_PICTURE=");
@@ -476,139 +476,139 @@ AudioMeta parseOGG(AudioData& d) {
             b64Str += dataBlock[start++];
         }
         std::vector<uint8_t> rawPicBlock = decodeBase64(b64Str);
-        parseNativePictureBlock(rawPicBlock.data(), rawPicBlock.size(), r, 0);
-        if (r.artSize > 0) {
-            r.artOffset = 0;
-            r.lyricsText += "\n[BUFFERED_ART_PAYLOAD:" + b64Str + "]";
+        parseNativePictureBlock(rawPicBlock.data(), rawPicBlock.size(), AM, 0);
+        if (AM.artSize > 0) {
+            AM.artOffset = 0;
+            AM.lyricsText += "\n[BUFFERED_ART_PAYLOAD:" + b64Str + "]";
         }
     }
-    return r;
+    return AM;
 }
 
-AudioMeta parseWAV(AudioData& d) {
-    AudioMeta r;
-    d.file.seekg(12, std::ios::beg);
+AudioMeta parseWAV(AudioData& AD) {
+    AudioMeta AM;
+    AD.file.seekg(12, std::ios::beg);
 
     while (true) {
         uint8_t chunkHeader[8];
-        d.file.read(reinterpret_cast<char*>(chunkHeader), 8);
-        if (d.file.gcount() < 8) break;
+        AD.file.read(reinterpret_cast<char*>(chunkHeader), 8);
+        if (AD.file.gcount() < 8) break;
 
         uint32_t chunkSize = readUint32LE(chunkHeader + 4);
         if (std::memcmp(chunkHeader, "id3 ", 4) == 0 || std::memcmp(chunkHeader, "ID3 ", 4) == 0) {
-            size_t currentPos = static_cast<size_t>(d.file.tellg());
-            r = parseID3v2(d, currentPos);
+            size_t currentPos = static_cast<size_t>(AD.file.tellg());
+            AM = parseID3v2(AD, currentPos);
             break;
         }
         if (chunkSize % 2 != 0) chunkSize++;
-        d.file.seekg(chunkSize, std::ios::cur);
+        AD.file.seekg(chunkSize, std::ios::cur);
     }
-    return r;
+    return AM;
 }
 
-AudioMeta parseWMA(AudioData& d) {
-    AudioMeta r; 
-    d.file.seekg(0, std::ios::beg);
+AudioMeta parseWMA(AudioData& AD) {
+    AudioMeta AM; 
+    AD.file.seekg(0, std::ios::beg);
 
     const uint8_t asfHeaderGUID[16]    = {0x30,0x26,0xB2,0x75,0x8E,0x66,0xCF,0x11,0xA6,0xD9,0x00,0xAA,0x00,0x62,0xCE,0x6C};
     const uint8_t extContentGUID[16]   = {0x17,0x01,0x29,0xD2,0x5F,0x66,0xD3,0x11,0x96,0x78,0x00,0x60,0x08,0xC2,0xCB,0x9E};
     const uint8_t asfId3ObjectGUID[16] = {0x0F,0x90,0x05,0x33,0x51,0xAD,0x3E,0x40,0xA3,0x40,0x97,0xF1,0x0E,0x7E,0x03,0x41};
 
     uint8_t fileGUID[16];
-    d.file.read(reinterpret_cast<char*>(fileGUID), 16);
-    if (d.file.gcount() < 16 || std::memcmp(asfHeaderGUID, fileGUID, 16) != 0) return r;
+    AD.file.read(reinterpret_cast<char*>(fileGUID), 16);
+    if (AD.file.gcount() < 16 || std::memcmp(asfHeaderGUID, fileGUID, 16) != 0) return AM;
 
-    d.file.seekg(8, std::ios::cur); 
+    AD.file.seekg(8, std::ios::cur); 
     uint32_t subObjectCount = 0;
-    d.file.read(reinterpret_cast<char*>(&subObjectCount), 4);
-    d.file.seekg(2, std::ios::cur); 
+    AD.file.read(reinterpret_cast<char*>(&subObjectCount), 4);
+    AD.file.seekg(2, std::ios::cur); 
 
     for (uint32_t i = 0; i < subObjectCount; ++i) {
         uint8_t objGUID[16];
-        d.file.read(reinterpret_cast<char*>(objGUID), 16);
-        if (d.file.gcount() < 16) break;
+        AD.file.read(reinterpret_cast<char*>(objGUID), 16);
+        if (AD.file.gcount() < 16) break;
         
         uint64_t objSize = 0;
-        d.file.read(reinterpret_cast<char*>(&objSize), 8);
-        if (d.file.gcount() < 8 || objSize < 24) break;
+        AD.file.read(reinterpret_cast<char*>(&objSize), 8);
+        if (AD.file.gcount() < 8 || objSize < 24) break;
 
-        std::streampos nextObjPos = d.file.tellg() + std::streamoff(objSize - 24);
+        std::streampos nextObjPos = AD.file.tellg() + std::streamoff(objSize - 24);
 
         if (std::memcmp(asfId3ObjectGUID, objGUID, 16) == 0) {
-            d.file.seekg(4, std::ios::cur); 
-            size_t id3AbsOffset = static_cast<size_t>(d.file.tellg());
+            AD.file.seekg(4, std::ios::cur); 
+            size_t id3AbsOffset = static_cast<size_t>(AD.file.tellg());
             
-            AudioMeta id3data = parseID3v2(d, id3AbsOffset);
+            AudioMeta id3data = parseID3v2(AD, id3AbsOffset);
             if (id3data.hasLyrics || id3data.hasArt) {
                 return id3data; 
             }
         }
         else if (std::memcmp(extContentGUID, objGUID, 16) == 0) {
             uint16_t descriptorsCount = 0;
-            d.file.read(reinterpret_cast<char*>(&descriptorsCount), 2);
+            AD.file.read(reinterpret_cast<char*>(&descriptorsCount), 2);
 
             for (uint16_t j = 0; j < descriptorsCount; ++j) {
-                uint16_t nameLen = 0; d.file.read(reinterpret_cast<char*>(&nameLen), 2);
+                uint16_t nameLen = 0; AD.file.read(reinterpret_cast<char*>(&nameLen), 2);
                 std::vector<wchar_t> nameBuf(nameLen / 2);
-                d.file.read(reinterpret_cast<char*>(nameBuf.data()), nameLen);
+                AD.file.read(reinterpret_cast<char*>(nameBuf.data()), nameLen);
                 std::wstring wideName(nameBuf.data(), nameLen / 2);
 
-                uint16_t dataType = 0; d.file.read(reinterpret_cast<char*>(&dataType), 2);
-                uint16_t valLen = 0; d.file.read(reinterpret_cast<char*>(&valLen), 2);
+                uint16_t dataType = 0; AD.file.read(reinterpret_cast<char*>(&dataType), 2);
+                uint16_t valLen = 0; AD.file.read(reinterpret_cast<char*>(&valLen), 2);
 
                 std::vector<uint8_t> valBuf(valLen);
-                size_t descriptorPayloadOffset = static_cast<size_t>(d.file.tellg());
-                d.file.read(reinterpret_cast<char*>(valBuf.data()), valLen);
+                size_t descriptorPayloadOffset = static_cast<size_t>(AD.file.tellg());
+                AD.file.read(reinterpret_cast<char*>(valBuf.data()), valLen);
 
-                if (wideName == L"WM/Lyrics" && !r.hasLyrics) {
-                    r.hasLyrics = true;
+                if (wideName == L"WM/Lyrics" && !AM.hasLyrics) {
+                    AM.hasLyrics = true;
                     std::wstring wideLyr(reinterpret_cast<wchar_t*>(valBuf.data()), valLen / 2);
-                    r.lyricsText = std::string(wideLyr.begin(), wideLyr.end());
-                } else if (wideName == L"WM/Picture" && !r.hasArt) {
+                    AM.lyricsText = std::string(wideLyr.begin(), wideLyr.end());
+                } else if (wideName == L"WM/Picture" && !AM.hasArt) {
                     if (valLen > 5) {
-                        r.hasArt = true;
+                        AM.hasArt = true;
                         uint32_t imgSize = readUint32LE(valBuf.data() + 1);
-                        r.artSize = imgSize;
-                        r.artOffset = descriptorPayloadOffset + 5; 
-                        r.mimeType = "image/";
+                        AM.artSize = imgSize;
+                        AM.artOffset = descriptorPayloadOffset + 5; 
+                        AM.mimeType = "image/";
                     }
                 }
             }
         }
-        d.file.seekg(nextObjPos, std::ios::beg);
+        AD.file.seekg(nextObjPos, std::ios::beg);
     }
-    return r;
+    return AM;
 }
 
 // ============================================================================
 // EXPORT PROCESSING MANAGER
 // ============================================================================
-bool executeExtraction(AudioData& d, const AudioMeta& data, bool& coverart, const std::string& file_source) {
+bool executeExtraction(AudioData& AD, const AudioMeta& AM, bool& coverart, const std::string& FILE_SOURCE) {
     if (coverart) {
-        if (!data.hasArt || data.artSize == 0) return false;
+        if (!AM.hasArt || AM.artSize == 0) return false;
         
-        size_t lastSlash = file_source.find_last_of("/\\");
-        std::string baseDir = (lastSlash != std::string::npos) ? file_source.substr(0, lastSlash) : ".";
+        size_t lastSlash = FILE_SOURCE.find_last_of("/\\");
+        std::string baseDir = (lastSlash != std::string::npos) ? FILE_SOURCE.substr(0, lastSlash) : ".";
         std::string file_coverart = baseDir + "/cover";
-        file_coverart += (data.mimeType.find("png") != std::string::npos) ? ".png" : ".jpg";
+        file_coverart += (AM.mimeType.find("png") != std::string::npos) ? ".png" : ".jpg";
         
         std::ofstream file_out(file_coverart, std::ios::binary);
         if (!file_out) return false;
 
-        if (data.artOffset == 0) { 
-            size_t marker = data.lyricsText.find("[BUFFERED_ART_PAYLOAD:");
+        if (AM.artOffset == 0) { 
+            size_t marker = AM.lyricsText.find("[BUFFERED_ART_PAYLOAD:");
             if (marker != std::string::npos) {
                 size_t start = marker + 22;
-                size_t end = data.lyricsText.find("]", start);
+                size_t end = AM.lyricsText.find("]", start);
                 if (end != std::string::npos) {
-                    std::vector<uint8_t> decryptedRaw = decodeBase64(data.lyricsText.substr(start, end - start));
+                    std::vector<uint8_t> decryptedRaw = decodeBase64(AM.lyricsText.substr(start, end - start));
                     const uint8_t* rawPtr = decryptedRaw.data();
                     uint32_t mLen = readUint32BE(rawPtr + 4);
                     uint32_t dLen = readUint32BE(rawPtr + 8 + mLen);
                     size_t payloadStart = 8 + mLen + 4 + dLen + 16 + 4;
                     
-                    if (payloadStart + data.artSize <= decryptedRaw.size()) {
-                        file_out.write(reinterpret_cast<const char*>(rawPtr + payloadStart), data.artSize);
+                    if (payloadStart + AM.artSize <= decryptedRaw.size()) {
+                        file_out.write(reinterpret_cast<const char*>(rawPtr + payloadStart), AM.artSize);
                         std::cout << file_coverart;
                         return true;
                     }
@@ -616,18 +616,18 @@ bool executeExtraction(AudioData& d, const AudioMeta& data, bool& coverart, cons
             }
             return false;
         } else { 
-            d.file.seekg(data.artOffset, std::ios::beg);
-            std::vector<char> buffer(data.artSize);
-            d.file.read(buffer.data(), data.artSize);
-            file_out.write(buffer.data(), data.artSize);
+            AD.file.seekg(AM.artOffset, std::ios::beg);
+            std::vector<char> buffer(AM.artSize);
+            AD.file.read(buffer.data(), AM.artSize);
+            file_out.write(buffer.data(), AM.artSize);
             std::cout << file_coverart;
             return true;
         }
     } else {
-        if (!data.hasLyrics || data.lyricsText.empty()) return false;
+        if (!AM.hasLyrics || AM.lyricsText.empty()) return false;
         
-        size_t marker = data.lyricsText.find("\n[BUFFERED_ART_PAYLOAD:");
-        std::string cleanedText = (marker != std::string::npos) ? data.lyricsText.substr(0, marker) : data.lyricsText;
+        size_t marker = AM.lyricsText.find("\n[BUFFERED_ART_PAYLOAD:");
+        std::string cleanedText = (marker != std::string::npos) ? AM.lyricsText.substr(0, marker) : AM.lyricsText;
         cleanedText = stripTimeSync(cleanedText);
         std::cout << cleanedText << std::flush;
         return true;
@@ -661,26 +661,26 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     
-    std::string file_source = argv[1];
-    AudioData d = Utils::readFile(file_source, true);
-    if (d.error) return 1;
+    std::string FILE_SOURCE = argv[1];
+    AudioData AD = Utils::readFile(FILE_SOURCE, true);
+    if (AD.error) return 1;
     
-    AudioMeta data;
-    switch (d.format) {
-        case AudioFormat::aiff: data = parseAIFF(d); break;
-        case AudioFormat::ape:  data = parseAPE(d);  break;
-        case AudioFormat::dsf:  data = parseDSF(d);  break;
-        case AudioFormat::dff:  data = parseDFF(d);  break;
-        case AudioFormat::flac: data = parseFLAC(d); break;
-        case AudioFormat::m4a:  data = parseM4A(d);  break;
-        case AudioFormat::ogg:  data = parseOGG(d);  break;
-        case AudioFormat::wav:  data = parseWAV(d);  break;
-        case AudioFormat::wma:  data = parseWMA(d);  break;
+    AudioMeta AM;
+    switch (AD.format) {
+        case AudioFormat::aiff: AM = parseAIFF(AD); break;
+        case AudioFormat::ape:  AM = parseAPE(AD);  break;
+        case AudioFormat::dsf:  AM = parseDSF(AD);  break;
+        case AudioFormat::dff:  AM = parseDFF(AD);  break;
+        case AudioFormat::flac: AM = parseFLAC(AD); break;
+        case AudioFormat::m4a:  AM = parseM4A(AD);  break;
+        case AudioFormat::ogg:  AM = parseOGG(AD);  break;
+        case AudioFormat::wav:  AM = parseWAV(AD);  break;
+        case AudioFormat::wma:  AM = parseWMA(AD);  break;
         case AudioFormat::mp3:
         case AudioFormat::na:   
-        default:                data = parseID3v2(d); break; 
+        default:                AM = parseID3v2(AD); break; 
     }
 
-    bool extractionSuccess = executeExtraction(d, data, modeCoverArt, file_source);
+    bool extractionSuccess = executeExtraction(AD, AM, modeCoverArt, FILE_SOURCE);
     return extractionSuccess ? 0 : 1;
 }

@@ -291,24 +291,24 @@ public:
 				return std::toupper(c);
 			});
 			if (state == "stop") {
-				AudioData d = Utils::readFile(F.c_str(), false);
-				if (!d.error) {
-					AudioMeta data;
-					switch (d.format) {
-						case AudioFormat::aiff: data = parseAIFF(d);  break;
-						case AudioFormat::ape:  data = parseAPE(d);   break;
-						case AudioFormat::dsf:  data = parseDSF(d);   break;
-						case AudioFormat::dff:  data = parseDFF(d);   break;
-						case AudioFormat::flac: data = parseFLAC(d);  break;
-						case AudioFormat::m4a:  data = parseM4A(d);   break;
+				AudioData AD = Utils::readFile(F.c_str(), false);
+				if (!AD.error) {
+					AudioMeta AM;
+					switch (AD.format) {
+						case AudioFormat::aiff: AM = parseAIFF(AD);  break;
+						case AudioFormat::ape:  AM = parseAPE(AD);   break;
+						case AudioFormat::dsf:  AM = parseDSF(AD);   break;
+						case AudioFormat::dff:  AM = parseDFF(AD);   break;
+						case AudioFormat::flac: AM = parseFLAC(AD);  break;
+						case AudioFormat::m4a:  AM = parseM4A(AD);   break;
 						case AudioFormat::mp3:
-						case AudioFormat::na:   data = parseID3v2(d); break; // na fallback
-						case AudioFormat::ogg:  data = parseOGG(d);   break;
-						case AudioFormat::wav:  data = parseWAV(d);   break;
-						case AudioFormat::wma:  data = parseWMA(d);   break;
+						case AudioFormat::na:   AM = parseID3v2(AD); break; // na fallback
+						case AudioFormat::ogg:  AM = parseOGG(AD);   break;
+						case AudioFormat::wav:  AM = parseWAV(AD);   break;
+						case AudioFormat::wma:  AM = parseWMA(AD);   break;
 					}
-					samplerate  = data.sampleRate;
-					bitdepth    = data.bitDepth;
+					samplerate  = AM.sampleRate;
+					bitdepth    = AM.bitDepth;
 				}
 			}
 		}
