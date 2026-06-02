@@ -11,7 +11,7 @@
 #include "alsa_volume.hpp"
 
 bool
-	json_format = false,
+	json_format = true,
 	no_brace    = false;
 
 std::unordered_map<std::string, bool> B;
@@ -185,15 +185,17 @@ public:
 			volumenone = "false";
 		std::filesystem::path F;
 		
-		B.reserve(7);
-		S.reserve(14);
+		B.reserve(14);
+		S.reserve(16);
 		I.reserve(7);
 		
 		mpd_status *status = mpd_run_status(conn);
 //////////
 		if (status == nullptr) return;
 //..............................................................................
-		auto now = std::chrono::system_clock::now();
+		int64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
+							std::chrono::system_clock::now().time_since_epoch()
+						).count();
 		pllength = mpd_status_get_queue_length(status);
 		pos      = mpd_status_get_song_pos(status);
 		switch (mpd_status_get_state(status)) {
@@ -224,7 +226,6 @@ public:
 		} else {
 			volume  = mpd_status_get_volume(status);
 		}
-		
 		B["updating_db"] = mpd_status_get_update_id(status) > 0;
 		B["consume"]     = mpd_status_get_consume_state(status) == MPD_CONSUME_ON;
 		B["random"]      = mpd_status_get_random(status);
@@ -232,7 +233,6 @@ public:
 		B["single"]      = mpd_status_get_single_state(status) == MPD_SINGLE_ON;
 		I["crossfade"]   = mpd_status_get_crossfade(status);
 		I["elapsed"]     = mpd_status_get_elapsed_time(status);
-		I["timestamp"]   = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
 		I["volume"]      = volume;
 		S["control"]     = control;
 		
@@ -432,6 +432,7 @@ public:
 		I["volumemute"] = std::stoi(volumemute);
 		
 		statusOutput();
+		statusFormat("timestamp", std::to_string(timestamp)); // int64_t
 	}
 };
 
@@ -443,30 +444,28 @@ int main(int argc, char **argv) {
 		return 1;
 //..............................................................................
 	}
-
-	if (argc == 1) {           // key=val
-		json_format = false;
-		mpd.status();
-		return 0;
-//..............................................................................
-	}
-
-	std::string mode = argv[1];
-	if (mode == "-j") {        // json
-		json_format = true;
+	if (argc < 2) {            // json
 		std::cout << "{\n";
 		mpd.status();
 		std::cout << "}\n" << std::flush;
-	} else if (mode == "-n") { // no braces json-like
-		json_format = true;
-		no_brace    = true;
+		return 0;
+	}
+	
+	std::string mode = argv[1];
+	if (mode == "-n") {        // no braces json-like
+		no_brace = true;
+		mpd.status();
+	} else if (mode == "-k") { // key=val
+		json_format = false;
 		mpd.status();
 	} else {                   // help
-		std::cout
+		std::cerr
 			<< "\nGet status and data for rAudio\n\n"
 			<< "Usage: " << argv[0] << " [-j|-n]\n"
-			<< "        key=value format (no option)\n"
-			<< "  -j    json format\n"
-			<< "  -n    json-like with no braces\n";
+			<< "        json format (no option)\n"
+			<< "  -n    json-like with no braces\n"
+			<< "  -k    key=value format\n";
+		return 1;
 	}
+	return 0;
 }
