@@ -638,8 +638,6 @@ bool executeExtraction(AudioData& AD, const AudioMeta& AM, bool& coverart, const
 // MAIN ROUTER
 // ============================================================================
 int main(int argc, char* argv[]) {
-    if (argc < 1) return 1;
-
     // Isolate executable name from any path directories prefixing it
     std::string argv_0 = argv[0];
     size_t lastSlash = argv_0.find_last_of("/\\");

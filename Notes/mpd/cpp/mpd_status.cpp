@@ -1,4 +1,4 @@
-// g++ -O2 mpd_status.cpp $( pkg-config --cflags --libs libmpdclient,taglib ) -o /bin/mpdstatus
+// g++ -O2 mpd_status.cpp $( pkg-config --cflags --libs libmpdclient,taglib,alsa ) -o /bin/mpdstatus
 
 #include <mpd/client.h>
 
@@ -8,10 +8,10 @@
 #include <unordered_map>
 
 #include "audio_sampling.hpp"
+#include "alsa_volume.hpp"
 
 bool
 	json_format = false,
-	line_0      = true,
 	no_brace    = false;
 
 std::unordered_map<std::string, bool> B;
@@ -28,8 +28,19 @@ std::string alphaNumericLower(const std::string& str) {
 	return result;
 }
 
-bool fileContain(const std::string& file, const std::string& sub) {
+bool fileExists(const std::string& file) {
+	return std::filesystem::exists(file);
+}
+
+std::string exists(const std::string& file, const std::string& key = "") {
+	std::string t_f = fileExists(file) ? "true" : "false";
+	return key.empty() ? t_f : "  \""+ key +"\": "+ t_f +",\n";
+}
+
+bool fileContains(const std::string& file, const std::string& sub) {
 	std::ifstream f(file);
+	if (!f) return false;
+	
 	std::string line;
 	while (std::getline(f, line)) {
 		if (line.find(sub) != std::string::npos) {
@@ -42,7 +53,18 @@ bool fileContain(const std::string& file, const std::string& sub) {
 	return false;
 }
 
-std::vector<std::string> fileContent(const std::string& file) {
+std::string fileContent(const std::string& file, const std::string& def = {}) {
+	std::ifstream f(file);
+	if (!f) return def;
+	
+	std::stringstream buffer;
+	buffer << f.rdbuf();
+	std::string content = buffer.str();
+	if (!content.empty() && content.back() == '\n') content.pop_back();
+	return content;
+}
+
+std::vector<std::string> fileContentLines(const std::string& file) {
 	std::vector<std::string> lines;
 	std::ifstream file_object(file);
 	if (!file_object.is_open()) return lines;
@@ -78,6 +100,12 @@ std::string fileCover(const std::string& file) {
 	return "";
 }
 
+void removeLastLine(std::string& display, const std::string& append = "") {
+	size_t last_n  = display.find_last_of("\n"); // \n before last line
+	if (last_n != std::string::npos) display.erase(last_n); // last \n + last line
+	if (!append.empty()) display += append;
+}
+
 void statusFormat(const std::string& k, const std::string& v) {
 	std::cout << ( json_format ? ", \""+ k +"\": " : k +'=' ) + v +'\n';
 }
@@ -93,12 +121,6 @@ void statusFormatString(const std::string& k, std::string v) {
 		v = value;
 	}
 	if (json_format) {
-		if (line_0) {
-			if (!no_brace) std::cout << "  \""+ k +"\": \""+ v +"\"\n";
-			line_0 = false;
-			return;
-//..............................................................................
-		}
 		std::cout << ", \""+ k +"\": \""+ v +"\"\n";
 	} else {
 		char dq = v.find(' ') != std::string::npos ? '"' : '\0';
@@ -139,21 +161,28 @@ public:
 			pllength   = 0,
 			pos        = 0,
 			samplerate = 0,
-			Time       = 0;
+			Time       = 0,
+			volume     = 0;
 		std::string
 			coverart,
+			control,
+			display,
 			dir_data   = "/srv/http/data/",
 			dir_radio,
+			dir_shm    = dir_data +"shm/",
+			dir_system = dir_data +"system/",
 			ext,
 			file_cover,
 			file_radio,
 			icon,
-			player     = fileContent(dir_data +"shm/player")[0],
+			mixer,
+			player     = fileContent(dir_shm +"player"),
 			sampling,
 			state,
 			uri,
 			uri_ini,
-			url;
+			url,
+			volumenone = "false";
 		std::filesystem::path F;
 		
 		B.reserve(7);
@@ -180,6 +209,21 @@ public:
 			}
 			bitrate = mpd_status_get_kbit_rate(status);
 		}
+		std::vector<std::string> output = fileContentLines(dir_shm +"output");
+		for (const std::string& l : output) {
+			if (l.starts_with("mixer=")) {
+				control = l.substr(l.find('=') + 1);
+				control.erase(std::remove(control.begin(), control.end(), '"'), control.end());
+			}
+		}
+		if (fileExists(dir_shm +"btmixer") && !fileExists(dir_system +"devicewithbt")) {
+			control = fileContent(dir_shm +"btmixer");
+			volume  = getVolume("bluealsa", control);
+		} else if (fileExists(dir_shm +"nosound") || control == "none") {
+			volumenone = "true";
+		} else {
+			volume  = mpd_status_get_volume(status);
+		}
 		
 		B["updating_db"] = mpd_status_get_update_id(status) > 0;
 		B["consume"]     = mpd_status_get_consume_state(status) == MPD_CONSUME_ON;
@@ -189,7 +233,8 @@ public:
 		I["crossfade"]   = mpd_status_get_crossfade(status);
 		I["elapsed"]     = mpd_status_get_elapsed_time(status);
 		I["timestamp"]   = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-		I["volume"]      = mpd_status_get_volume(status);
+		I["volume"]      = volume;
+		S["control"]     = control;
 		
 		mpd_status_free(status);
 //////////
@@ -233,13 +278,13 @@ public:
 			ext                 = "CD";
 			icon                = "audiocd";
 			sampling            = "16 bit 44.1 kHz 1.41 Mbit/s";
-			std::string file_cd = dir_data +"shm/audiocd";
-			if (std::filesystem::exists(file_cd)) {
-				std::string discid  = fileContent(file_cd)[0];
+			std::string file_cd = dir_shm +"audiocd";
+			if (fileExists(file_cd)) {
+				std::string discid  = fileContent(file_cd);
 				std::string file_id = dir_data +"audiocd/"+ discid;
 				coverart            = "/data/audiocd/"+ discid +".jpg";
-				if (std::filesystem::exists(file_id)) {
-					std::vector<std::string> data = fileContent(file_id);
+				if (fileExists(file_id)) {
+					std::vector<std::string> data = fileContentLines(file_id);
 					size_t p                      = uri.find("://");
 					int track                     = std::stoi(uri.substr(p + 3)); // after '://'
 					std::string disciddata        = data[track];
@@ -276,8 +321,8 @@ public:
 					}
 					std::replace(url.begin(), url.end(), '/', '|');
 					file_radio = dir_data + dir_radio + url;
-					if (std::filesystem::exists(file_radio)) {
-						std::vector<std::string> data = fileContent(file_radio);
+					if (fileExists(file_radio)) {
+						std::vector<std::string> data = fileContentLines(file_radio);
 						if (state == "stop") sampling = ext == "DAB" ? "48 kHz 160 kbit/s" : data[1];
 						S["station"]      = data[0];
 						S["stationcover"] = "/data/"+ dir_radio +"img/"+ url +".jpg";
@@ -317,6 +362,54 @@ public:
 		if (bitrate    > 0) sampling += " "+ std::to_string(bitrate) +" kHz";
 							sampling += " • "+ ext;
 		if (pllength > 1)   sampling  = std::to_string(pos + 1) +"/"+ std::to_string(pllength) +" • "+ sampling;
+		
+		std::vector<std::string> names;
+		if (json_format) {
+			display = fileContent(dir_system +"display.json");
+			removeLastLine(display, ",\n");
+			names = {"ap", "camilladsp", "dabradio", "equalizer", "loginsetting", "multiraudio", "relays", "snapclient"};
+			for (const std::string& n : names) {
+				display += exists(dir_system + n, n);
+			}
+			display += exists(dir_shm +"audiocd", "audiocd");
+			
+			std::string file_conf = dir_system +"ap.conf";
+			std::string apconf = fileExists(file_conf) ? fileContent(file_conf) : "false";
+			
+			std::string screenoff = fileContains(dir_system +"localbrowser.conf", "screenoff=0") ? "false" : "true";
+			
+			display += "  \"apconf\": "+ apconf +",\n";
+			display += "  \"screenoff\": "+ screenoff +",\n";
+			display += "  \"volumenone\": "+ volumenone +"\n}";
+			
+			std::cout << "  \"page\": false\n";
+			std::cout << ", \"count\": " << fileContent(dir_data +"mpd/counts") << "\n";
+			std::cout << ", \"display\": " << display << "\n";
+			
+			file_conf = dir_system +"scrobble";
+			if (fileExists(file_conf)) {
+				std::string lines = fileContent(file_conf +".conf");
+				std::string conf;
+				if (lines.find("AIRPLAY=true")   != std::string::npos) conf += ", \"airplay\"";
+				if (lines.find("BLUETOOTH=true") != std::string::npos) conf += ", \"bluetooth\"";
+				if (lines.find("SPOTIFY=true")   != std::string::npos) conf += ", \"spotify\"";
+				if (lines.find("UPNP=true")      != std::string::npos) conf += ", \"upnp\"";
+				conf.erase(0, 1);
+				std::cout << ", \"scrobbleconf\": [" << conf << " ]\n";
+			}
+		}
+		
+		names = {"librandom", "lyrics", "relays"};
+		for (const std::string& n : names) S[n] = exists(dir_system + n);
+		
+		std::string volumemax = fileContent(dir_system +"volumelimit");
+		if (volumemax.empty()) {
+			B["volumemax"] = false;
+		} else {
+			I["volumemax"] = std::stoi(volumemax);
+		}
+		std::string volumemute = fileContent(dir_system +"volumemute", "0");
+		
 		S["coverart"] = coverart;
 		S["ext"]      = ext;
 		S["icon"]     = icon;
@@ -325,11 +418,18 @@ public:
 		S["player"]   = player;
 		S["sampling"] = sampling;
 		S["state"]    = state;
+		B["btsender"]   = fileExists(dir_shm +"btmixer");
+		B["relayson"]   = fileExists(dir_shm +"relayson");
+		B["scrobble"]   = fileExists(dir_system +"scrobble");
+		B["shareddata"] = fileExists("/mnt/MPD/NAS/data/sharedip");
+		B["stoptimer"]  = fileExists(dir_shm +"pidstoptimer");
+		B["updateaddons"] = fileExists(dir_data +"addons/update");
 		B["stream"]   = stream;
 		B["webradio"] = webradio;
 		I["pllength"] = pllength;
 		I["pos"]      = pos;
 		I["Time"]     = Time;
+		I["volumemute"] = std::stoi(volumemute);
 		
 		statusOutput();
 	}
