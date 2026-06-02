@@ -211,21 +211,6 @@ public:
 			}
 			bitrate = mpd_status_get_kbit_rate(status);
 		}
-		std::vector<std::string> output = fileContentLines(dir_shm +"output");
-		for (const std::string& l : output) {
-			if (l.starts_with("mixer=")) {
-				control = l.substr(l.find('=') + 1);
-				control.erase(std::remove(control.begin(), control.end(), '"'), control.end());
-			}
-		}
-		if (fileExists(dir_shm +"btmixer") && !fileExists(dir_system +"devicewithbt")) {
-			control = fileContent(dir_shm +"btmixer");
-			volume  = getVolume("bluealsa", control);
-		} else if (fileExists(dir_shm +"nosound") || control == "none") {
-			volumenone = "true";
-		} else {
-			volume  = mpd_status_get_volume(status);
-		}
 		B["updating_db"] = mpd_status_get_update_id(status) > 0;
 		B["consume"]     = mpd_status_get_consume_state(status) == MPD_CONSUME_ON;
 		B["random"]      = mpd_status_get_random(status);
@@ -233,8 +218,6 @@ public:
 		B["single"]      = mpd_status_get_single_state(status) == MPD_SINGLE_ON;
 		I["crossfade"]   = mpd_status_get_crossfade(status);
 		I["elapsed"]     = mpd_status_get_elapsed_time(status);
-		I["volume"]      = volume;
-		S["control"]     = control;
 		
 		mpd_status_free(status);
 //////////
@@ -402,6 +385,21 @@ public:
 		names = {"librandom", "lyrics", "relays"};
 		for (const std::string& n : names) S[n] = exists(dir_system + n);
 		
+		std::vector<std::string> output = fileContentLines(dir_shm +"output");
+		for (const std::string& l : output) {
+			if (l.starts_with("mixer=")) {
+				control = l.substr(l.find('=') + 1);
+				control.erase(std::remove(control.begin(), control.end(), '"'), control.end());
+			}
+		}
+		if (fileExists(dir_shm +"btmixer") && !fileExists(dir_system +"devicewithbt")) {
+			control = fileContent(dir_shm +"btmixer");
+			volume  = getVolume("bluealsa", control);
+		} else if (fileExists(dir_shm +"nosound") || control == "none") {
+			volumenone = "true";
+		} else {
+			volume  = mpd_status_get_volume(status);
+		}
 		std::string volumemax = fileContent(dir_system +"volumelimit");
 		if (volumemax.empty()) {
 			B["volumemax"] = false;
@@ -410,26 +408,30 @@ public:
 		}
 		std::string volumemute = fileContent(dir_system +"volumemute", "0");
 		
-		S["coverart"] = coverart;
-		S["ext"]      = ext;
-		S["icon"]     = icon;
-		S["file"]     = uri;
-		S["file_ini"] = uri_ini;
-		S["player"]   = player;
-		S["sampling"] = sampling;
-		S["state"]    = state;
-		B["btsender"]   = fileExists(dir_shm +"btmixer");
-		B["relayson"]   = fileExists(dir_shm +"relayson");
-		B["scrobble"]   = fileExists(dir_system +"scrobble");
-		B["shareddata"] = fileExists("/mnt/MPD/NAS/data/sharedip");
-		B["stoptimer"]  = fileExists(dir_shm +"pidstoptimer");
+		S["control"]      = control;
+		S["coverart"]     = coverart;
+		S["ext"]          = ext;
+		S["icon"]         = icon;
+		S["file"]         = uri;
+		S["file_ini"]     = uri_ini;
+		S["player"]       = player;
+		S["sampling"]     = sampling;
+		S["state"]        = state;
+		
+		B["btsender"]     = fileExists(dir_shm +"btmixer");
+		B["relayson"]     = fileExists(dir_shm +"relayson");
+		B["scrobble"]     = fileExists(dir_system +"scrobble");
+		B["shareddata"]   = fileExists("/mnt/MPD/NAS/data/sharedip");
+		B["stoptimer"]    = fileExists(dir_shm +"pidstoptimer");
 		B["updateaddons"] = fileExists(dir_data +"addons/update");
-		B["stream"]   = stream;
-		B["webradio"] = webradio;
-		I["pllength"] = pllength;
-		I["pos"]      = pos;
-		I["Time"]     = Time;
-		I["volumemute"] = std::stoi(volumemute);
+		B["stream"]       = stream;
+		B["webradio"]     = webradio;
+		
+		I["pllength"]     = pllength;
+		I["pos"]          = pos;
+		I["Time"]         = Time;
+		I["volumemute"]   = std::stoi(volumemute);
+		I["volume"]       = volume;
 		
 		statusOutput();
 		statusFormat("timestamp", std::to_string(timestamp)); // int64_t
