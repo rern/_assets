@@ -9,6 +9,7 @@
 
 #include "audio_sampling.hpp"
 #include "alsa_volume.hpp"
+#include "ip_address.hpp"
 
 bool
 	json_format = true,
@@ -234,42 +235,38 @@ public:
 		
 		mpd_status_free(status);
 ////////// <
-		if (pllength == 0) { // empty playlist
-			statusOutput();
-			return;
-//..............................................................................
-		}
-		
+		if (pllength > 0) { // empty playlist
 ////////// >
-		int i = 0;
-		mpd_song* song = nullptr;
-		while ((song = mpd_run_current_song(conn)) == nullptr && i < 8) { // not yet played - no current song
-			if (mpd_connection_get_error(conn) != MPD_ERROR_SUCCESS) return;
+			int i = 0;
+			mpd_song* song = nullptr;
+			while ((song = mpd_run_current_song(conn)) == nullptr && i < 8) { // not yet played - no current song
+				if (mpd_connection_get_error(conn) != MPD_ERROR_SUCCESS) return;
 //..............................................................................
-			if ( i == 0 ) {                                               // trigger play-stop once
-				mpd_run_play(conn);
-				mpd_run_stop(conn);
+				if ( i == 0 ) {                                               // trigger play-stop once
+					mpd_run_play(conn);
+					mpd_run_stop(conn);
+				}
+				std::this_thread::sleep_for(std::chrono::seconds(2));
+				i++;
 			}
-			std::this_thread::sleep_for(std::chrono::seconds(2));
-			i++;
-		}
-		uri           = mpd_song_get_uri(song);
-		F             = "/mnt/MPD/"+ uri;
-		uri_ini       = uri.substr(0, 4);
-		stream        = uri_ini == "http" || uri_ini == "rtmp" || uri_ini == "rtp:" || uri_ini == "rtsp";
-		Time          = mpd_song_get_duration(song); // 0 / false
+			uri           = mpd_song_get_uri(song);
+			F             = "/mnt/MPD/"+ uri;
+			uri_ini       = uri.substr(0, 4);
+			stream        = uri_ini == "http" || uri_ini == "rtmp" || uri_ini == "rtp:" || uri_ini == "rtsp";
+			Time          = mpd_song_get_duration(song); // 0 / false
 
-		for (int tag = 0; tag < MPD_TAG_COUNT; tag++) {
-			auto type = static_cast<mpd_tag_type>(tag);
-			for (int i = 0;; i++) {
-				const char *value = mpd_song_get_tag(song, type, i);
-				if (value == nullptr) break;
+			for (int tag = 0; tag < MPD_TAG_COUNT; tag++) {
+				auto type = static_cast<mpd_tag_type>(tag);
+				for (int i = 0;; i++) {
+					const char *value = mpd_song_get_tag(song, type, i);
+					if (value == nullptr) break;
 //..............................................................................
-				S[mpd_tag_name(type)] = value;
+					S[mpd_tag_name(type)] = value;
+				}
 			}
-		}
-		mpd_song_free(song);
+			mpd_song_free(song);
 ////////// <
+		}
 		if (uri_ini == "cdda") {
 			ext                 = "CD";
 			icon                = "audiocd";
@@ -319,7 +316,7 @@ public:
 				}
 			}
 		} else {
-			coverart = fileCover(F);
+			if (pllength > 0) coverart = fileCover(F);
 			ext      = F.extension().string().erase(0, 1);
 			std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) {
 				return std::toupper(c);
@@ -393,7 +390,7 @@ public:
 		
 		bool Album  = S.find("Album")  != S.end();
 		bool Artist = S.find("Artist") != S.end();
-		if (coverart.empty() && Album && Artist) { // get already fetched online
+		if (pllength > 0 && coverart.empty() && Album && Artist) { // get already fetched online
 			std::string artist_album = alphaNumericLower(S["Artist"] + S["Album"]);
 			if (player == "upnp") {
 				std::string file_local = dir_shm +"local/"+ artist_album;
@@ -412,6 +409,7 @@ public:
 		S["coverart"]     = coverart;
 		S["ext"]          = ext;
 		S["icon"]         = icon;
+		S["ip"]           = ipAddress();
 		S["file"]         = uri;
 		S["file_ini"]     = uri_ini;
 		S["player"]       = player;
@@ -434,7 +432,7 @@ public:
 		statusOutput();
 		statusFormat("timestamp", std::to_string(timestamp));
 		
-		if (coverart.empty() && Artist) {
+		if (pllength > 0 && coverart.empty() && Artist) {
 			std::string args;
 			if (Album) {
 				args  = S["Artist"] +"\\n"+
