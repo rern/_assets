@@ -93,7 +93,7 @@ std::string fileCover(const std::string& file) {
 		auto extMatch = std::find(extensions.begin(), extensions.end(), ext);
 		if (extMatch == extensions.end()) continue;
 
-		for (const auto& kw : keywords) {
+		for (const std::string& kw : keywords) {
 			if (filename.find(kw) != std::string::npos) return entry.path().string();
 		}
 	}
@@ -130,7 +130,7 @@ void statusFormatString(const std::string& k, std::string v) {
 
 void statusOutput() {
 	for (const auto& [k, v] : S) statusFormatString(k, v);
-	for (const auto& [k, v] : I) statusFormat(k, std::to_string(v));
+	for (const auto& [k, v] : I) statusFormat(k, v >= 0 ? std::to_string(v) : "false");
 	for (const auto& [k, v] : B) statusFormat(k, v ? "true" : json_format ? "false" : "");
 }
 
@@ -158,6 +158,7 @@ public:
 		int
 			bitdepth   = 0,
 			bitrate    = 0,
+			elapsed    = 0,
 			pllength   = 0,
 			pos        = 0,
 			samplerate = 0,
@@ -185,17 +186,13 @@ public:
 			volumenone = "false";
 		std::filesystem::path F;
 		
-		B.reserve(14);
-		S.reserve(16);
-		I.reserve(7);
-		
+////////// >
 		mpd_status *status = mpd_run_status(conn);
-//////////
 		if (status == nullptr) return;
 //..............................................................................
 		int64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
 							std::chrono::system_clock::now().time_since_epoch()
-						).count();
+						).count(); // > 1 trillion
 		pllength = mpd_status_get_queue_length(status);
 		pos      = mpd_status_get_song_pos(status);
 		switch (mpd_status_get_state(status)) {
@@ -211,40 +208,59 @@ public:
 			}
 			bitrate = mpd_status_get_kbit_rate(status);
 		}
+		
+		if (fileExists(dir_shm +"btmixer") && !fileExists(dir_system +"devicewithbt")) {
+			control = fileContent(dir_shm +"btmixer");
+			volume  = getVolume("bluealsa", control);
+		} else if (fileExists(dir_shm +"nosound") || control == "none") {
+			volumenone = "true";
+		} else {
+			control = fileContent(dir_shm +"amixercontrol");
+			volume  = mpd_status_get_volume(status);
+		}
+		
+		S["control"]      = control;
+		
 		B["updating_db"] = mpd_status_get_update_id(status) > 0;
 		B["consume"]     = mpd_status_get_consume_state(status) == MPD_CONSUME_ON;
 		B["random"]      = mpd_status_get_random(status);
 		B["repeat"]      = mpd_status_get_repeat(status);
 		B["single"]      = mpd_status_get_single_state(status) == MPD_SINGLE_ON;
 		I["crossfade"]   = mpd_status_get_crossfade(status);
-		I["elapsed"]     = mpd_status_get_elapsed_time(status);
+		
+		elapsed          = mpd_status_get_elapsed_time(status); // 0 / false
+		I["elapsed"]     = elapsed > 0 ? elapsed : -1;
+		I["pllength"]    = pllength;
+		I["song"]        = pos;
+		I["volume"]      = volume;
 		
 		mpd_status_free(status);
-//////////
+////////// <
 		if (pllength == 0) { // empty playlist
 			statusOutput();
 			return;
 //..............................................................................
 		}
 		
+////////// >
 		int i = 0;
 		mpd_song* song = nullptr;
-		while ((song = mpd_run_current_song(conn)) == nullptr && i < 8) { // add to playlist without play - no current song
+		while ((song = mpd_run_current_song(conn)) == nullptr && i < 8) { // not yet played - no current song
 			if (mpd_connection_get_error(conn) != MPD_ERROR_SUCCESS) return;
 //..............................................................................
-			if ( i == 0 ) { // trigger play - stop once
+			if ( i == 0 ) {                                               // trigger play-stop once
 				mpd_run_play(conn);
 				mpd_run_stop(conn);
 			}
 			std::this_thread::sleep_for(std::chrono::seconds(2));
 			i++;
 		}
-//////////
 		uri           = mpd_song_get_uri(song);
 		F             = "/mnt/MPD/"+ uri;
 		uri_ini       = uri.substr(0, 4);
 		stream        = uri_ini == "http" || uri_ini == "rtmp" || uri_ini == "rtp:" || uri_ini == "rtsp";
-		Time          = mpd_song_get_duration(song);
+		Time          = mpd_song_get_duration(song); // 0 / false
+
 		for (int tag = 0; tag < MPD_TAG_COUNT; tag++) {
 			auto type = static_cast<mpd_tag_type>(tag);
 			for (int i = 0;; i++) {
@@ -255,8 +271,7 @@ public:
 			}
 		}
 		mpd_song_free(song);
-//////////
-// coverart, ext, icon, sampling
+////////// <
 		if (uri_ini == "cdda") {
 			ext                 = "CD";
 			icon                = "audiocd";
@@ -271,10 +286,9 @@ public:
 					size_t p                      = uri.find("://");
 					int track                     = std::stoi(uri.substr(p + 3)); // after '://'
 					std::string disciddata        = data[track];
-					std::vector<std::string> k    = {"Artist", "Album", "Title", "Time"};
+					std::vector<std::string> k    = {"Artist", "Album", "Title"};
 					for (size_t i = 0; i < k.size(); i++) S[k[i]] = disciddata[i];
-				} else {
-					if (state == "stop") Time = 0;
+					Time = disciddata[3];
 				}
 			}
 		} else if (stream) {
@@ -350,14 +364,14 @@ public:
 		if (json_format) {
 			display = fileContent(dir_system +"display.json");
 			removeLastLine(display, ",\n");
-			names = {"ap", "camilladsp", "dabradio", "equalizer", "loginsetting", "multiraudio", "relays", "snapclient"};
+			names   = {"ap", "camilladsp", "dabradio", "equalizer", "loginsetting", "multiraudio", "relays", "snapclient"};
 			for (const std::string& n : names) {
 				display += exists(dir_system + n, n);
 			}
 			display += exists(dir_shm +"audiocd", "audiocd");
 			
 			std::string file_conf = dir_system +"ap.conf";
-			std::string apconf = fileExists(file_conf) ? fileContent(file_conf) : "false";
+			std::string apconf    = fileExists(file_conf) ? fileContent(file_conf) : "false";
 			
 			std::string screenoff = fileContains(dir_system +"localbrowser.conf", "screenoff=0") ? "false" : "true";
 			
@@ -366,7 +380,7 @@ public:
 			display += "  \"volumenone\": "+ volumenone +"\n}";
 			
 			std::cout << "  \"page\": false\n";
-			std::cout << ", \"count\": " << fileContent(dir_data +"mpd/counts") << "\n";
+			std::cout << ", \"counts\": " << fileContent(dir_data +"mpd/counts") << "\n";
 			std::cout << ", \"display\": " << display << "\n";
 			
 			file_conf = dir_system +"scrobble";
@@ -383,32 +397,8 @@ public:
 		}
 		
 		names = {"librandom", "lyrics", "relays"};
-		for (const std::string& n : names) S[n] = exists(dir_system + n);
+		for (const std::string& n : names) B[n] = fileExists(dir_system + n);
 		
-		std::vector<std::string> output = fileContentLines(dir_shm +"output");
-		for (const std::string& l : output) {
-			if (l.starts_with("mixer=")) {
-				control = l.substr(l.find('=') + 1);
-				control.erase(std::remove(control.begin(), control.end(), '"'), control.end());
-			}
-		}
-		if (fileExists(dir_shm +"btmixer") && !fileExists(dir_system +"devicewithbt")) {
-			control = fileContent(dir_shm +"btmixer");
-			volume  = getVolume("bluealsa", control);
-		} else if (fileExists(dir_shm +"nosound") || control == "none") {
-			volumenone = "true";
-		} else {
-			volume  = mpd_status_get_volume(status);
-		}
-		std::string volumemax = fileContent(dir_system +"volumelimit");
-		if (volumemax.empty()) {
-			B["volumemax"] = false;
-		} else {
-			I["volumemax"] = std::stoi(volumemax);
-		}
-		std::string volumemute = fileContent(dir_system +"volumemute", "0");
-		
-		S["control"]      = control;
 		S["coverart"]     = coverart;
 		S["ext"]          = ext;
 		S["icon"]         = icon;
@@ -427,14 +417,31 @@ public:
 		B["stream"]       = stream;
 		B["webradio"]     = webradio;
 		
-		I["pllength"]     = pllength;
-		I["pos"]          = pos;
-		I["Time"]         = Time;
-		I["volumemute"]   = std::stoi(volumemute);
-		I["volume"]       = volume;
+		I["Time"]         = Time > 0 ? Time : -1; // mpd / cd
+		I["volumemute"]   = std::stoi(fileContent(dir_system +"volumemute", "0"));
+		I["volumemax"]    = std::stoi(fileContent(dir_system +"volumelimit", "-1"));
 		
 		statusOutput();
-		statusFormat("timestamp", std::to_string(timestamp)); // int64_t
+
+		statusFormat("timestamp", std::to_string(timestamp));
+		// online coverart (in background)
+		if (coverart.empty() && !S["Artist"].empty()) {
+			std::string args;
+			if (!S["Album"].empty()) {
+				args  = S["Artist"] +"\\n"+
+						S["Album"];
+			} if (!S["Title"].empty()) {
+				args  = S["Artist"] +"\\n"+
+						S["Title"]  +"\\n"+
+						"webradio";
+			}
+			if (!args.empty()) {
+				std::string command = "bash -c '/srv/http/bash/status-coverartonline.sh $\\'cmd\\n"+ 
+									  args +"\\n"+
+									  "CMD ARTIST ALBUM MODE\\' &> /dev/null &'";
+				std::system(command.c_str());
+			}
+		}
 	}
 };
 
