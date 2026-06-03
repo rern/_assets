@@ -100,10 +100,15 @@ std::string fileCover(const std::string& file) {
 	return {};
 }
 
-void removeLastLine(std::string& display, const std::string& append = "") {
+std::string getVar(const std::string& line) {
+	std::string v = line.substr(line.find("=") + 1);
+	if (v.size() >= 2 && v.front() == '"' && v.back() == '"') v = v.substr(1, v.size() - 2);
+	return v;
+}
+
+void removeLastLine(std::string& display) {
 	size_t last_n  = display.find_last_of("\n"); // \n before last line
 	if (last_n != std::string::npos) display.erase(last_n); // last \n + last line
-	if (!append.empty()) display += append;
 }
 
 void statusFormat(const std::string& k, const std::string& v) {
@@ -180,10 +185,13 @@ public:
 			player     = fileContent(dir_shm +"player"),
 			sampling,
 			state,
+			station,
+			stationcover,
 			uri,
 			uri_ini,
 			url,
 			volumenone = "false";
+		std::vector<std::string> vector;
 		std::filesystem::path F;
 ////////// >
 		mpd_status *status = mpd_run_status(conn);
@@ -195,9 +203,9 @@ public:
 		pllength = mpd_status_get_queue_length(status);
 		pos      = mpd_status_get_song_pos(status);
 		switch (mpd_status_get_state(status)) {
-			case MPD_STATE_PLAY:  state = "play";
-			case MPD_STATE_PAUSE: state = "pause";
-			case MPD_STATE_STOP:  state = "stop";
+			case MPD_STATE_PLAY:  state = "play";  break;
+			case MPD_STATE_PAUSE: state = "pause"; break;
+			case MPD_STATE_STOP:  state = "stop";  break;
 		}
 		if (state == "play") {
 			const mpd_audio_format *audio = mpd_status_get_audio_format(status);
@@ -277,12 +285,11 @@ public:
 				std::string file_id = dir_data +"audiocd/"+ discid;
 				coverart            = "/data/audiocd/"+ discid +".jpg";
 				if (fileExists(file_id)) {
-					std::vector<std::string> data = fileContentLines(file_id);
-					size_t p                      = uri.find("://");
-					int track                     = std::stoi(uri.substr(p + 3)); // after '://'
-					std::string disciddata        = data[track];
-					std::vector<std::string> k    = {"Artist", "Album", "Title"};
-					for (size_t i = 0; i < k.size(); i++) S[k[i]] = disciddata[i];
+					vector                 = fileContentLines(file_id);
+					int track              = std::stoi(uri.substr(uri.find("://") + 3)); // after '://'
+					std::string disciddata = vector[track];
+					vector                 = {"Artist", "Album", "Title"};
+					for (size_t i = 0; i < vector.size(); i++) S[vector[i]] = disciddata[i];
 					Time = disciddata[3];
 				}
 			}
@@ -298,22 +305,42 @@ public:
 					icon      = "dabradio";
 					dir_radio = "dabradio/";
 				} else {
-					ext       = "Radio";
 					dir_radio = "webradio/";
+					std::replace(url.begin(), url.end(), '/', '|');
+					file_radio = dir_data + dir_radio + url;
+					if (fileExists(file_radio)) {
+						vector = fileContentLines(file_radio);
+						if (state == "stop") sampling = uri_ini == "rtsp" ? "48 kHz 160 kbit/s" : vector[1];
+						station      = vector[0];
+						stationcover = "/data/"+ dir_radio +"img/"+ url +".jpg";
+					}
 					if (url.find("icecast.radiofrance.fr") != std::string::npos) {
 						icon = "radiofrance";
 					} else if (url.find("stream.radioparadise.com") != std::string::npos) {
 						icon = "radioparadise";
-					}
-					std::replace(url.begin(), url.end(), '/', '|');
-					file_radio = dir_data + dir_radio + url;
-					if (fileExists(file_radio)) {
-						std::vector<std::string> data = fileContentLines(file_radio);
-						if (state == "stop") sampling = ext == "DAB" ? "48 kHz 160 kbit/s" : data[1];
-						S["station"]      = data[0];
-						S["stationcover"] = "/data/"+ dir_radio +"img/"+ url +".jpg";
+					} else {
+						icon = "webradio";
 					}
 				}
+				if (state == "play" && icon != "webradio") { // radiofrance / radioparadise
+					ext    = station.substr(station.find(" - ") + 3);
+					vector = fileContentLines(dir_shm +"status");
+					for (const std::string& l : vector) {
+						for (std::string k : {"Album", "Artist", "Title", "coverart"}) {
+							if (!l.starts_with(k +'=')) continue;
+							
+							if (k == "coverart") {
+								coverart = getVar(l);
+							} else {
+								S[k] = getVar(l);
+							}
+						}
+					}
+				} else {
+					ext      = "Radio";
+				}
+				S["station"]      = station;
+				S["stationcover"] = stationcover;
 			}
 		} else {
 			if (pllength > 0) coverart = fileCover(F);
@@ -352,7 +379,8 @@ public:
 		std::vector<std::string> names;
 		if (json_format) {
 			display = fileContent(dir_system +"display.json");
-			removeLastLine(display, ",\n");
+			removeLastLine(display);
+			display += ",\n";
 			names   = {"ap", "camilladsp", "dabradio", "equalizer", "loginsetting", "multiraudio", "relays", "snapclient"};
 			for (const std::string& n : names) {
 				display += exists(dir_system + n, n);
@@ -411,7 +439,6 @@ public:
 		S["icon"]         = icon;
 		S["ip"]           = ipAddress();
 		S["file"]         = uri;
-		S["file_ini"]     = uri_ini;
 		S["player"]       = player;
 		S["sampling"]     = sampling;
 		S["state"]        = state;
