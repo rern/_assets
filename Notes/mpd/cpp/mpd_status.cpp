@@ -9,7 +9,6 @@
 
 #include "audio_sampling.hpp"
 #include "alsa_volume.hpp"
-#include "upnp_coverart.hpp"
 
 bool
 	json_format = true,
