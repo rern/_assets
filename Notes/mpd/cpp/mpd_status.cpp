@@ -9,6 +9,7 @@
 
 #include "audio_sampling.hpp"
 #include "alsa_volume.hpp"
+#include "upnp_coverart.hpp"
 
 bool
 	json_format = true,
@@ -81,23 +82,22 @@ std::string fileCover(const std::string& file) {
 	std::filesystem::path pathObj(file);
 	std::string directory = pathObj.parent_path().string();
 
-	std::vector<std::string> keywords   = {"album", "cover", "folder", "front"};
+	std::vector<std::string> keywords   = {"album.", "cover.", "folder.", "front."};
 	std::vector<std::string> extensions = {".gif", ".jpg", ".png"};
 
 	for (const auto& entry : fs::directory_iterator(directory)) {
 		if (!entry.is_regular_file()) continue;
 //..............................................................................
-		std::string filename = entry.path().filename().string();
+		std::string filename = entry.path().filename().string(); // name.ext
 		std::string ext      = entry.path().extension().string();
-//..............................................................................
 		auto extMatch = std::find(extensions.begin(), extensions.end(), ext);
 		if (extMatch == extensions.end()) continue;
-
+//..............................................................................
 		for (const std::string& kw : keywords) {
-			if (filename.find(kw) != std::string::npos) return entry.path().string();
+			if (filename.find(kw) == 0) return entry.path().string();
 		}
 	}
-	return "";
+	return {};
 }
 
 void removeLastLine(std::string& display, const std::string& append = "") {
@@ -291,12 +291,6 @@ public:
 				}
 			}
 		} else if (stream) {
-			if (state == "play" && S.find("Album") != S.end() && S.find("Artist") != S.end()) {
-				std::string album_artist = S["Album"] + S["Artist"];
-				std::string name_cover   = alphaNumericLower(album_artist);
-				std::string dir          = player == "upnp" ? "online/" : "webradio/";
-				coverart                 = "/data/shm/"+ dir + name_cover +".jpg";
-			}
 			if (player == "upnp") {
 				ext      = "UPnP";
 			} else {
@@ -398,6 +392,24 @@ public:
 		names = {"librandom", "lyrics", "relays"};
 		for (const std::string& n : names) B[n] = fileExists(dir_system + n);
 		
+		bool Album  = S.find("Album")  != S.end();
+		bool Artist = S.find("Artist") != S.end();
+		if (coverart.empty() && Album && Artist) { // get already fetched online
+			std::string artist_album = alphaNumericLower(S["Artist"] + S["Album"]);
+			if (player == "upnp") {
+				std::string file_local = dir_shm +"local/"+ artist_album;
+				if (fileExists(file_local)) coverart = fileContent(file_local);
+			} else if (stream && state == "play") {
+				std::string path = (webradio ? "webradio/" : "online/") + artist_album;
+				for (const std::string ext : {".jpg", ".png"}) {
+					if (fileExists(dir_shm + path + ext)) {
+						coverart = "/data/shm/"+ path + ext;
+						break;
+					}
+				}
+			}
+		}
+
 		S["coverart"]     = coverart;
 		S["ext"]          = ext;
 		S["icon"]         = icon;
@@ -423,12 +435,12 @@ public:
 		statusOutput();
 		statusFormat("timestamp", std::to_string(timestamp));
 		
-		if (coverart.empty() && !S["Artist"].empty()) {
+		if (coverart.empty() && Artist) {
 			std::string args;
-			if (!S["Album"].empty()) {
+			if (Album) {
 				args  = S["Artist"] +"\\n"+
-						S["Album"];
-			} if (!S["Title"].empty()) {
+						S["Album"]  +"\\n";
+			} if (webradio && S.find("Title") != S.end()) {
 				args  = S["Artist"] +"\\n"+
 						S["Title"]  +"\\n"+
 						"webradio";
