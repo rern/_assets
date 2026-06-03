@@ -185,7 +185,6 @@ public:
 			url,
 			volumenone = "false";
 		std::filesystem::path F;
-		
 ////////// >
 		mpd_status *status = mpd_run_status(conn);
 		if (status == nullptr) return;
@@ -422,9 +421,8 @@ public:
 		I["volumemax"]    = std::stoi(fileContent(dir_system +"volumelimit", "-1"));
 		
 		statusOutput();
-
 		statusFormat("timestamp", std::to_string(timestamp));
-		// online coverart (in background)
+		
 		if (coverart.empty() && !S["Artist"].empty()) {
 			std::string args;
 			if (!S["Album"].empty()) {
@@ -439,7 +437,7 @@ public:
 				std::string command = "bash -c '/srv/http/bash/status-coverartonline.sh $\\'cmd\\n"+ 
 									  args +"\\n"+
 									  "CMD ARTIST ALBUM MODE\\' &> /dev/null &'";
-				std::system(command.c_str());
+				std::system(command.c_str()); // online coverart (in background)
 			}
 		}
 	}
