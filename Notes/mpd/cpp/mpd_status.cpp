@@ -3,6 +3,7 @@
 #include <mpd/client.h>
 
 #include <chrono>
+#include <cstdlib>
 #include <filesystem>
 #include <thread>
 #include <unordered_map>
@@ -18,7 +19,7 @@ bool
 std::unordered_map<std::string, bool> B;
 std::unordered_map<std::string, std::string> S;
 std::unordered_map<std::string, int> I;
-std::vector<std::string> key_BI = {"elapsed", "song", "Time", "timestamp", "volume", "webradio"};
+std::vector<std::string> key_BI = {"elapsed", "song", "Time", "volume", "webradio"};
 std::vector<std::string> key_S  = {"Album", "Artist", "Composer", "Conductor", "coverart",
 									"file", "icon", "player", "station", "state", "Title"};
 
@@ -120,7 +121,13 @@ void removeLastLine(std::string& display) {
 void statusFormat(const std::string& k, const std::string& v) {
 	if (!json_format && !inKey(k, key_BI)) return;
 	
-	std::cout << ( json_format ? ", \""+ k +"\": " : k +'=' ) + v +'\n';
+	std::string kv;
+	if (json_format) {
+		kv = ", \""+ k +"\": "+ v;
+	} else {
+		kv = k +'='+ v;
+	}
+	std::cout << kv << '\n';
 }
 
 void statusFormatString(const std::string& k, std::string v) {
@@ -135,12 +142,15 @@ void statusFormatString(const std::string& k, std::string v) {
 		}
 		v = value;
 	}
+	std::string kv;
 	if (json_format) {
-		std::cout << ", \""+ k +"\": \""+ v +"\"\n";
+		kv = ", \""+ k +"\": \""+ v +'"';
+	} else if (v.find(' ') != std::string::npos) {
+			kv = k +"=\""+ v +'"';
 	} else {
-		char dq = v.find(' ') != std::string::npos ? '"' : '\0';
-		std::cout << k +'='+ dq + v + dq +'\n';
+		kv = k +'='+ v;
 	}
+	std::cout << kv << '\n';
 }
 
 void statusOutput() {
@@ -414,8 +424,8 @@ public:
 			display += "  \"volumenone\": "+ volumenone +"\n}";
 			
 			std::cout << "  \"page\": false\n";
-			std::cout << ", \"counts\": " << fileContent(dir_data +"mpd/counts") << "\n";
-			std::cout << ", \"display\": " << display << "\n";
+			std::cout << ", \"counts\": " << fileContent(dir_data +"mpd/counts") << '\n';
+			std::cout << ", \"display\": " << display << '\n';
 		}
 		
 		bool Album  = S.find("Album")  != S.end();
@@ -469,18 +479,15 @@ public:
 		if (pllength && coverart.empty() && Artist) {
 			std::string args;
 			if (Album) {
-				args  = S["Artist"] +"\\n"+
-						S["Album"]  +"\\n";
+				args = S["Artist"] +"\n"+ S["Album"] +'\n';
 			} if (webradio && S.find("Title") != S.end()) {
-				args  = S["Artist"] +"\\n"+
-						S["Title"]  +"\\n"+
-						"webradio";
+				args = S["Artist"] +"\n"+ S["Title"] +"\nwebradio";
 			}
 			if (!args.empty()) {
-				std::string command = "bash -c '/srv/http/bash/status-coverartonline.sh $\\'cmd\\n"+ 
-									  args +"\\n"+
-									  "CMD ARTIST ALBUM MODE\\' &> /dev/null &'";
-				std::system(command.c_str()); // online coverart (in background)
+				std::string cmd   = "/srv/http/bash/status-coverartonline.sh \""+
+									args +
+									"\nCMD ARTIST ALBUM MODE\" &> /dev/null &";
+				std::system(cmd.c_str()); // online coverart (in background)
 			}
 		}
 	}
