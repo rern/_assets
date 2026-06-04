@@ -20,8 +20,7 @@ std::unordered_map<std::string, bool> B;
 std::unordered_map<std::string, std::string> S;
 std::unordered_map<std::string, int> I;
 std::vector<std::string> key_BI = {"elapsed", "song", "Time", "volume", "webradio"};
-std::vector<std::string> key_S  = {"Album", "Artist", "Composer", "Conductor", "coverart",
-									"file", "icon", "player", "station", "state", "Title"};
+std::vector<std::string> key_S  = {"Album", "Artist", "Composer", "Conductor", "coverart", "file", "icon", "player", "station", "state", "Title"};
 
 std::string alphaNumericLower(const std::string& str) {
 	std::string result;
@@ -238,11 +237,15 @@ public:
 		if (fileExists(dir_shm +"btmixer") && !fileExists(dir_system +"devicewithbt")) {
 			control = fileContent(dir_shm +"btmixer");
 			volume  = getVolume("bluealsa", control);
-		} else if (fileExists(dir_shm +"nosound") || control == "none") {
-			volumenone = "true";
 		} else {
 			control = fileContent(dir_shm +"amixercontrol");
-			volume  = mpd_status_get_volume(status);
+			if (control == "none" || fileExists(dir_shm +"nosound")) {
+				volumenone = "true";
+			} else if (fileContains("mixertype=hardware", dir_shm +"output")) {
+				volume = getVolume("default", control);
+			} else {
+				volume = mpd_status_get_volume(status);
+			}
 		}
 		
 		pllength = mpd_status_get_queue_length(status);
