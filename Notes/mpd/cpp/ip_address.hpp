@@ -1,6 +1,14 @@
 #pragma once
 
-#include <arpa/inet.h>
+#include <arpa/inet.h> // ip
+#include <limits.h>
+#include <unistd.h>
+
+std::string hostName() {
+	char buf[HOST_NAME_MAX];
+	if (gethostname(buf, sizeof(buf)) == 0) return buf;
+	return {};
+}
 
 std::string ipAddress() {
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
