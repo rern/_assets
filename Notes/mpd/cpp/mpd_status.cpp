@@ -250,6 +250,7 @@ public:
 		
 		pllength = mpd_status_get_queue_length(status);
 		pos      = mpd_status_get_song_pos(status);
+		Time     = mpd_status_get_total_time(status);
 		
 		S["control"]      = control;
 		
@@ -289,7 +290,7 @@ public:
 			F             = "/mnt/MPD/"+ uri;
 			uri_ini       = uri.substr(0, 4);
 			stream        = uri_ini == "http" || uri_ini == "rtmp" || uri_ini == "rtp:" || uri_ini == "rtsp";
-			Time          = mpd_song_get_duration(song); // 0 / false
+			if (state == "stop") Time = mpd_song_get_duration(song); // 0 / false
 			mpd_tag_type tags[] = {
 				MPD_TAG_ARTIST,
 				MPD_TAG_ALBUM,
@@ -304,6 +305,8 @@ public:
 // S[k]
 				S.emplace(k, v ? v : ""); // S[k] = v ? v : "";
 			}
+			mpd_song_free(song);
+////////// <
 		}
 		if (uri_ini == "cdda") {
 			ext                 = "CD";
