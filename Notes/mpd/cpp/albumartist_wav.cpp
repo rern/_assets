@@ -1,4 +1,4 @@
-// g++ -O2 albumartist_wav.cpp -o /bin/albumartist_wav
+// g++ -O2 albumartist_wav.cpp -o /srv/http/bash/albumartist_wav
 
 #include <cstdint>
 #include <fstream>

@@ -599,3 +599,21 @@ AudioMeta parseWMA(AudioData& AD) {
     
     return AM;
 }
+
+AudioMeta getSampling(AudioData& AD) {
+	AudioMeta AM;
+	switch (AD.format) {
+		case AF::aiff: AM = parseAIFF(AD);  break;
+		case AF::ape:  AM = parseAPE(AD);   break;
+		case AF::dsf:  AM = parseDSF(AD);   break;
+		case AF::dff:  AM = parseDFF(AD);   break;
+		case AF::flac: AM = parseFLAC(AD);  break;
+		case AF::m4a:  AM = parseM4A(AD);   break;
+		case AF::mp3:
+		case AF::na:   AM = parseID3v2(AD); break; // na fallback
+		case AF::ogg:  AM = parseOGG(AD);   break;
+		case AF::wav:  AM = parseWAV(AD);   break;
+		case AF::wma:  AM = parseWMA(AD);   break;
+	}
+	return AM;
+}

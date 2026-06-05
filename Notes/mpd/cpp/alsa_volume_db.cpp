@@ -1,4 +1,4 @@
-// g++ -O2 alsa_volume_db.cpp -lasound -o /bin/alsa-volume
+// g++ -O2 alsa_volume_db.cpp -lasound -o /srv/http/bash/alsa-volume
 
 #include <iostream>
 #include <string>

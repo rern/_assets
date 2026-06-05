@@ -1,11 +1,6 @@
-/*
-g++ -O2 embedded_meta.cpp -o /srv/http/bash/embedded_meta
-ln -s /bin/embedded_meta /srv/http/bash/embedded-coverart
-ln -s /bin/embedded_meta /srv/http/bash/embedded-lyrics
-*/
-#include <cstdint>
+#pragma once
 
-#include "audio_format.hpp"
+#include <cstdint>
 
 // ============================================================================
 // CORE DATA STRUCTURES
@@ -583,9 +578,9 @@ AudioEmbedded embeddedWMA(AudioData& AD) {
 // ============================================================================
 // EXPORT PROCESSING MANAGER
 // ============================================================================
-bool executeExtraction(AudioData& AD, const AudioEmbedded& AE, const bool& coverart, const std::string& FILE_SOURCE) {
-    if (coverart) {
-        if (!AE.hasArt || AE.artSize == 0) return false;
+std::string extractEmbedded(AudioData& AD, const AudioEmbedded& AE, const std::string type, const std::string& FILE_SOURCE) {
+    if (type == "coverart") {
+        if (!AE.hasArt || AE.artSize == 0) return {};
         
         size_t lastSlash = FILE_SOURCE.find_last_of("/\\");
         std::string baseDir = (lastSlash != std::string::npos) ? FILE_SOURCE.substr(0, lastSlash) : ".";
@@ -593,7 +588,7 @@ bool executeExtraction(AudioData& AD, const AudioEmbedded& AE, const bool& cover
         file_coverart += (AE.mimeType.find("png") != std::string::npos) ? ".png" : ".jpg";
         
         std::ofstream file_out(file_coverart, std::ios::binary);
-        if (!file_out) return false;
+        if (!file_out) return {};
 
         if (AE.artOffset == 0) { 
             size_t marker = AE.lyricsText.find("[BUFFERED_ART_PAYLOAD:");
@@ -609,75 +604,42 @@ bool executeExtraction(AudioData& AD, const AudioEmbedded& AE, const bool& cover
                     
                     if (payloadStart + AE.artSize <= decryptedRaw.size()) {
                         file_out.write(reinterpret_cast<const char*>(rawPtr + payloadStart), AE.artSize);
-                        std::cout << file_coverart;
-                        return true;
+                        return file_coverart;
                     }
                 }
             }
-            return false;
+            return {};
         } else { 
             AD.file.seekg(AE.artOffset, std::ios::beg);
             std::vector<char> buffer(AE.artSize);
             AD.file.read(buffer.data(), AE.artSize);
             file_out.write(buffer.data(), AE.artSize);
-            std::cout << file_coverart;
-            return true;
+            return file_coverart;
         }
     } else {
-        if (!AE.hasLyrics || AE.lyricsText.empty()) return false;
+        if (!AE.hasLyrics || AE.lyricsText.empty()) return {};
         
         size_t marker = AE.lyricsText.find("\n[BUFFERED_ART_PAYLOAD:");
         std::string cleanedText = (marker != std::string::npos) ? AE.lyricsText.substr(0, marker) : AE.lyricsText;
         cleanedText = stripTimeSync(cleanedText);
         std::cout << cleanedText << std::flush;
-        return true;
+        return {};
     }
 }
 
-// ============================================================================
-// MAIN ROUTER
-// ============================================================================
-int main(int argc, char* argv[]) {
-    // Isolate executable name from any path directories prefixing it
-    std::string argv_0 = argv[0];
-    size_t lastSlash = argv_0.find_last_of("/\\");
-    if (lastSlash != std::string::npos) {
-        argv_0 = argv_0.substr(lastSlash + 1);
-    }
-
-    bool modeCoverArt  = (argv_0 == "embedded-coverart");
-    bool modeLyrics    = (argv_0 == "embedded-lyrics");
-    bool cmd_embedded  = (argv_0 == "embedded_meta");
-    
-    if (argc < 2) {
-        std::cerr << "Usage:\n";
-        if (modeCoverArt || cmd_embedded)
-            std::cerr << "  " << argv[0] << " FILE_SOURCE\n    # Extract coverart to stdout FILE_SOURCE_DIR/cover.jpg(.png)\n";
-        if (modeLyrics   || cmd_embedded)
-            std::cerr << "  " << argv[0] << " FILE_SOURCE\n    # Extract lyrics to stdout\n";
-        std::cerr << "\nSupported Formats:\n  aac, aiff, ape, dsf, dff, flac, mp3, mp4, ogg, opus, wav, wma\n";
-        return 1;
-    }
-    
-    std::string FILE_SOURCE = argv[1];
-    AudioData AD = Utils::readFile(FILE_SOURCE, true);
-    if (AD.error) return 1;
-    
-    AudioEmbedded AE;
+AudioEmbedded getEmbeddedAudio(AudioData& AD) {
     switch (AD.format) {
-        case AF::aiff: AE = embeddedAIFF(AD);  break;
-        case AF::ape:  AE = embeddedAPE(AD);   break;
-        case AF::dsf:  AE = embeddedDSF(AD);   break;
-        case AF::dff:  AE = embeddedDFF(AD);   break;
-        case AF::flac: AE = embeddedFLAC(AD);  break;
+        case AF::aiff: return embeddedAIFF(AD);
+        case AF::ape:  return embeddedAPE(AD);
+        case AF::dsf:  return embeddedDSF(AD);
+        case AF::dff:  return embeddedDFF(AD);
+        case AF::flac: return embeddedFLAC(AD);
         case AF::mp3:
-        case AF::na:   AE = embeddedID3v2(AD); break; 
-        case AF::m4a:  AE = embeddedM4A(AD);   break;
-        case AF::ogg:  AE = embeddedOGG(AD);   break;
-        case AF::wav:  AE = embeddedWAV(AD);   break;
-        case AF::wma:  AE = embeddedWMA(AD);   break;
+        case AF::na:   return embeddedID3v2(AD);
+        case AF::m4a:  return embeddedM4A(AD);
+        case AF::ogg:  return embeddedOGG(AD);
+        case AF::wav:  return embeddedWAV(AD);
+        case AF::wma:  return embeddedWMA(AD);
+        default:       return AudioEmbedded{}; // fallback
     }
-
-    bool extractionSuccess = executeExtraction(AD, AE, modeCoverArt, FILE_SOURCE);
-    return extractionSuccess ? 0 : 1;
 }
