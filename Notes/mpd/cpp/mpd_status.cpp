@@ -16,14 +16,58 @@
 
 bool
 	json_format = true,
-	no_brace    = false;
+	no_brace    = false,
+	
+	snapclient  = false,
+	stream      = false,
+	volumenone  = false,
+	webradio    = false;
+int
+	bitdepth   = 0,
+	bitrate    = 0,
+	elapsed    = 0,
+	pllength   = 0,
+	pos        = 0,
+	samplerate = 0,
+	Time       = 0,
+	volume     = 0;
+int64_t
+	timestamp = 0;
+std::string
+	coverart,
+	control,
+	dir_data   = "/srv/http/data/",
+	dir_radio,
+	dir_shm    = dir_data +"shm/",
+	dir_system = dir_data +"system/",
+	ext,
+	file_cover,
+	file_radio,
+	icon,
+	mixer,
+	player,
+	sampling,
+	state,
+	station,
+	stationcover,
+	uri,
+	uri_ini,
+	url;
+	
+std::filesystem::path F;
 
 std::unordered_map<std::string, bool> B;
+
 std::unordered_map<std::string, std::string> S;
+std::unordered_map<std::string, std::string> V;
+
 std::unordered_map<std::string, int> I;
-std::vector<std::string> key_BI = {"elapsed", "pllength", "song",     "Time",      "volume",   "webradio"};
-std::vector<std::string> key_S  = {"Album",   "Artist",   "Composer", "Conductor", "coverart", "file",
-								   "icon",    "player",   "sampling", "station",   "state",    "Title"};
+
+std::vector<std::string>
+	key_BI = {"elapsed", "pllength", "song",     "Time",      "volume",   "webradio"},
+	key_S  = {"Album",   "Artist",   "Composer", "Conductor", "coverart", "file",
+			  "icon",    "player",   "sampling", "station",   "state",    "Title"},
+	vector;
 
 std::string alphaNumericLower(const std::string& str) {
 	std::string result;
@@ -38,12 +82,7 @@ bool fileExists(const std::string& file) {
 	return std::filesystem::exists(file);
 }
 
-std::string exists(const std::string& file, const std::string& key = "") {
-	std::string t_f = fileExists(file) ? "true" : "false";
-	return key.empty() ? t_f : "  \""+ key +"\": "+ t_f +",\n";
-}
-
-bool fileContains(const std::string& file, const std::string& sub) {
+bool fileContains(const std::string& sub, const std::string& file) {
 	std::ifstream f(file);
 	if (!f) return false;
 	
@@ -113,15 +152,44 @@ bool inKey(const std::string& k, const std::vector<std::string>& vector) {
 	return std::find(vector.begin(), vector.end(), k) != vector.end();
 }
 
-std::string getVar(const std::string& line) {
-	std::string v = line.substr(line.find("=") + 1);
-	if (v.size() >= 2 && v.front() == '"' && v.back() == '"') v = v.substr(1, v.size() - 2);
-	return v;
+int64_t epochMs() {
+	return std::chrono::duration_cast<std::chrono::milliseconds>(
+				std::chrono::system_clock::now().time_since_epoch()
+			).count();
 }
 
-void removeLastLine(std::string& display) {
-	size_t last_n = display.find_last_of("\n"); // \n before last line
-	if (last_n != std::string::npos) display.erase(last_n); // last \n + last line
+int64_t epochS() {
+	return std::chrono::duration_cast<std::chrono::seconds>(
+				std::chrono::system_clock::now().time_since_epoch()
+			).count();
+}
+
+std::unordered_map<std::string, std::string> readVar(const std::string& file) {
+    V.clear();
+    std::ifstream in(file);
+    std::string line;
+
+    while (std::getline(in, line)) {
+        if (line.empty() || line[0] == '#') continue;
+
+        std::string key, value;
+        std::istringstream iss(line);
+
+        if (std::getline(iss, key, '=')) {
+            if (std::getline(iss, value)) {
+                if (!value.empty() && value.front() == '"' && value.back() == '"') {
+                    value = value.substr(1, value.size() - 2);
+                }
+                V[key] = value;
+            }
+        }
+    }
+    return V;
+}
+
+std::string statusDisplay(const std::string& file, const std::string& key = "") {
+	std::string t_f = fileExists(file) ? "true" : "false";
+	return key.empty() ? t_f : "  \""+ key +"\": "+ t_f +",\n";
 }
 
 void statusFormat(const std::string& k, const std::string& v) {
@@ -159,10 +227,39 @@ void statusFormatString(const std::string& k, std::string v) {
 	std::cout << kv << '\n';
 }
 
-void statusOutput() {
-	for (const auto& [k, v] : S) statusFormatString(k, v);
-	for (const auto& [k, v] : I) statusFormat(k, v >= 0 ? std::to_string(v) : "false");
-	for (const auto& [k, v] : B) statusFormat(k, v ? "true" : json_format ? "false" : "");
+void statusStreamer(const std::string& player) {
+	if (player == "airplay") {
+		std::string dir_airplay = dir_shm +"airplay/";
+		for (const std::string k : {"Album", "Artist", "Title"}) {
+			S[k] = fileContent(dir_airplay + k);
+		}
+		for (const std::string k : {"elapsed", "start", "Time"}) {
+			V.clear();
+			V[k] = fileContent(dir_airplay + k);
+		}
+		coverart  = "/data/shm/airplay/coverart.jpg";
+		sampling  = "16 bit 44.1 kHz 1.41 Mbit/s • AirPlay";
+		state     = fileContent(dir_airplay +"state");
+		Time      = std::stoi(V["Time"]);
+		timestamp = epochMs();
+		if (state.empty()) state = "stop";
+		if (V["state"] == "play") {
+			if (!V["start"].empty()) elapsed = epochS() - std::stoll(V["start"]) + 1;
+		} else {
+			elapsed = std::stoi(V["elapsed"]);
+		}
+	} else if (player == "bluetooth") {
+		
+	} else if (player == "snapcast") {
+		
+	} else if (player == "spotify") {
+		readVar(dir_shm +"spotify/state"); // return global V
+		if (V["state"] == "play") elapsed = epochS() - std::stoi(V["start"]) + 1;
+		std::string
+		status  = fileContent(dir_shm +"spotify/status");
+		status += ", \"elapsed\"   : "+ std::to_string(elapsed)   +'\n'+
+				  ", \"timestamp\" : "+ std::to_string(epochMs()) +'\n';
+	}
 }
 
 class MPDClient {
@@ -181,46 +278,8 @@ public:
 	bool ok() {
 		return conn && mpd_connection_get_error(conn) == MPD_ERROR_SUCCESS;
 	}
-
-	void status() {
-		bool
-			stream     = false,
-			webradio   = false;
-		int
-			bitdepth   = 0,
-			bitrate    = 0,
-			elapsed    = 0,
-			pllength   = 0,
-			pos        = 0,
-			samplerate = 0,
-			Time       = 0,
-			volume     = 0;
-		int64_t timestamp = 0;
-		std::string
-			coverart,
-			control,
-			display,
-			dir_data   = "/srv/http/data/",
-			dir_radio,
-			dir_shm    = dir_data +"shm/",
-			dir_system = dir_data +"system/",
-			ext,
-			file_cover,
-			file_radio,
-			icon,
-			mixer,
-			player     = fileContent(dir_shm +"player"),
-			sampling,
-			state,
-			station,
-			stationcover,
-			uri,
-			uri_ini,
-			url,
-			volumenone = "false";
-		std::vector<std::string> vector;
-		std::filesystem::path F;
-////////// > mpd_run_status
+	
+	void runStatus() {
 		mpd_status *status = mpd_run_status(conn);
 		if (status == nullptr) return;
 //..............................................................................
@@ -231,9 +290,7 @@ public:
 		}
 		
 		if (state == "play") {
-			timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
-							std::chrono::system_clock::now().time_since_epoch()
-						).count(); // > 1 trillion
+			timestamp = epochMs();
 		}
 		
 		Time     = mpd_status_get_total_time(status);
@@ -253,7 +310,7 @@ public:
 		} else {
 			control = fileContent(dir_shm +"amixercontrol");
 			if (control == "none" || fileExists(dir_shm +"nosound")) {
-				volumenone = "true";
+				volumenone = true;
 			} else if (fileContains("mixertype=hardware", dir_shm +"output")) {
 				volume = getVolume("default", control);
 			} else {
@@ -277,12 +334,9 @@ public:
 		I["volume"]      = volume;
 		
 		mpd_status_free(status);
-////////// <
-		if (!pllength) {
-			S["hostname"] = hostName();
-			S["ip"]       = ipAddress();
-		} else {
-////////// > mpd_run_current_song
+	}
+	
+	void runCurrentSong() {
 			int i = 0;
 			mpd_song* song = nullptr;
 			while ((song = mpd_run_current_song(conn)) == nullptr && i < 8) { // not yet played - no current song
@@ -315,9 +369,26 @@ public:
 				S.emplace(k, v ? v : ""); // S[k] = v ? v : "";
 			}
 			mpd_song_free(song);
-////////// <
+	}
+	
+	void status() {
+		player = fileContent(dir_shm +"player");
+		
+		if (player != "mpd" && player != "upnp") statusStreamer(player);
+		
+		runStatus();
+		
+		if (pllength) {
+			runCurrentSong();
+		} else {
+			S["hostname"] = hostName();
+			S["ip"]       = ipAddress();
 		}
-		if (uri_ini == "cdda") {
+		
+		if (snapclient) {
+			icon = "snapclient";
+			S["snapserverip"] = ipAddress();
+		} else if (uri_ini == "cdda") {
 			ext                 = "CD";
 			icon                = "audiocd";
 			sampling            = "16 bit 44.1 kHz 1.41 Mbit/s";
@@ -365,20 +436,11 @@ public:
 					}
 				}
 				if (state == "play" && icon != "webradio") { // radiofrance / radioparadise
-					ext    = station.substr(station.find(" - ") + 3);
-					vector = fileContentLines(dir_shm +"status");
-					for (const std::string& l : vector) {
-						for (std::string k : {"Album", "Artist", "Title", "coverart"}) {
-							if (!l.starts_with(k +'=')) continue;
-							
-							if (k == "coverart") {
-								coverart = getVar(l);
-							} else {
+					ext      = station.substr(station.find(" - ") + 3);
+					readVar(dir_shm +"status"); // return global V
 // S[k]
-								S[k] = getVar(l);
-							}
-						}
-					}
+					for (std::string k : {"Album", "Artist", "Title"}) S[k] = V[k];
+					coverart = V["coverart"];
 				} else {
 					ext      = "Radio";
 				}
@@ -416,30 +478,6 @@ public:
 			sampling += empty ? ext : " • "+ ext;
 		}
 		
-		if (json_format) {
-			display = fileContent(dir_system +"display.json");
-			removeLastLine(display);
-			display += ",\n";
-			std::vector<std::string> names = {"ap", "camilladsp", "dabradio", "equalizer", "loginsetting", "multiraudio", "relays", "snapclient"};
-			for (const std::string& n : names) {
-				display += exists(dir_system + n, n);
-			}
-			display += exists(dir_shm +"audiocd", "audiocd");
-			
-			std::string file_conf = dir_system +"ap.conf";
-			std::string apconf    = fileExists(file_conf) ? fileContent(file_conf) : "false";
-			
-			std::string screenoff = fileContains(dir_system +"localbrowser.conf", "screenoff=0") ? "false" : "true";
-			
-			display += "  \"apconf\": "+ apconf +",\n";
-			display += "  \"screenoff\": "+ screenoff +",\n";
-			display += "  \"volumenone\": "+ volumenone +"\n}";
-			
-			std::cout << "  \"page\": false\n";
-			std::cout << ", \"counts\": " << fileContent(dir_data +"mpd/counts") << '\n';
-			std::cout << ", \"display\": " << display << '\n';
-		}
-		
 		bool Album  = hasData("Album");
 		bool Artist = hasData("Artist");
 		if (coverart.empty() && stream && Album && Artist) { // get already fetched
@@ -460,6 +498,28 @@ public:
 			}
 		}
 
+		if (json_format) {
+			std::string
+				display, json;
+			
+			vector    = {"ap", "camilladsp", "dabradio", "equalizer", "loginsetting", "multiraudio", "relays", "snapclient"};
+			for (const std::string& k : vector) {
+				json += statusDisplay(dir_system + k, k);
+			}
+			json     += statusDisplay(dir_shm +"audiocd", "audiocd");
+			
+			display = fileContent(dir_system +"display.json");
+			display.erase(0, 2); // {\n
+////////////////////////////////////////////////////////////////////////////////
+			std::cout
+				<< "  \"page\"   : false\n"
+				<< ", \"counts\" : " << fileContent(dir_data +"mpd/counts") << '\n'
+				<< ", \"display\": {\n"
+				<< json
+				<< "  \"volumenone\": " << (volumenone ? "true" : "false") << ",\n"
+				<< display << '\n';
+		}
+		
 		S["coverart"]     = coverart;
 		S["ext"]          = ext;
 		S["icon"]         = icon;
@@ -486,8 +546,11 @@ public:
 		I["Time"]         = Time ? Time : -1; // mpd / cd
 		I["volumemute"]   = std::stoi(fileContent(dir_system +"volumemute", "0"));
 		I["volumemax"]    = std::stoi(fileContent(dir_system +"volumelimit", "-1"));
+////////////////////////////////////////////////////////////////////////////////
+		for (const auto& [k, v] : S) statusFormatString(k, v);
+		for (const auto& [k, v] : I) statusFormat(k, v >= 0 ? std::to_string(v) : "false");
+		for (const auto& [k, v] : B) statusFormat(k, v ? "true" : json_format ? "false" : "");
 		
-		statusOutput();
 		if (state == "play") statusFormat("timestamp", std::to_string(timestamp));
 		
 		if (pllength && coverart.empty() && Artist) {
@@ -523,7 +586,9 @@ int main(int argc, char **argv) {
 	}
 	
 	std::string mode = argv[1];
-	if (mode == "-k") {        // key=val
+	if (mode == "-i") { // ip address
+		std::cout << ipAddress();
+	} else if (mode == "-k") { // key=val
 		json_format = false;
 		mpd.status();
 	} else if (mode == "-l" || mode == "-c") { // get embedded lyrics / coverart
@@ -546,10 +611,14 @@ int main(int argc, char **argv) {
 			<< "Usage: " << argv[0] << " [-j|-n]\n"
 			<< "        json format (no option)\n"
 			<< "  -c    extract embedded coverart\n"
+			<< "  -i    IP address of system\n"
 			<< "  -l    extract embedded lyrics\n"
 			<< "  -n    json-like with no braces\n"
-			<< "  -k    key=value format\n";
+			<< "  -k    key=value format\n"
+			<< "  -s    snapclient status\n";
 		return 1;
+	} else if (mode == "-s") { // snapclient
+		snapclient = true;
 	}
 	return 0;
 }
