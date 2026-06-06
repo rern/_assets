@@ -1,4 +1,4 @@
-// g++ -O2 bluez_meta.cpp -o /srv/http/bash/bluez-meta $( pkg-config --cflags --libs dbus-1 )
+// g++ -O2 bluez_meta.cpp -o bluez-meta $( pkg-config --cflags --libs dbus-1 )
 
 #include <dbus/dbus.h>
 #include <iostream>

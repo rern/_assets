@@ -51,7 +51,7 @@ int getVolume(const std::string& device, const std::string& mixer) {
             snd_mixer_selem_get_playback_dB(elem, SND_MIXER_SCHN_FRONT_LEFT, &current_db) >= 0) {
             
             percent = mapPercent(current_db, min_db, max_db);
-		}
+        }
     }
     snd_mixer_close(handle);
     return percent;

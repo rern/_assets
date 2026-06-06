@@ -53,14 +53,14 @@ inline uint64_t readUint64BE(const uint8_t* bytes) noexcept {
 // ----------------------------------------------------------
 enum class AF {
     aiff, ape, dsf, dff, flac, m4a, mp3, ogg, wav, wma,
-	na
+    na
 };
 struct AudioData {
-	AF format;
-	std::ifstream file;
-	bool error  = true;
-	uint8_t* h  = 0;
-	size_t size = 0;
+    AF format;
+    std::ifstream file;
+    bool error  = true;
+    uint8_t* h  = 0;
+    size_t size = 0;
 };
 namespace Utils {
     // A lightweight, zero-cost compile-time string comparator
@@ -113,24 +113,24 @@ namespace Utils {
         return AF::na; 
     }
 
-	AudioData readFile(const std::string& FILE_SOURCE, const bool return_file) {
-		AudioData AD;
-		std::ifstream file(FILE_SOURCE, std::ios::binary);
-		if (!file) {
-			std::cerr << "Error: std::ifstream\n";
-		} else {
-			std::vector<uint8_t> buf(4096);
-			file.read((char*)buf.data(), buf.size());
-			AD.size = file.gcount();
-			if (AD.size < 16) {
-				std::cerr << "Error: AD.size < 16\n";
-			} else {
-				AD.error = false;
-				AD.h = buf.data();
-				AD.format = audioFormat(AD.h, AD.size);
-				if (return_file) AD.file = std::move(file); // for process file
-			}
-		}
-		return AD;
-	}
+    AudioData readFile(const std::string& FILE_SOURCE, const bool return_file) {
+        AudioData AD;
+        std::ifstream file(FILE_SOURCE, std::ios::binary);
+        if (!file) {
+            std::cerr << "Error: std::ifstream\n";
+        } else {
+            std::vector<uint8_t> buf(4096);
+            file.read((char*)buf.data(), buf.size());
+            AD.size = file.gcount();
+            if (AD.size < 16) {
+                std::cerr << "Error: AD.size < 16\n";
+            } else {
+                AD.error = false;
+                AD.h = buf.data();
+                AD.format = audioFormat(AD.h, AD.size);
+                if (return_file) AD.file = std::move(file); // for process file
+            }
+        }
+        return AD;
+    }
 } // namespace Utils

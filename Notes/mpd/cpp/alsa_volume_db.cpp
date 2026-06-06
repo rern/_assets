@@ -80,19 +80,19 @@ Volume getVolume(const std::string& device, const std::string& mixer) {
 int main(int argc, char* argv[]) {
     if (argc < 3) {
         std::cerr << "Usage: " << argv[0] << " DEVICE MIXER_CONTROL\n";
-		return 1;
+        return 1;
     }
 
-	std::string device = argv[1];
-	std::string mixer  = argv[2];
+    std::string device = argv[1];
+    std::string mixer  = argv[2];
 
     Volume V = getVolume(device, mixer);
 
     if (!V.connected) {
         std::cerr << mixer << "' on '" << device << "' could not be found.\n";
-		return 1;
+        return 1;
     }
-	
-	std::cout << V.percent << " " << V.db;
+    
+    std::cout << V.percent << " " << V.db;
     return 0;
 }

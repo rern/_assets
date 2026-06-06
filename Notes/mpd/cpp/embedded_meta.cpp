@@ -1,7 +1,7 @@
 /*
-g++ -O2 embedded_meta.cpp -o /srv/http/bash/embedded_meta
-ln -s /bin/embedded_meta /srv/http/bash/embedded-coverart
-ln -s /bin/embedded_meta /srv/http/bash/embedded-lyrics
+g++ -O2 embedded_meta.cpp -o embedded_meta
+ln -s /bin/embedded_meta embedded-coverart
+ln -s /bin/embedded_meta embedded-lyrics
 */
 #include <cstdint>
 

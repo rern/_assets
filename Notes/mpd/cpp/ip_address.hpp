@@ -3,9 +3,9 @@
 #include <arpa/inet.h> // ip
 
 std::string hostName() {
-	char buf[HOST_NAME_MAX];
-	if (gethostname(buf, sizeof(buf)) == 0) return buf;
-	return {};
+    char buf[HOST_NAME_MAX];
+    if (gethostname(buf, sizeof(buf)) == 0) return buf;
+    return {};
 }
 
 std::string ipAddress() {

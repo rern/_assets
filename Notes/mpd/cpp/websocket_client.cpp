@@ -5,13 +5,16 @@
 #include <iostream>
 #include <chrono>
 
-static int interrupted = 0;
-static std::string message;
-static bool force_exit = false;
-static int timeout = 2; // default timeout
+static std::string ws_message;
+static bool ws_end       = true;
+static bool ws_send_only = false;
+static int  ws_timeout   = 2;
 
-static int wsOnMessage(struct lws *wsi, enum lws_callback_reasons reason,
-                       void *user, void *in, size_t len) {
+static int wsOnMessage(struct lws *wsi,
+                       enum lws_callback_reasons reason,
+                       void *user,
+                       void *in,
+                       size_t len) {
     switch (reason) {
         case LWS_CALLBACK_CLIENT_ESTABLISHED:
             lws_callback_on_writable(wsi);
@@ -19,33 +22,33 @@ static int wsOnMessage(struct lws *wsi, enum lws_callback_reasons reason,
 
         case LWS_CALLBACK_CLIENT_WRITEABLE: {
             unsigned char buf[LWS_PRE + 1024];
-            size_t n = message.size();
-            memcpy(&buf[LWS_PRE], message.c_str(), n);
+            size_t n = ws_message.size();
+            memcpy(&buf[LWS_PRE], ws_message.c_str(), n);
             lws_write(wsi, &buf[LWS_PRE], n, LWS_WRITE_TEXT);
 
-            if (force_exit) {
+            if (ws_send_only) {
                 lws_close_reason(wsi, LWS_CLOSE_STATUS_NORMAL, NULL, 0);
-                interrupted = 1;
+                ws_end = true;
             }
             break;
         }
 
         case LWS_CALLBACK_CLIENT_RECEIVE:
-            std::cout << std::string((char*)in, len) << std::endl;
+            ws_message = std::string((char*)in, len);
             lws_close_reason(wsi, LWS_CLOSE_STATUS_NORMAL, NULL, 0);
-            interrupted = 1;
+            ws_end = true;
             break;
 
         case LWS_CALLBACK_CLIENT_CLOSED:
-            interrupted = 1;
+            ws_end = true;
             break;
     }
     return 0;
 }
 
 int wsSend(const std::string& ip, const std::string& msg) {
-    interrupted = 0;
-    message = (!msg.empty() && msg.front() == '{') ? msg : "\"" + msg + "\"";
+    ws_end = false;
+    ws_message = (!msg.empty() && msg.front() == '{') ? msg : "\"" + msg + "\"";
 
     lws_set_log_level(LLL_ERR, NULL);
 
@@ -78,12 +81,12 @@ int wsSend(const std::string& ip, const std::string& msg) {
     lws_client_connect_via_info(&i);
 
     auto start = std::chrono::steady_clock::now();
-    while (!interrupted) {
+    while (!ws_end) {
         lws_service(context, 0);
         auto now = std::chrono::steady_clock::now();
-        if (!force_exit && timeout > 0 &&
-            std::chrono::duration_cast<std::chrono::seconds>(now - start).count() >= timeout) {
-            interrupted = 1;
+        if (!ws_send_only && ws_timeout > 0 &&
+            std::chrono::duration_cast<std::chrono::seconds>(now - start).count() >= ws_timeout) {
+            ws_end = true;
         }
     }
 
@@ -95,10 +98,10 @@ int wsSend(const std::string& ip, const std::string& msg) {
 int main(int argc, char **argv) {
     if (argc < 2) {
         std::cerr
-			<< "Usage: " << argv[0] << " ws_msg [SERVER_IP] [-t|-x]\n"
-			<< "SERVER_IP default: 127.0.0.1"
-			<< "    -t    timeout in secound - default: 2\n"
-			<< "    -x    send and exit immediately (no wait for response)\n";
+            << "Usage: " << argv[0] << " ws_msg [SERVER_IP] [-t|-x]\n"
+            << "SERVER_IP default: 127.0.0.1"
+            << "    -t    ws_timeout in secound - default: 2\n"
+            << "    -x    send and exit immediately (send only)\n";
         return 1;
     }
 
@@ -113,11 +116,13 @@ int main(int argc, char **argv) {
     // Options
     for (int i = 2; i < argc; i++) {
         if (std::string(argv[i]) == "-x") {
-            force_exit = true;
+            ws_send_only = true;
         } else if (std::string(argv[i]) == "-t" && i + 1 < argc) {
-            timeout = std::stoi(argv[i + 1]);
+            ws_timeout = std::stoi(argv[i + 1]);
         }
     }
 
-    return wsSend(ip, msg);
+    wsSend(ip, msg);
+    std::cout << ws_message;
+    return 0;
 }
