@@ -1,4 +1,4 @@
-// g++ websocket_client.cpp -o websocket-client $(pkg-config --cflags --libs libwebsockets)
+// g++ -O2 websocket_client.cpp -o websocket-client $(pkg-config --cflags --libs libwebsockets)
 
 #include <libwebsockets.h>
 #include <string.h>
@@ -54,13 +54,16 @@ int run_websocket_client(const std::string& ip, int port,
 
     lws_set_log_level(LLL_ERR, NULL);
 
-    struct lws_context_creation_info info;
-    memset(&info, 0, sizeof info);
-    info.port = CONTEXT_PORT_NO_LISTEN;
-    info.protocols = (struct lws_protocols[]) {
+    // Make protocols array static so it persists
+    static struct lws_protocols protocols[] = {
         { "example-protocol", callback_ws, 0, 1024 },
         { NULL, NULL, 0, 0 }
     };
+
+    struct lws_context_creation_info info;
+    memset(&info, 0, sizeof info);
+    info.port = CONTEXT_PORT_NO_LISTEN;
+    info.protocols = protocols;
 
     struct lws_context *context = lws_create_context(&info);
     if (!context) {
