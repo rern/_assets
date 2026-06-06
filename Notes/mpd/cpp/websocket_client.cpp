@@ -8,9 +8,9 @@
 static int interrupted = 0;
 static std::string message;
 static bool force_exit = false;
-static int timeout_seconds = 2; // default timeout
+static int timeout = 2; // default timeout
 
-static int callback_ws(struct lws *wsi, enum lws_callback_reasons reason,
+static int wsOnMessage(struct lws *wsi, enum lws_callback_reasons reason,
                        void *user, void *in, size_t len) {
     switch (reason) {
         case LWS_CALLBACK_CLIENT_ESTABLISHED:
@@ -43,20 +43,15 @@ static int callback_ws(struct lws *wsi, enum lws_callback_reasons reason,
     return 0;
 }
 
-// --- Helper function ---
-int run_websocket_client(const std::string& ip, int port,
-                         const std::string& msg,
-                         bool forceExit, int timeoutSec) {
+int wsSend(const std::string& ip, const std::string& msg) {
     interrupted = 0;
-    force_exit = forceExit;
-    timeout_seconds = timeoutSec;
     message = (!msg.empty() && msg.front() == '{') ? msg : "\"" + msg + "\"";
 
     lws_set_log_level(LLL_ERR, NULL);
 
     // Make protocols array static so it persists
     static struct lws_protocols protocols[] = {
-        { "example-protocol", callback_ws, 0, 1024 },
+        { "example-protocol", wsOnMessage, 0, 1024 },
         { NULL, NULL, 0, 0 }
     };
 
@@ -75,7 +70,7 @@ int run_websocket_client(const std::string& ip, int port,
     memset(&i, 0, sizeof(i));
     i.context = context;
     i.address = ip.c_str();
-    i.port = port;
+    i.port = 8080;
     i.path = "/";
     i.protocol = "example-protocol";
     i.ssl_connection = 0;
@@ -86,8 +81,8 @@ int run_websocket_client(const std::string& ip, int port,
     while (!interrupted) {
         lws_service(context, 0);
         auto now = std::chrono::steady_clock::now();
-        if (!force_exit && timeout_seconds > 0 &&
-            std::chrono::duration_cast<std::chrono::seconds>(now - start).count() >= timeout_seconds) {
+        if (!force_exit && timeout > 0 &&
+            std::chrono::duration_cast<std::chrono::seconds>(now - start).count() >= timeout) {
             interrupted = 1;
         }
     }
@@ -99,14 +94,16 @@ int run_websocket_client(const std::string& ip, int port,
 // --- Main just parses args ---
 int main(int argc, char **argv) {
     if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " message [ip] [-x] [-t seconds]\n";
+        std::cerr
+			<< "Usage: " << argv[0] << " ws_msg [SERVER_IP] [-t|-x]\n"
+			<< "SERVER_IP default: 127.0.0.1"
+			<< "    -t    timeout in secound - default: 2\n"
+			<< "    -x    send and exit immediately (no wait for response)\n";
         return 1;
     }
 
     std::string msg = argv[1];
     std::string ip = "127.0.0.1";
-    bool forceExit = false;
-    int timeoutSec = 2;
 
     // Optional IP
     if (argc >= 3 && argv[2][0] != '-') {
@@ -116,11 +113,11 @@ int main(int argc, char **argv) {
     // Options
     for (int i = 2; i < argc; i++) {
         if (std::string(argv[i]) == "-x") {
-            forceExit = true;
+            force_exit = true;
         } else if (std::string(argv[i]) == "-t" && i + 1 < argc) {
-            timeoutSec = std::stoi(argv[i + 1]);
+            timeout = std::stoi(argv[i + 1]);
         }
     }
 
-    return run_websocket_client(ip, 8080, msg, forceExit, timeoutSec);
+    return wsSend(ip, msg);
 }
