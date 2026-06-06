@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cmath>
 #include <alsa/asoundlib.h>
 
 // Replicates the cubic root volume scale algorithm used by amixer -M

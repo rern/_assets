@@ -1,8 +1,6 @@
 #pragma once
 
 #include <arpa/inet.h> // ip
-#include <limits.h>
-#include <unistd.h>
 
 std::string hostName() {
 	char buf[HOST_NAME_MAX];

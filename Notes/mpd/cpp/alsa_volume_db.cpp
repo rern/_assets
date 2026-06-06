@@ -1,4 +1,4 @@
-// g++ -O2 alsa_volume_db.cpp -lasound -o /srv/http/bash/alsa-volume
+// g++ -O2 alsa_volume_db.cpp -o /srv/http/bash/alsa-volume $( pkg-config --cflags --libs alsa )
 
 #include <iostream>
 #include <string>

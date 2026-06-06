@@ -1,18 +1,26 @@
-// g++ -O2 mpd_status.cpp $( pkg-config --cflags --libs alsa,libmpdclient,libupnpp,taglib ) -o /srv/http/bash/status
+// g++ -O2 mpd_status.cpp -o /srv/http/bash/status $( pkg-config --cflags --libs alsa,dbus-1,libmpdclient,libupnpp,libwebsockets,taglib )
 
 #include <mpd/client.h>
 
 #include <chrono>
+#include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <filesystem>
+#include <limits.h>
+#include <map>
+#include <string.h>
 #include <thread>
+#include <unistd.h>
 #include <unordered_map>
 
 #include "audio_sampling.hpp"
 #include "alsa_volume.hpp"
+#include "bluez_meta.hpp"
 #include "ip_address.hpp"
 #include "upnp_coverart.hpp"
 #include "embedded_meta.hpp"
+#include "websocket_client.hpp"
 
 bool
 	json_format = true,
@@ -187,11 +195,6 @@ std::unordered_map<std::string, std::string> readVar(const std::string& file) {
     return V;
 }
 
-std::string statusDisplay(const std::string& file, const std::string& key = "") {
-	std::string t_f = fileExists(file) ? "true" : "false";
-	return key.empty() ? t_f : "  \""+ key +"\": "+ t_f +",\n";
-}
-
 void statusFormat(const std::string& k, const std::string& v) {
 	if (!json_format && !inKey(k, key_BI)) return;
 	
@@ -249,9 +252,13 @@ void statusStreamer(const std::string& player) {
 			elapsed = std::stoi(V["elapsed"]);
 		}
 	} else if (player == "bluetooth") {
-		
+		std::string dest = fileContent(dir_shm +"bluetoothdest");
+		BluezMeta BM     = BluezMeta::parseBluez(dest);
 	} else if (player == "snapcast") {
-		
+		std::string msg = "{ \"status\": \"snapclient\" }";
+		std::string ip  = fileContent(dir_shm +"snapserverip");
+		wsSend(ip, msg);
+		std::string status = ws_message; 
 	} else if (player == "spotify") {
 		readVar(dir_shm +"spotify/state"); // return global V
 		if (V["state"] == "play") elapsed = epochS() - std::stoi(V["start"]) + 1;
@@ -289,9 +296,7 @@ public:
 			case MPD_STATE_STOP:  state = "stop";  break;
 		}
 		
-		if (state == "play") {
-			timestamp = epochMs();
-		}
+		if (state == "play") timestamp = epochMs();
 		
 		Time     = mpd_status_get_total_time(status);
 		pos      = mpd_status_get_song_pos(status);
@@ -498,28 +503,6 @@ public:
 			}
 		}
 
-		if (json_format) {
-			std::string
-				display, json;
-			
-			vector    = {"ap", "camilladsp", "dabradio", "equalizer", "loginsetting", "multiraudio", "relays", "snapclient"};
-			for (const std::string& k : vector) {
-				json += statusDisplay(dir_system + k, k);
-			}
-			json     += statusDisplay(dir_shm +"audiocd", "audiocd");
-			
-			display = fileContent(dir_system +"display.json");
-			display.erase(0, 2); // {\n
-////////////////////////////////////////////////////////////////////////////////
-			std::cout
-				<< "  \"page\"   : false\n"
-				<< ", \"counts\" : " << fileContent(dir_data +"mpd/counts") << '\n'
-				<< ", \"display\": {\n"
-				<< json
-				<< "  \"volumenone\": " << (volumenone ? "true" : "false") << ",\n"
-				<< display << '\n';
-		}
-		
 		S["coverart"]     = coverart;
 		S["ext"]          = ext;
 		S["icon"]         = icon;
@@ -531,7 +514,6 @@ public:
 			S["station"]      = station;
 			S["stationcover"] = stationcover;
 		}
-		
 		B["btsender"]     = fileExists(dir_shm +"btmixer");
 		B["librandom"]    = fileExists(dir_system +"librandom");
 		B["relays"]       = fileExists(dir_system +"relays");
@@ -546,12 +528,32 @@ public:
 		I["Time"]         = Time ? Time : -1; // mpd / cd
 		I["volumemute"]   = std::stoi(fileContent(dir_system +"volumemute", "0"));
 		I["volumemax"]    = std::stoi(fileContent(dir_system +"volumelimit", "-1"));
+		
 ////////////////////////////////////////////////////////////////////////////////
+		if (json_format) { // page, counts, display
+			std::string display = fileContent(dir_system +"display.json");
+			display.erase(0, 2); // "{\n" remove
+			std::cout
+				<< "  \"page\"   : false\n"
+				<< ", \"counts\" : " << fileContent(dir_data +"mpd/counts") << '\n'
+				<< ", \"display\": {\n";
+				
+			vector = {"ap", "camilladsp", "dabradio", "equalizer", "loginsetting", "multiraudio", "relays", "snapclient"};
+			for (const std::string& k : vector) {
+				std::cout << "  \"" << k << "\": " << (fileExists(dir_system + k) ? "true" : "false") << ",\n";
+			}
+			
+			std::cout
+				<< "  \"volumenone\": " << (volumenone ? "true" : "false") << ",\n"
+				<< display << '\n'; // "\n}" already
+		}
+		
 		for (const auto& [k, v] : S) statusFormatString(k, v);
 		for (const auto& [k, v] : I) statusFormat(k, v >= 0 ? std::to_string(v) : "false");
 		for (const auto& [k, v] : B) statusFormat(k, v ? "true" : json_format ? "false" : "");
 		
 		if (state == "play") statusFormat("timestamp", std::to_string(timestamp));
+////////////////////////////////////////////////////////////////////////////////
 		
 		if (pllength && coverart.empty() && Artist) {
 			std::string args;

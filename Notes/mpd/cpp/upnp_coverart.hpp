@@ -1,7 +1,5 @@
 #pragma once
 
-#include <map>
-#include <unistd.h>
 #include <libupnpp/control/service.hxx>
 #include <libupnpp/control/cdircontent.hxx>
 #include <libupnpp/control/typedservice.hxx>
