@@ -24,11 +24,12 @@ static int wsOnMessage(struct lws *wsi,
             unsigned char buf[LWS_PRE + 1024];
             size_t n = ws_message.size();
             memcpy(&buf[LWS_PRE], ws_message.c_str(), n);
-            lws_write(wsi, &buf[LWS_PRE], n, LWS_WRITE_TEXT);
-
-            if (ws_send_only) {
+            int ret = lws_write(wsi, &buf[LWS_PRE], n, LWS_WRITE_TEXT);
+            
+            if (ws_send_only && ret == (int)n) {
                 lws_close_reason(wsi, LWS_CLOSE_STATUS_NORMAL, NULL, 0);
                 ws_end = true;
+                return 0;
             }
             break;
         }

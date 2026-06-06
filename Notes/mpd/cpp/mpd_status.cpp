@@ -608,26 +608,25 @@ int main(int argc, char **argv) {
     } else if (mode == "-n") { // no braces json-like
         no_brace = true;
         mpd.status();
-    } else if (mode == "-w") { // websocket
-        std::string msg = args[2];
-        std::string ip  = argc == 4 ? argv[3] : "";
-        if (argc == 5) {
-            ws_send_only = std::string(argv[4]) == "-x";
-        }
+    } else if (mode == "-w" || mode == "-W") { // websocket
+        std::string msg = argv[2];
+        std::string ip  = argc == 4 ? argv[3] : "127.0.0.1";
+        if (argc == 5) ws_send_only = mode == "-W";
         wsSend(ip, msg);
-        std::string = ws_message;
+        if (!ws_message.empty()) std::cout << ws_message;
     } else if (mode == "-h") { // help
         std::cerr
             << "\nGet status and data for rAudio\n\n"
-            << "Usage: " << argv[0] << " [-j|-n]\n"
-            << "        json format (no option)\n"
-            << "  -c    extract embedded coverart\n"
-            << "  -i    IP address of system\n"
-            << "  -l    extract embedded lyrics\n"
-            << "  -n    json-like with no braces\n"
-            << "  -k    key=value format\n"
-            << "  -s    snapclient status\n"
-            << "  -w    websocket\n";
+            << "Usage: " << argv[0] << " [OPTION]\n"
+            << "                 json format (no option)\n"
+            << "  -c <FILE>      extract embedded coverart and save to FILE directory\n"
+            << "  -i             IP address of system\n"
+            << "  -l <FILE>      extract embedded lyrics to stdout\n"
+            << "  -n             json-like with no braces\n"
+            << "  -k             key=value format\n"
+            << "  -w <MSG> [IP]  websocket - wait for reply and exit\n"
+            << "                 IP default: 127.0.0.1 (localhost)\n"
+            << "  -W <MSG> [IP]  websocket - send only - exit immediately\n";
         return 1;
     } else if (mode == "-s") { // snapclient
         snapclient = true;
