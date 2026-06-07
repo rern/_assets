@@ -476,7 +476,7 @@ void status() {
             }
         }
     }
-    if (pllength) {
+    if (pllength || snapclient) {
         if (bitdepth)   sampling += std::to_string(bitdepth) +"bit ";
         if (samplerate) sampling += std::format("{:.1f}", samplerate / 1000.0) +" kHz";
         if (bitrate)    sampling += " "+ std::to_string(bitrate) +" kHz";
@@ -539,22 +539,22 @@ void status() {
     
 ////////////////////////////////////////////////////////////////////////////////
     if (json && !no_brace) { // page, counts, display
-        std::string display = fileContent(dir_system +"display.json");
-        display.erase(0, 2); // "{\n" remove
         std::cout
             << "{\n"
-            << "  \"page\"   : false\n"
-            << ", \"counts\" : " << fileContent(dir_data +"mpd/counts") << '\n'
-            << ", \"display\": {\n";
+            << "  \"page\": false\n";
+        if (!snapclient) {
+            std::string display = "{\n";
+            vector = {"ap", "camilladsp", "dabradio", "equalizer", "loginsetting", "multiraudio", "relays", "snapclient"};
+            for (const std::string& k : vector) {
+                display += "  \""+ k +"\": "+ (fileExists(dir_system + k) ? "true" : "false") +",\n";
+            }
+            display += "  \"volumenone\": "+ std::string(volumenone ? "true" : "false") +",\n"+
+                        fileContent(dir_system +"display.json").substr(2); // "{\n" remove
             
-        vector = {"ap", "camilladsp", "dabradio", "equalizer", "loginsetting", "multiraudio", "relays", "snapclient"};
-        for (const std::string& k : vector) {
-            std::cout << "  \"" << k << "\": " << (fileExists(dir_system + k) ? "true" : "false") << ",\n";
+            std::cout
+                << ", \"counts\"    : " << fileContent(dir_data +"mpd/counts") << '\n'
+                << ", \"display\"   : " << display;
         }
-        
-        std::cout
-            << "  \"volumenone\": " << (volumenone ? "true" : "false") << ",\n"
-            << display << '\n'; // "\n}" already
     }
     
     for (const auto& [k, v] : S) statusFormatString(k, v);
@@ -589,6 +589,7 @@ Option parseOption(const std::string& arg) {
     if (arg == "-k") {json = false;        return STATUS;}
     if (arg == "-l")                       return LYRICS;
     if (arg == "-n") {no_brace = true;     return STATUS;}
+    if (arg == "-s") {snapclient = true;   return STATUS;}
     if (arg == "-w")                       return WEBSOCKET;
     if (arg == "-W") {ws_send_only = true; return WEBSOCKET;}
                                            return STATUS;
@@ -621,7 +622,7 @@ int main(int argc, char **argv) {
                 << "  -l <FILE>      extract embedded lyrics to stdout\n"
                 << "  -n             json with no '{' braces '}'\n"
                 << "  -k             key=value format\n"
-                << "  -s             filtered data for snapclient\n"
+                << "  -s             status without counts and display (snapclient)\n"
                 << "  -w <MSG> [IP]  websocket - send and receive\n"
                 << "  -W <MSG> [IP]  websocket - send only and exit\n"
                 << "                 IP default: 127.0.0.1 (localhost)\n";
