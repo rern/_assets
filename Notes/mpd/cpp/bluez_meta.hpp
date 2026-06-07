@@ -51,9 +51,8 @@ struct BluezMeta {
             std::cerr << "Reply Null\n";
             return {};
         }
-
+        
         BluezMeta BM;
-
         // Iterate reply dictionary
         dbus_message_iter_init(reply, &args);
         while (dbus_message_iter_get_arg_type(&args) != DBUS_TYPE_INVALID) {
@@ -76,59 +75,25 @@ struct BluezMeta {
             std::string k(key);
             int type = dbus_message_iter_get_arg_type(&variant);
 
-            if (k == "Album") {
-                if (type == DBUS_TYPE_STRING) {
-                    const char* val;
-                    dbus_message_iter_get_basic(&variant, &val);
-                    BM.Album = val ? val : "";
-                }
-            } else if (k == "Artist") {
-                if (type == DBUS_TYPE_STRING) {
-                    const char* val;
-                    dbus_message_iter_get_basic(&variant, &val);
-                    BM.Artist = val ? val : "";
-                }
-            } else if (k == "Title") {
-                if (type == DBUS_TYPE_STRING) {
-                    const char* val;
-                    dbus_message_iter_get_basic(&variant, &val);
-                    BM.Title = val ? val : "";
-                }
-            } else if (k == "Status") {
-                if (type == DBUS_TYPE_STRING) {
-                    const char* val;
-                    dbus_message_iter_get_basic(&variant, &val);
-                    BM.state = val ? val : "";
-                }
-            } else if (k == "Position") {
-                if (type == DBUS_TYPE_UINT32) {
-                    uint32_t val;
-                    dbus_message_iter_get_basic(&variant, &val);
-                    BM.elapsed = val / 1000; // ms → s
-                }
-            } else if (k == "Duration") {
-                if (type == DBUS_TYPE_UINT32) {
-                    uint32_t val;
-                    dbus_message_iter_get_basic(&variant, &val);
-                    BM.Time = val / 1000; // ms → s
-                }
+            if (type == DBUS_TYPE_STRING) {
+                const char* val;
+                dbus_message_iter_get_basic(&variant, &val);
+                     if (k == "Album")  BM.Album  = val ? val : "";
+                else if (k == "Artist") BM.Artist = val ? val : "";
+                else if (k == "Title")  BM.Title  = val ? val : "";
+                else if (k == "Status") BM.state  = val ? val : "";
+            } else if (type == DBUS_TYPE_UINT32) {
+                uint32_t val;
+                dbus_message_iter_get_basic(&variant, &val);
+                     if (k == "Position") BM.elapsed = val / 1000; // ms → s
+                else if (k == "Duration") BM.Time    = val / 1000; // ms → s
             }
-
             dbus_message_iter_next(&args);
         }
 
         dbus_message_unref(msg);
         dbus_message_unref(reply);
-
+        
         return BM;
-    }
-
-    void print() const {
-        std::cout << "Status: " << state << "\n";
-        std::cout << "Album: " << Album << "\n";
-        std::cout << "Artist: " << Artist << "\n";
-        std::cout << "Title: " << Title << "\n";
-        std::cout << "Elapsed: " << elapsed << "s\n";
-        std::cout << "Duration: " << Time << "s\n";
     }
 };

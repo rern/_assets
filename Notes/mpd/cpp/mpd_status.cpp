@@ -1,5 +1,5 @@
 // g++ -O2 mpd_status.cpp -o /srv/http/bash/status \
-    $( pkg-config --cflags --libs alsa,dbus-1,libmpdclient,libupnpp,libwebsockets,taglib )
+    $( pkg-config --cflags --libs alsa,dbus-1,libcurl,libmpdclient,libupnpp,libwebsockets,taglib )
 
 #include <mpd/client.h>
 
@@ -41,7 +41,8 @@ int
     Time       = 0,
     volume     = 0;
 int64_t
-    timestamp = 0;
+    start      = 0,
+    timestamp  = 0;
 std::string
     coverart,
     control,
@@ -172,8 +173,18 @@ int64_t epochS() {
                 std::chrono::system_clock::now().time_since_epoch()
             ).count();
 }
+void varSet(const std::string key, const std::string value) {
+         if (key == "Album")    S["Album"]  = value;
+    else if (key == "Artist")   S["Artist"] = value;
+    else if (key == "Title")    S["Title"]  = value;
+    else if (key == "coverart") coverart    = value;
+    else if (key == "state")    state       = value;
+    else if (key == "elapsed")  elapsed     = std::stoi(value);
+    else if (key == "start")    start       = std::stoi(value);
+    else if (key == "Time")     Time        = std::stoi(value);
+}
 
-std::unordered_map<std::string, std::string> readVar(const std::string& file) {
+void read2var(const std::string& file) {
     V.clear();
     std::ifstream in(file);
     std::string line;
@@ -189,11 +200,10 @@ std::unordered_map<std::string, std::string> readVar(const std::string& file) {
                 if (!value.empty() && value.front() == '"' && value.back() == '"') {
                     value = value.substr(1, value.size() - 2);
                 }
-                V[key] = value;
+                varSet(key, value);
             }
         }
     }
-    return V;
 }
 
 void statusFormat(const std::string& k, const std::string& v) {
@@ -231,43 +241,29 @@ void statusFormatString(const std::string& k, std::string v) {
     std::cout << kv << '\n';
 }
 
-void statusStreamer(const std::string& player) {
+void rendererStatus(const std::string& player) {
     if (player == "airplay") {
-        std::string dir_airplay = dir_shm +"airplay/";
-        for (const std::string k : {"Album", "Artist", "Title"}) {
-            S[k] = fileContent(dir_airplay + k);
-        }
-        for (const std::string k : {"elapsed", "start", "Time"}) {
-            V.clear();
-            V[k] = fileContent(dir_airplay + k);
-        }
         coverart  = "/data/shm/airplay/coverart.jpg";
         sampling  = "16 bit 44.1 kHz 1.41 Mbit/s • AirPlay";
-        state     = fileContent(dir_airplay +"state");
-        Time      = std::stoi(V["Time"]);
-        timestamp = epochMs();
-        if (state.empty()) state = "stop";
-        if (V["state"] == "play") {
-            if (!V["start"].empty()) elapsed = epochS() - std::stoll(V["start"]) + 1;
-        } else {
-            elapsed = std::stoi(V["elapsed"]);
+        for (const std::string k : {"Album", "Artist", "elapsed", "start", "state", "Time", "Title"}) {
+            varSet(k, fileContent(dir_shm +"airplay/" + k));
         }
+        if (state == "play") elapsed = epochS() - start + 1;
     } else if (player == "bluetooth") {
         std::string dest = fileContent(dir_shm +"bluetoothdest");
         BluezMeta BM     = BluezMeta::parseBluez(dest);
-    } else if (player == "snapcast") {
-        std::string msg = "{ \"status\": \"snapclient\" }";
-        std::string ip  = fileContent(dir_shm +"snapserverip");
-        wsSend(ip, msg);
-        std::string status = ws_message; 
+        S["Album"]       = BM.Album;
+        S["Artist"]      = BM.Artist;
+        S["Title"]       = BM.Title;
+        state            = BM.state;
+        elapsed          = BM.elapsed;
+        Time             = BM.Time;
     } else if (player == "spotify") {
-        readVar(dir_shm +"spotify/state"); // return global V
-        if (V["state"] == "play") elapsed = epochS() - std::stoi(V["start"]) + 1;
-        std::string
-        status  = fileContent(dir_shm +"spotify/status");
-        status += ", \"elapsed\"   : "+ std::to_string(elapsed)   +'\n'+
-                  ", \"timestamp\" : "+ std::to_string(epochMs()) +'\n';
+        sampling  = "48 kHz 320 kbit/s • Spotify";
+        read2var(dir_shm +"spotify/stattus");
+        if (state == "play") elapsed = epochS() - start + 1;
     }
+    timestamp = epochMs();
 }
 
 class MPDclient {
@@ -380,7 +376,7 @@ void status() {
             S["ip"]       = ipAddress();
         }
     } else {
-        statusStreamer(player);
+        rendererStatus(player);
     }
     
     if (fileExists(dir_shm +"btmixer") && !fileExists(dir_system +"devicewithbt")) {
@@ -395,7 +391,7 @@ void status() {
         }
     }
         
-    if (snapclient) {
+    if (snapclient) {  // push on track changed / refresh from each client
         icon = "snapclient";
         S["snapserverip"] = ipAddress();
     } else if (uri_ini == "cdda") {
@@ -447,15 +443,12 @@ void status() {
             }
             if (state == "play" && icon != "webradio") { // radiofrance / radioparadise
                 ext      = station.substr(station.find(" - ") + 3);
-                readVar(dir_shm +"status"); // return global V
-// S[k]
-                for (std::string k : {"Album", "Artist", "Title"}) S[k] = V[k];
-                coverart = V["coverart"];
+                read2var(dir_shm +"status"); // return global V
             } else {
                 ext      = "Radio";
             }
         }
-    } else if (pllength) {
+    } else if (pllength || snapclient) {
         coverart = fileCover(F);
         ext      = F.extension().string().erase(0, 1);
         std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) {
@@ -490,21 +483,25 @@ void status() {
     
     bool Album  = hasData("Album");
     bool Artist = hasData("Artist");
-    if (coverart.empty() && stream && Album && Artist) { // get already fetched
-        std::string path = dir_shm;
-        if (webradio) {
-            path += "webradio/";
-        } else if (player == "upnp") {
-            path += "local/";
-        } else {
-            path += "online/";
-        }
-        path += alphaNumericLower(S["Artist"] + S["Album"]);
-        for (const std::string ext : {".jpg", ".png"}) {
-            if (fileExists(path + ext)) {
-                coverart = path.substr(9) + ext;
-                break;
+    if (coverart.empty() && stream) {
+        std::string file_coverart;
+        if (Album && Artist) { // get already fetched
+            std::string file_coverart = dir_shm;
+            if (webradio) {
+                file_coverart += "webradio/";
+            } else if (player == "upnp") {
+                file_coverart += "local/";
+            } else {
+                file_coverart += "online/";
             }
+            file_coverart += alphaNumericLower(S["Artist"] + S["Album"]);
+            for (const std::string ext : {".jpg", ".png"}) {
+                if (fileExists(file_coverart + ext)) {
+                    coverart = file_coverart.substr(9) + ext;
+                    break;
+                }
+            }
+            if (coverart.empty() && player == "upnp") coverartUpnp(coverart, file_coverart);
         }
     }
 
@@ -589,15 +586,14 @@ Option parseOption(const std::string& arg) {
     if (arg == "-k") {json = false;        return STATUS;}
     if (arg == "-l")                       return LYRICS;
     if (arg == "-n") {no_brace = true;     return STATUS;}
-    if (arg == "-s") {snapclient = true;   return STATUS;}
+    if (arg == "-s") {snapclient = true;   return STATUS;} // status-push on track changed / ws on each client refresh
     if (arg == "-w")                       return WEBSOCKET;
     if (arg == "-W") {ws_send_only = true; return WEBSOCKET;}
                                            return STATUS;
 }
 
 int main(int argc, char **argv) {
-    Option opt;
-    opt = argc == 1 ? STATUS : parseOption(argv[1]);
+    Option opt = argc == 1 ? STATUS : parseOption(argv[1]);
     switch (opt) {
         case COVERART:
         case LYRICS: {
@@ -635,6 +631,14 @@ int main(int argc, char **argv) {
             break;
         }
         case STATUS:
+            if (player == "snapcast") {                // #1 snapclient local refresh
+                std::string ip  = fileContent(dir_shm +"snapserverip");
+                std::string msg = "{ \"status\": \"snapclient\" }";
+                wsSend(ip, msg);                       // #2 ws to remote snapserver
+                std::cout << ws_message << std::flush; // #3 snapserver reply data: 'status -s'
+                return 0;
+            }
+            
             status();
             break;
     }
