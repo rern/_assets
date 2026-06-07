@@ -576,8 +576,8 @@ AudioEmbedded embeddedWMA(AudioData& AD) {
 // ============================================================================
 // EXPORT PROCESSING MANAGER
 // ============================================================================
-std::string extractEmbedded(AudioData& AD, const AudioEmbedded& AE, const std::string type, const std::string& FILE_SOURCE) {
-    if (type == "coverart") {
+std::string extractEmbedded(AudioData& AD, const AudioEmbedded& AE, const bool coverart, const std::string& FILE_SOURCE) {
+    if (coverart) {
         if (!AE.hasArt || AE.artSize == 0) return {};
         
         size_t lastSlash = FILE_SOURCE.find_last_of("/\\");
@@ -618,10 +618,9 @@ std::string extractEmbedded(AudioData& AD, const AudioEmbedded& AE, const std::s
         if (!AE.hasLyrics || AE.lyricsText.empty()) return {};
         
         size_t marker = AE.lyricsText.find("\n[BUFFERED_ART_PAYLOAD:");
-        std::string cleanedText = (marker != std::string::npos) ? AE.lyricsText.substr(0, marker) : AE.lyricsText;
-        cleanedText = stripTimeSync(cleanedText);
-        std::cout << cleanedText << std::flush;
-        return {};
+        std::string lyrics = (marker != std::string::npos) ? AE.lyricsText.substr(0, marker) : AE.lyricsText;
+        lyrics = stripTimeSync(lyrics);
+        return lyrics;
     }
 }
 
