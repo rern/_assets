@@ -120,6 +120,8 @@ int64_t epochS() {
 }
 
 void kv2var(const std::string& kv) {
+    if (kv.empty()) return;
+    
     std::istringstream iss(kv);
     std::string line;
 
@@ -141,14 +143,17 @@ void kv2var(const std::string& kv) {
                     value.replace(pos, 2, "\"");
                     pos += 1; // move past the replaced quote
                 }
-                     if (key == "Album")    S["Album"]  = value;
-                else if (key == "Artist")   S["Artist"] = value;
-                else if (key == "Title")    S["Title"]  = value;
-                else if (key == "coverart") coverart    = value;
-                else if (key == "state")    state       = value;
-                else if (key == "elapsed")  elapsed     = std::stoi(value);
-                else if (key == "start")    start       = std::stoi(value);
-                else if (key == "Time")     Time        = std::stoi(value);
+                     if (key == "Album")        S["Album"]   = value;
+                else if (key == "Artist")       S["Artist"]  = value;
+                else if (key == "Title")        S["Title"]   = value;
+                else if (key == "coverart")     coverart     = value;
+                else if (key == "state")        state        = value;
+                else if (key == "elapsed")      elapsed      = std::stoi(value);
+                else if (key == "start")        start        = std::stoi(value);
+                else if (key == "Time")         Time         = std::stoi(value);
+                else if (key == "sampling")     sampling     = value;
+                else if (key == "station")      station      = value;
+                else if (key == "stationcover") stationcover = value;
             }
         }
     }
@@ -204,8 +209,8 @@ void rendererStatus(const std::string& player) {
         kv2var(bluezMeta(dest));
     } else if (SNAPCAST) {                          // #1 snapclient local refresh
         std::string ip  = fileContent(dir_shm +"snapserverip");
-        wsSend(ip, "{\"status\": \"snapclient\"}"); // #2 ws to remote snapserver
-        kv2var(ws_message);                         // #3 snapserver reply data: 'status -k'
+        wsSend(ip, "{\"status\": \"snapclient\"}"); // #2 websocket to snapserver
+        kv2var(ws_message);                         // #3 server reply: status -k > ws_message(key=value)
     } else if (SPOTIFY) {
         sampling  = "48 kHz 320 kbit/s • Spotify";
         kv2var(fileContent(dir_shm +"spotify/stattus"));
@@ -308,12 +313,12 @@ public:
 
 bool status() {
     player = fileContent(dir_shm +"player");
-         if (player == "airplay")   AIRPLAY = true;
+         if (player == "airplay")   AIRPLAY   = true;
     else if (player == "bluetooth") BLUETOOTH = true;
-    else if (player == "mpd")       MPD = true;
-    else if (player == "snapcast")  SNAPCAST = true;
-    else if (player == "spotify")   SPOTIFY = true;
-    else if (player == "upnp")      UPNP = true;
+    else if (player == "mpd")       MPD       = true;
+    else if (player == "snapcast")  SNAPCAST  = true;
+    else if (player == "spotify")   SPOTIFY   = true;
+    else if (player == "upnp")      UPNP      = true;
             
     if (MPD || UPNP) {
         MPDclient MPD;
@@ -349,23 +354,13 @@ bool status() {
         icon = "snapclient";
         S["snapserverip"] = ipAddress();
     } else if (uri_ini == "cdda") {
-        ext                 = "CD";
-        icon                = "audiocd";
-        sampling            = "16 bit 44.1 kHz 1.41 Mbit/s";
-        std::string file_cd = dir_shm +"audiocd";
-        if (fileExists(file_cd)) {
-            std::string discid  = fileContent(file_cd);
-            std::string file_id = dir_data +"audiocd/"+ discid;
-            coverart            = "/data/audiocd/"+ discid +".jpg";
-            if (fileExists(file_id)) {
-                vector                 = fileContentLines(file_id);
-                int              track = std::stoi(uri.substr(uri.find("://") + 3)); // after '://'
-                std::string disciddata = vector[track];
-                vector                 = {"Artist", "Album", "Title"};
-                for (size_t i = 0; i < vector.size(); i++) S[vector[i]] = disciddata[i];
-                Time = disciddata[3];
-            }
-        }
+        ext      = "CD";
+        icon     = "audiocd";
+        sampling = "16 bit 44.1 kHz 1.41 Mbit/s";
+        std::string
+            discid = fileContent(dir_shm +"audiocd"),
+            track  = uri.substr(uri.find("://") + 3); // cdda://N > N
+        kv2var(fileContent(dir_data +"audiocd/"+ discid +'/'+ track));
     } else if (stream) {
         if (UPNP) {
             ext      = "UPnP";
@@ -380,13 +375,8 @@ bool status() {
             } else {
                 dir_radio = "webradio/";
                 std::replace(url.begin(), url.end(), '/', '|');
-                file_radio = dir_data + dir_radio + url;
-                if (fileExists(file_radio)) {
-                    vector = fileContentLines(file_radio);
-                    if (state == "stop") sampling = uri_ini == "rtsp" ? "48 kHz 160 kbit/s" : vector[1];
-                    station      = vector[0];
-                    stationcover = "/data/"+ dir_radio +"img/"+ url +".jpg";
-                }
+                kv2var(fileContent(dir_data + dir_radio + url));
+                if (state == "stop" && uri_ini == "rtsp") sampling = "48 kHz";
                 if (url.find("icecast.radiofrance.fr") != std::string::npos) {
                     icon = "radiofrance";
                 } else if (url.find("stream.radioparadise.com") != std::string::npos) {
@@ -440,14 +430,7 @@ bool status() {
     if (coverart.empty() && stream) {
         std::string file_coverart;
         if (Album && Artist) { // get already fetched
-            std::string file_coverart = dir_shm;
-            if (webradio) {
-                file_coverart += "webradio/";
-            } else if (UPNP) {
-                file_coverart += "local/";
-            } else {
-                file_coverart += "online/";
-            }
+            std::string file_coverart = dir_shm +"online/";
             file_coverart += alphaNumericLower(S["Artist"] + S["Album"]);
             for (const std::string ext : {".jpg", ".png"}) {
                 if (fileExists(file_coverart + ext)) {
@@ -519,14 +502,14 @@ bool status() {
     if (pllength && coverart.empty() && Artist) {
         std::string args;
         if (Album) {
-            args = S["Artist"] +"\n"+ S["Album"] +'\n';
-        } else if (webradio && hasData("Title")) {
-            args = S["Artist"] +"\n"+ S["Title"] +"\nwebradio";
+            args = S["Artist"] +"\n"+ S["Album"] +"\nalbum\n";
+        } else if (hasData("Title")) {
+            args = S["Artist"] +"\n"+ S["Title"] +"\ntitle\n";
         }
         if (!args.empty()) {
             std::string cmd = "/srv/http/bash/status-coverartonline.sh \"cmd\n"+
-                                args +
-                                "\nCMD ARTIST ALBUM MODE\" &> /dev/null &";
+                              args +
+                              "\nCMD ARTIST ALBUM MODE\" &> /dev/null &";
             std::system(cmd.c_str()); // online coverart (in background)
         }
     }
@@ -576,9 +559,9 @@ int main(int argc, char **argv) {
                 << "\nGet status and data for rAudio\n\n"
                 << "Usage: " << argv[0] << " [OPTION]\n"
                 << "                 json format\n"
-                << "  -s             json exclude counts and display\n" // snapclient
+                << "  -s             json exclude counts and display\n"
                 << "  -n             json with no '{' braces '}'\n"
-                << "  -k             key=value format (exclude counts and display)\n\n"
+                << "  -k             key=value format (exclude counts and display)\n\n" // snapserver reply to client
                 
                 << "  -l <FILE>      extract embedded lyrics to stdout\n"
                 << "  -c <FILE>      extract embedded coverart to cover.jpg/png\n"
