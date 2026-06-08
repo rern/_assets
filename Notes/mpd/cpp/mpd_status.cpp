@@ -207,10 +207,10 @@ void rendererStatus(const std::string& player) {
     } else if (BLUETOOTH) {
         std::string dest = fileContent(dir_shm +"bluetoothdest");
         kv2var(bluezMeta(dest));
-    } else if (SNAPCAST) {                          // #1 snapclient local refresh
+    } else if (SNAPCAST) {    // #1 snapclient local refresh
         std::string ip  = fileContent(dir_shm +"snapserverip");
-        wsSend(ip, "{\"status\": \"snapclient\"}"); // #2 websocket to snapserver
-        kv2var(ws_message);                         // #3 server reply: status -k > ws_message(key=value)
+        wsSend(ip, "status"); // #2 websocket to snapserver
+        kv2var(ws_message);   // #3 server reply: status -k > ws_message(key=value)
     } else if (SPOTIFY) {
         sampling  = "48 kHz 320 kbit/s • Spotify";
         kv2var(fileContent(dir_shm +"spotify/stattus"));
