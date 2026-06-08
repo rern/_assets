@@ -15,69 +15,15 @@
 #include <unistd.h>
 #include <unordered_map>
 
+#include "global_var.hpp"
+
 #include "audio_sampling.hpp"
 #include "alsa_volume.hpp"
 #include "bluez_meta.hpp"
-#include "ip_address.hpp"
+#include "ip_hostname.hpp"
 #include "upnp_coverart.hpp"
 #include "embedded_meta.hpp"
 #include "websocket_client.hpp"
-
-bool
-    json = true,
-    no_brace    = false,
-    
-    snapclient  = false,
-    stream      = false,
-    volumenone  = false,
-    webradio    = false;
-int
-    bitdepth   = 0,
-    bitrate    = 0,
-    elapsed    = 0,
-    pllength   = 0,
-    pos        = 0,
-    samplerate = 0,
-    Time       = 0,
-    volume     = 0;
-int64_t
-    start      = 0,
-    timestamp  = 0;
-std::string
-    coverart,
-    control,
-    dir_data   = "/srv/http/data/",
-    dir_radio,
-    dir_shm    = dir_data +"shm/",
-    dir_system = dir_data +"system/",
-    ext,
-    file_cover,
-    file_radio,
-    icon,
-    mixer,
-    player,
-    sampling,
-    state,
-    station,
-    stationcover,
-    uri,
-    uri_ini,
-    url;
-    
-std::filesystem::path F;
-
-std::unordered_map<std::string, bool> B;
-
-std::unordered_map<std::string, std::string> S;
-std::unordered_map<std::string, std::string> V;
-
-std::unordered_map<std::string, int> I;
-
-std::vector<std::string>
-    key_BI = {"elapsed", "pllength", "song",     "Time",      "volume",   "webradio"},
-    key_S  = {"Album",   "Artist",   "Composer", "Conductor", "coverart", "file",
-              "icon",    "player",   "sampling", "station",   "state",    "Title"},
-    vector;
 
 std::string alphaNumericLower(const std::string& str) {
     std::string result;
@@ -185,7 +131,6 @@ void varSet(const std::string key, const std::string value) {
 }
 
 void read2var(const std::string& file) {
-    V.clear();
     std::ifstream in(file);
     std::string line;
 
@@ -242,23 +187,17 @@ void statusFormatString(const std::string& k, std::string v) {
 }
 
 void rendererStatus(const std::string& player) {
-    if (player == "airplay") {
+    if (AIRPLAY) {
         coverart  = "/data/shm/airplay/coverart.jpg";
         sampling  = "16 bit 44.1 kHz 1.41 Mbit/s • AirPlay";
         for (const std::string k : {"Album", "Artist", "elapsed", "start", "state", "Time", "Title"}) {
             varSet(k, fileContent(dir_shm +"airplay/" + k));
         }
         if (state == "play") elapsed = epochS() - start + 1;
-    } else if (player == "bluetooth") {
+    } else if (BLUETOOTH) {
         std::string dest = fileContent(dir_shm +"bluetoothdest");
-        BluezMeta BM     = BluezMeta::parseBluez(dest);
-        S["Album"]       = BM.Album;
-        S["Artist"]      = BM.Artist;
-        S["Title"]       = BM.Title;
-        state            = BM.state;
-        elapsed          = BM.elapsed;
-        Time             = BM.Time;
-    } else if (player == "spotify") {
+        bluezMeta(dest);
+    } else if (SPOTIFY) {
         sampling  = "48 kHz 320 kbit/s • Spotify";
         read2var(dir_shm +"spotify/stattus");
         if (state == "play") elapsed = epochS() - start + 1;
@@ -359,9 +298,7 @@ public:
 };
 
 void status() {
-    player = fileContent(dir_shm +"player");
-    
-    if (player == "mpd" || player == "upnp") {
+    if (MPD || UPNP) {
         MPDclient MPD;
         if (!MPD.ok()) {
             std::cerr << "MPD connection failed\n";
@@ -413,7 +350,7 @@ void status() {
             }
         }
     } else if (stream) {
-        if (player == "upnp") {
+        if (UPNP) {
             ext      = "UPnP";
         } else {
             webradio = true;
@@ -489,7 +426,7 @@ void status() {
             std::string file_coverart = dir_shm;
             if (webradio) {
                 file_coverart += "webradio/";
-            } else if (player == "upnp") {
+            } else if (UPNP) {
                 file_coverart += "local/";
             } else {
                 file_coverart += "online/";
@@ -501,7 +438,7 @@ void status() {
                     break;
                 }
             }
-            if (coverart.empty() && player == "upnp") coverartUpnp(coverart, file_coverart);
+            if (coverart.empty() && UPNP) coverartUpnp(coverart, file_coverart);
         }
     }
 
@@ -631,7 +568,15 @@ int main(int argc, char **argv) {
             break;
         }
         case STATUS:
-            if (player == "snapcast") {                // #1 snapclient local refresh
+            player = fileContent(dir_shm +"player");
+                 if (player == "airplay")   AIRPLAY = true;
+            else if (player == "bluetooth") BLUETOOTH = true;
+            else if (player == "mpd")       MPD = true;
+            else if (player == "snapcast")  SNAPCAST = true;
+            else if (player == "spotify")   SPOTIFY = true;
+            else if (player == "upnp")      UPNP = true;
+            
+            if (SNAPCAST) {                            // #1 snapclient local refresh
                 std::string ip  = fileContent(dir_shm +"snapserverip");
                 std::string msg = "{ \"status\": \"snapclient\" }";
                 wsSend(ip, msg);                       // #2 ws to remote snapserver
