@@ -15,7 +15,7 @@
 #include <unistd.h>
 #include <unordered_map>
 
-#include "global_var.hpp"
+#include "_global_var.hpp"
 
 #include "audio_sampling.hpp"
 #include "alsa_volume.hpp"

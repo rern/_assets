@@ -63,7 +63,7 @@ void bluezMeta(const std::string& dest) {
         DBusMessageIter variant;
         dbus_message_iter_recurse(&dictEntry, &variant);
 
-        std::string k = key;
+        std::string k(key);
         
         if (k == "Album" || k == "Artist" || k == "Status" || k == "Title") {
             const char* val;
