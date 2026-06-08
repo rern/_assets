@@ -559,9 +559,9 @@ int main(int argc, char **argv) {
                 << "\nGet status and data for rAudio\n\n"
                 << "Usage: " << argv[0] << " [OPTION]\n"
                 << "                 json format\n"
-                << "  -s             json exclude counts and display\n"
                 << "  -n             json with no '{' braces '}'\n"
-                << "  -k             key=value format (exclude counts and display)\n\n" // snapserver reply to client
+                << "  -k             key=value format (exclude counts and display)\n" // snapserver reply - client refresh
+                << "  -s             json exclude counts and display\n\n"             // snapserver push  - changes
                 
                 << "  -l <FILE>      extract embedded lyrics to stdout\n"
                 << "  -c <FILE>      extract embedded coverart to cover.jpg/png\n"
