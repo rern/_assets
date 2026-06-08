@@ -306,7 +306,7 @@ public:
     }
 };
 
-void status() {
+bool status() {
     player = fileContent(dir_shm +"player");
          if (player == "airplay")   AIRPLAY = true;
     else if (player == "bluetooth") BLUETOOTH = true;
@@ -319,7 +319,7 @@ void status() {
         MPDclient MPD;
         if (!MPD.ok()) {
             std::cerr << "MPD connection failed\n";
-            return;
+            return false;
 //..............................................................................
         }
         MPD.runStatus();
@@ -530,6 +530,7 @@ void status() {
             std::system(cmd.c_str()); // online coverart (in background)
         }
     }
+    return true;
 }
 
 enum Option { COVERART, IP, HELP, LYRICS, STATUS, WEBSOCKET };
@@ -551,9 +552,17 @@ int main(int argc, char **argv) {
     switch (opt) {
         case COVERART:
         case LYRICS: {
+            if (argc == 2) {
+                std::cerr << "Error: Target file missing\n";
+                return 1;
+            }
+            
             std::string file = argv[2];
             AudioData AD = Utils::readFile(file, true);
-            if (AD.error) return 1;
+            if (AD.error) {
+                std::cerr << "Error: Read file\n";
+                return 1;
+            }
             
             AudioEmbedded AE = getEmbeddedAudio(AD);
             std::cout << extractEmbedded(AD, AE, opt == COVERART, file);
@@ -584,7 +593,7 @@ int main(int argc, char **argv) {
         case WEBSOCKET: {
             std::string
                 ip  = "127.0.0.1",
-                msg = "{\"status\": \"snapclient\"}";
+                msg = "ping";
             if (argc > 2) {
                 char v0 = argv[2][0];
                 if (v0 >= '0' && v0 <= '9') {ip  = argv[2]; if (argc > 3) msg = argv[3];}
@@ -597,7 +606,7 @@ int main(int argc, char **argv) {
             return 0;
         }
         case STATUS:
-            status(); // std::cout in function
-            return 0;
+            bool ok = status(); // std::cout in function
+            return ok ? 0 : 1;
     }
 }
