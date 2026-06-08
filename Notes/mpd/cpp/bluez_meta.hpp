@@ -1,6 +1,6 @@
 #include <dbus/dbus.h>
 
-void bluezMeta(const std::string& dest) {
+std::string bluezMeta(const std::string& dest) {
     DBusError err;
     DBusConnection* conn;
     DBusMessage* msg;
@@ -15,7 +15,7 @@ void bluezMeta(const std::string& dest) {
         std::cerr << "Connection Error: " << err.message << '\n';
         dbus_error_free(&err);
     }
-    if (!conn) return;
+    if (!conn) return {};
 
     // Build method call
     msg = dbus_message_new_method_call(
@@ -25,7 +25,7 @@ void bluezMeta(const std::string& dest) {
         "GetAll");                         // method
     if (!msg) {
         std::cerr << "Message Null\n";
-        return;
+        return {};
     }
 
     const char* iface = "org.bluez.MediaPlayer1";
@@ -41,10 +41,12 @@ void bluezMeta(const std::string& dest) {
     }
     if (!reply) {
         std::cerr << "Reply Null\n";
-        return;
+        return {};
     }
     
     // Iterate reply dictionary
+    std::string kv;
+    
     dbus_message_iter_init(reply, &args);
     while (dbus_message_iter_get_arg_type(&args) != DBUS_TYPE_INVALID) {
         DBusMessageIter dictEntry;
@@ -64,24 +66,19 @@ void bluezMeta(const std::string& dest) {
         dbus_message_iter_recurse(&dictEntry, &variant);
 
         std::string k(key);
-        
         if (k == "Album" || k == "Artist" || k == "Status" || k == "Title") {
             const char* val;
             dbus_message_iter_get_basic(&variant, &val);
-                 if (k == "Album")  S["Album"]  = val ? val : "";
-            else if (k == "Artist") S["Artist"] = val ? val : "";
-            else if (k == "Title")  S["Title"]  = val ? val : "";
-            else if (k == "Status") state       = val ? val : "";
-            
+            if (val) kv += k +'='+ val;
         } else if (k == "Duration" || k == "Position") {
             uint32_t val;
             dbus_message_iter_get_basic(&variant, &val);
-                 if (k == "Position") elapsed = val / 1000;
-            else if (k == "Duration") Time    = val / 1000;
+            if (val) kv += k +'='+ std::to_string(val / 1000);
         }
         dbus_message_iter_next(&args);
     }
-
     dbus_message_unref(msg);
     dbus_message_unref(reply);
+    
+    return kv;
 }

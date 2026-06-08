@@ -1,8 +1,6 @@
 // g++ -O2 mpd_status.cpp -o /srv/http/bash/status \
     $( pkg-config --cflags --libs alsa,dbus-1,libcurl,libmpdclient,libupnpp,libwebsockets,taglib )
 
-#include <mpd/client.h>
-
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -15,14 +13,15 @@
 #include <unistd.h>
 #include <unordered_map>
 
-#include "_global_var.hpp"
+#include <mpd/client.h>
 
+#include "_global_var.hpp"
 #include "audio_sampling.hpp"
 #include "alsa_volume.hpp"
 #include "bluez_meta.hpp"
+#include "embedded_meta.hpp"
 #include "ip_hostname.hpp"
 #include "upnp_coverart.hpp"
-#include "embedded_meta.hpp"
 #include "websocket_client.hpp"
 
 std::string alphaNumericLower(const std::string& str) {
@@ -119,33 +118,37 @@ int64_t epochS() {
                 std::chrono::system_clock::now().time_since_epoch()
             ).count();
 }
-void varSet(const std::string key, const std::string value) {
-         if (key == "Album")    S["Album"]  = value;
-    else if (key == "Artist")   S["Artist"] = value;
-    else if (key == "Title")    S["Title"]  = value;
-    else if (key == "coverart") coverart    = value;
-    else if (key == "state")    state       = value;
-    else if (key == "elapsed")  elapsed     = std::stoi(value);
-    else if (key == "start")    start       = std::stoi(value);
-    else if (key == "Time")     Time        = std::stoi(value);
-}
 
-void read2var(const std::string& file) {
-    std::ifstream in(file);
+void kv2var(const std::string& kv) {
+    std::istringstream iss(kv);
     std::string line;
 
-    while (std::getline(in, line)) {
-        if (line.empty() || line[0] == '#') continue;
+    while (std::getline(iss, line)) {
+        if (line.empty()) continue;
 
         std::string key, value;
         std::istringstream iss(line);
 
         if (std::getline(iss, key, '=')) {
             if (std::getline(iss, value)) {
-                if (!value.empty() && value.front() == '"' && value.back() == '"') {
+                if (value.empty()) continue;
+                
+                if (value.front() == '"' && value.back() == '"') { // strip 1st " and  " last quotes
                     value = value.substr(1, value.size() - 2);
                 }
-                varSet(key, value);
+                std::string::size_type pos = 0;
+                while ((pos = value.find("\\\"", pos)) != std::string::npos) { // unescape quotes \"
+                    value.replace(pos, 2, "\"");
+                    pos += 1; // move past the replaced quote
+                }
+                     if (key == "Album")    S["Album"]  = value;
+                else if (key == "Artist")   S["Artist"] = value;
+                else if (key == "Title")    S["Title"]  = value;
+                else if (key == "coverart") coverart    = value;
+                else if (key == "state")    state       = value;
+                else if (key == "elapsed")  elapsed     = std::stoi(value);
+                else if (key == "start")    start       = std::stoi(value);
+                else if (key == "Time")     Time        = std::stoi(value);
             }
         }
     }
@@ -190,16 +193,22 @@ void rendererStatus(const std::string& player) {
     if (AIRPLAY) {
         coverart  = "/data/shm/airplay/coverart.jpg";
         sampling  = "16 bit 44.1 kHz 1.41 Mbit/s • AirPlay";
+        std::string kv;
         for (const std::string k : {"Album", "Artist", "elapsed", "start", "state", "Time", "Title"}) {
-            varSet(k, fileContent(dir_shm +"airplay/" + k));
+            kv += k +'='+ fileContent(dir_shm +"airplay/" + k) +'\n';
         }
+        kv2var(kv);
         if (state == "play") elapsed = epochS() - start + 1;
     } else if (BLUETOOTH) {
         std::string dest = fileContent(dir_shm +"bluetoothdest");
-        bluezMeta(dest);
+        kv2var(bluezMeta(dest));
+    } else if (SNAPCAST) {                          // #1 snapclient local refresh
+        std::string ip  = fileContent(dir_shm +"snapserverip");
+        wsSend(ip, "{\"status\": \"snapclient\"}"); // #2 ws to remote snapserver
+        kv2var(ws_message);                         // #3 snapserver reply data: 'status -k'
     } else if (SPOTIFY) {
         sampling  = "48 kHz 320 kbit/s • Spotify";
-        read2var(dir_shm +"spotify/stattus");
+        kv2var(fileContent(dir_shm +"spotify/stattus"));
         if (state == "play") elapsed = epochS() - start + 1;
     }
     timestamp = epochMs();
@@ -298,6 +307,14 @@ public:
 };
 
 void status() {
+    player = fileContent(dir_shm +"player");
+         if (player == "airplay")   AIRPLAY = true;
+    else if (player == "bluetooth") BLUETOOTH = true;
+    else if (player == "mpd")       MPD = true;
+    else if (player == "snapcast")  SNAPCAST = true;
+    else if (player == "spotify")   SPOTIFY = true;
+    else if (player == "upnp")      UPNP = true;
+            
     if (MPD || UPNP) {
         MPDclient MPD;
         if (!MPD.ok()) {
@@ -380,7 +397,7 @@ void status() {
             }
             if (state == "play" && icon != "webradio") { // radiofrance / radioparadise
                 ext      = station.substr(station.find(" - ") + 3);
-                read2var(dir_shm +"status"); // return global V
+                kv2var(fileContent(dir_shm +"status"));
             } else {
                 ext      = "Radio";
             }
@@ -517,11 +534,11 @@ void status() {
 
 enum Option { COVERART, IP, HELP, LYRICS, STATUS, WEBSOCKET };
 Option parseOption(const std::string& arg) {
-    if (arg == "ip")                       return IP;
     if (arg == "-c")                       return COVERART;
     if (arg == "-h")                       return HELP;
-    if (arg == "-k") {json = false;        return STATUS;}
+    if (arg == "-i")                       return IP;
     if (arg == "-l")                       return LYRICS;
+    if (arg == "-k") {json = false;        return STATUS;}
     if (arg == "-n") {no_brace = true;     return STATUS;}
     if (arg == "-s") {snapclient = true;   return STATUS;} // status-push on track changed / ws on each client refresh
     if (arg == "-w")                       return WEBSOCKET;
@@ -540,52 +557,47 @@ int main(int argc, char **argv) {
             
             AudioEmbedded AE = getEmbeddedAudio(AD);
             std::cout << extractEmbedded(AD, AE, opt == COVERART, file);
-            break;
+            return 0;
         }
         case IP:
             std::cout << ipAddress() << '\n';
-            break;
+            return 0;
         case HELP:
             std::cerr
                 << "\nGet status and data for rAudio\n\n"
                 << "Usage: " << argv[0] << " [OPTION]\n"
-                << "                 json format (no option)\n"
-                << "  ip             get system IP address\n"
-                << "  -c <FILE>      extract embedded coverart and save to FILE directory\n"
-                << "  -l <FILE>      extract embedded lyrics to stdout\n"
+                << "                 json format\n"
+                << "  -s             json exclude counts and display\n" // snapclient
                 << "  -n             json with no '{' braces '}'\n"
-                << "  -k             key=value format\n"
-                << "  -s             status without counts and display (snapclient)\n"
-                << "  -w <MSG> [IP]  websocket - send and receive\n"
-                << "  -W <MSG> [IP]  websocket - send only and exit\n"
-                << "                 IP default: 127.0.0.1 (localhost)\n";
-            break;
+                << "  -k             key=value format (exclude counts and display)\n\n"
+                
+                << "  -l <FILE>      extract embedded lyrics to stdout\n"
+                << "  -c <FILE>      extract embedded coverart to cover.jpg/png\n"
+                << "                 and save to directory of FILE\n\n"
+                
+                << "  -w [IP] [MSG]  websocket: send - wait for reply\n"
+                << "  -W [IP] [MSG]  websocket: send only - exit immediately (push)\n"
+                << "                 IP default: 127.0.0.1 (localhost)\n\n"
+                
+                << "  -i             get system IP address\n";
+            return 0;
         case WEBSOCKET: {
-            std::string msg = argv[2];
-            std::string ip  = argc == 4 ? argv[3] : "127.0.0.1";
+            std::string
+                ip  = "127.0.0.1",
+                msg = "{\"status\": \"snapclient\"}";
+            if (argc > 2) {
+                char v0 = argv[2][0];
+                if (v0 >= '0' && v0 <= '9') {ip  = argv[2]; if (argc > 3) msg = argv[3];}
+                else                        {msg = argv[2]; if (argc > 3) ip  = argv[3];}
+            }
             wsSend(ip, msg);
-            if (!ws_send_only) std::cout << ws_message << '\n';
-            break;
+            if (ws_send_only) return 0;
+            
+            std::cout << ws_message << '\n';
+            return 0;
         }
         case STATUS:
-            player = fileContent(dir_shm +"player");
-                 if (player == "airplay")   AIRPLAY = true;
-            else if (player == "bluetooth") BLUETOOTH = true;
-            else if (player == "mpd")       MPD = true;
-            else if (player == "snapcast")  SNAPCAST = true;
-            else if (player == "spotify")   SPOTIFY = true;
-            else if (player == "upnp")      UPNP = true;
-            
-            if (SNAPCAST) {                            // #1 snapclient local refresh
-                std::string ip  = fileContent(dir_shm +"snapserverip");
-                std::string msg = "{ \"status\": \"snapclient\" }";
-                wsSend(ip, msg);                       // #2 ws to remote snapserver
-                std::cout << ws_message << std::flush; // #3 snapserver reply data: 'status -s'
-                return 0;
-            }
-            
-            status();
-            break;
+            status(); // std::cout in function
+            return 0;
     }
-    return 0;
 }
