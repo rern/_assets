@@ -9,7 +9,12 @@
 ```
 org.gnome.ShairportSync.RemoteControl:
     - PlayerState    : Playing | Paused | Stopped
-    - ProgressString : 993079641/996629219/1004868385 (start/current/end - @samplerate/s)
+    - ProgressString : 993079641/996629219/1004868385
+		- start/current/end (@samplerate/s)
+		- update when state or track changed (not during play)
+		- elapsed:
+			- play  - (current - start) / samplerate
+			- pause - (current - start) / samplerate + (PlayerState* - ProgressString*) *timestamp
     - SourceFormat   : AAC/48000/F24/2
     
 org.mpris.MediaPlayer2.Player:
