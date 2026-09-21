@@ -6,19 +6,19 @@
 	-
 
 **D-Bus - Get data**
-```
+```sh
 org.gnome.ShairportSync.RemoteControl:
     - PlayerState    : Playing | Paused | Stopped
     - ProgressString : 993079641/996629219/1004868385
 		- start/current/end (@samplerate/s)
 		- update when state or track changed (not during play)
-		- elapsed:
-			- play  - (current - start) / samplerate
-			- pause - (current - start) / samplerate + (PlayerState* - ProgressString*) *timestamp
+		- elapsed: (current - start) / samplerate
+			- play  : elapsed
+			- pause : elapsed + PlayerState* - ProgressString* (*timestamp)
     - SourceFormat   : AAC/48000/F24/2
     
 org.mpris.MediaPlayer2.Player:
-    - Metadata       : { xesam:album, xesam:artist, xesam:title, mpris:artUrl, mpris:length(μs) }
+    - Metadata       : album, artist, title, artUrl, length(μs)
     - PlaybackStatus : Playing | Paused | Stopped
     - Position       : elapsed(μs)
 ```
