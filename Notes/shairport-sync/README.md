@@ -21,18 +21,52 @@ systemctl daemon-reexec
 ```
 
 **D-Bus**
+```
+org.gnome.ShairportSync.RemoteControl:
+    - PlayerState    : Playing / Paused / Stopped
+    - ProgressString : start/current/end (@sample rate)
+    - SourceFormat   : AAC/48000/F24/2
+    
+org.mpris.MediaPlayer2.Player:
+    - Metadata       : xesam:album, xesam:artist, xesam:title, mpris:artUrl, mpris:length
+    - PlaybackStatus : Playing / Paused / Stopped
+    - Position       : elapsed in microsec (wait for fix)
+```
+
 ```sh
-# /etc/shairport-sync.conf
-# /etc/dbus-1/system.d/shairport-sync-dbus.conf
-# /etc/dbus-1/system.d/shairport-sync-mpris.conf
-
-# bash
-dbus-monitor --system "type='signal',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged'"
-
-# python
-import dbus
-bus = dbus.SystemBus()
-player = bus.get_object('org.mpris.MediaPlayer2.ShairportSync', '/org/mpris/MediaPlayer2')
+dbusDatata() { #$1: Metadata, PlaybackStatus, Position
+	busctl \
+		--system \
+		--json=short \
+		get-property org.gnome.ShairportSync \
+		/org/mpris/MediaPlayer2 \
+		org.mpris.MediaPlayer2.Player \
+		$1
+}
+dbusStatus() { #$1: PlayerState, ProgressString, SourceFormat
+	busctl \
+		--system \
+		--json=short \
+		get-property org.gnome.ShairportSync \
+		/org/gnome/ShairportSync \
+		org.gnome.ShairportSync.RemoteControl \
+		$1
+}
+dbusMonitor() {
+	dbus-monitor \
+		--system \
+		"type=signal,
+		interface=org.freedesktop.DBus.Properties,
+		member=PropertiesChanged,
+		path=/org/gnome/ShairportSync"
+}
+dbusPropertyList() {
+	busctl \
+		--system \
+		introspect \
+		org.gnome.ShairportSync \
+		/org/gnome/ShairportSync
+}
 ```
 
 **Default `shairport-sync-metadata-reader`**
