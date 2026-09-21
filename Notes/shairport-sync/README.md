@@ -13,9 +13,9 @@ org.gnome.ShairportSync.RemoteControl:
     - SourceFormat   : AAC/48000/F24/2
     
 org.mpris.MediaPlayer2.Player:
-    - Metadata       : { xesam:album, xesam:artist, xesam:title, mpris:artUrl, mpris:length }
+    - Metadata       : { xesam:album, xesam:artist, xesam:title, mpris:artUrl, mpris:length(μs) }
     - PlaybackStatus : Playing | Paused | Stopped
-    - Position       : elapsed in μs
+    - Position       : elapsed(μs)
 ```
 
 ```sh
