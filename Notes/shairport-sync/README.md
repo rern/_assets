@@ -5,32 +5,17 @@
 	- `run_this_after_play_ends` - On pause / disconnect
 	-
 
-[Shairport Sync Metadata](https://github.com/mikebrady/shairport-sync-metadata-reader)
-
-[Code Table](https://github.com/Schlaubischlump/shairport-metadatareader-python/blob/master/shairportmetadatareader/codetable.py)
-
-Request to AirPlay devices
-```sh
-curl -vX POST https://IP_ADDRESS:PORT
-```
-
-**Fix**
-```
-# Failed to determine user credentials: No such process
-systemctl daemon-reexec
-```
-
-**D-Bus**
+**D-Bus - Get data**
 ```
 org.gnome.ShairportSync.RemoteControl:
-    - PlayerState    : Playing / Paused / Stopped
-    - ProgressString : start/current/end (@sample rate)
+    - PlayerState    : Playing | Paused | Stopped
+    - ProgressString : 993079641/996629219/1004868385 (start/current/end - @samplerate/s)
     - SourceFormat   : AAC/48000/F24/2
     
 org.mpris.MediaPlayer2.Player:
-    - Metadata       : xesam:album, xesam:artist, xesam:title, mpris:artUrl, mpris:length
-    - PlaybackStatus : Playing / Paused / Stopped
-    - Position       : elapsed in microsec (wait for fix)
+    - Metadata       : { xesam:album, xesam:artist, xesam:title, mpris:artUrl, mpris:length }
+    - PlaybackStatus : Playing | Paused | Stopped
+    - Position       : elapsed in μs
 ```
 
 ```sh
@@ -68,6 +53,10 @@ dbusPropertyList() {
 		/org/gnome/ShairportSync
 }
 ```
+
+[Shairport Sync Metadata](https://github.com/mikebrady/shairport-sync-metadata-reader)
+
+[Code Table](https://github.com/Schlaubischlump/shairport-metadatareader-python/blob/master/shairportmetadatareader/codetable.py)
 
 **Default `shairport-sync-metadata-reader`**
 ```sh
