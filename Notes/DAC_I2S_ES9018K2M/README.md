@@ -7,7 +7,8 @@ I²S ES9018K2M DAC Board
 - Support DSD64 DSD128
 - Output: RCA and 3.5mm headphone
 - No hardware volume / mixer control
-- Power supply: DC 9-25V via 5.5x2.1mm jack (or AC 7V-0-7V to 18V-0-18V - center tapped transformer via green terminal)
+- Power supply: DC 9-25V via 5.5x2.1mm jack  
+  *(or AC 7V-0-7V to 18V-0-18V - center tapped transformer via green terminal)*
 - Input: I²S  
 - ![input](https://github.com/rern/_assets/raw/master/Notes/DAC_I2S_ES9018K2M/input.png)  
 ```
