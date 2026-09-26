@@ -20,13 +20,6 @@ I²S ES9018K2M DAC Board
 ```
 <img src="https://github.com/rern/_assets/raw/master/Notes/DAC_I2S_ES9018K2M/gpio.svg" width="600">
 
-### Setup
-**Hardware**
-- Connect I²S wires
-- Connect power supply
-
-![jumper](https://github.com/rern/_assets/raw/master/Notes/DAC_I2S_ES9018K2M/jumpers.jpg) ![adapter](https://github.com/rern/_assets/raw/master/Notes/DAC_I2S_ES9018K2M/adapter.jpg)
-
-**Software**  
+### Setup 
 On rAudio:
 - Settings > System > Audio I²S = `Generic ESS ES90xx`
