@@ -17,7 +17,7 @@ I²S ES9018K2M DAC Board
 #4  -
 #5  <  RPi #39            -  GND   ground
 ```
-<img src="https://github.com/rern/_assets/blob/master/RuneUI_GPIO/RPi3_GPIO.svg" width="600">
+<img src="https://github.com/rern/_assets/raw/master/Notes/DAC_I2S_ES9018K2M/gpio.svg" width="600">
 
 ### Setup
 **Hardware**
