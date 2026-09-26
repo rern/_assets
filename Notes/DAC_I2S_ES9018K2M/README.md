@@ -27,5 +27,5 @@ I²S ES9018K2M DAC Board
 ![jumper](https://github.com/rern/_assets/raw/master/Notes/DAC_I2S_ES9018K2M/jumpers.jpg) ![adapter](https://github.com/rern/_assets/raw/master/Notes/DAC_I2S_ES9018K2M/adapter.jpg)
 
 **Software**  
-On RuneAudio+R e1:
-- Settings > System > I²S module = `Generic RPI DAC`
+On rAudio:
+- Settings > System > Audio I²S = `Generic ESS ES90xx`
