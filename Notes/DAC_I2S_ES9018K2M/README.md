@@ -8,7 +8,7 @@ _Tested on RPi3 RuneAudio+R e1_
 - Output: RCA and 3.5mm headphone
 - Power supply: DC 9-25V via 5.5x2.1mm jack (or AC 7V-0-7V to 18V-0-18V - center tapped transformer via green terminal)
 - Input: I²S  
-- ![input](https://github.com/rern_assets/raw/master/Notes/DAC_I2S_ES9018K2M/input.png)  
+- ![input](https://github.com/rern/_assets/raw/master/Notes/DAC_I2S_ES9018K2M/input.png)  
 ```
 #1  <  RPi #40 (BCM #21)  -  DATA  data
 #2  <  RPi #12 (BCM #18)  -  BCK   bit clock
