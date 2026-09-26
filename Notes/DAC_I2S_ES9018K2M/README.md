@@ -1,11 +1,12 @@
 I²S ES9018K2M DAC Board
 ---
-_Tested on RPi3 RuneAudio+R e1_
+[_Tested on rAudio_](https://github.com/rern/rAudio)
 
 ![board](https://github.com/rern/_assets/raw/master/Notes/DAC_I2S_ES9018K2M/ES9018K2M.jpg)
 - [~10$ on ebay](https://www.ebay.com/sch/i.html?_from=R40&_sacat=0&_sop=15&_nkw=es9018k2m+board&rt=nc&LH_BIN=1)
 - Support DSD64 DSD128
 - Output: RCA and 3.5mm headphone
+- No hardware volume / mixer control
 - Power supply: DC 9-25V via 5.5x2.1mm jack (or AC 7V-0-7V to 18V-0-18V - center tapped transformer via green terminal)
 - Input: I²S  
 - ![input](https://github.com/rern/_assets/raw/master/Notes/DAC_I2S_ES9018K2M/input.png)  
