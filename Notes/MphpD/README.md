@@ -1,8 +1,11 @@
 ### MphpD
 
 ```sh
+wget https://codeberg.org/FloFaber/MphpD/releases/download/v1.3.0/mphpd-v1.3.0.zip
+bsdtar xf mphpd-v1.3.0.zip
+```
 
-
+```php
 <?php
 require_once 'MphpD/MphpD.php';
 use FloFaber\MphpD\MphpD; // alias as MphpD
@@ -16,7 +19,7 @@ $state    = $status[ 'state' ];
 
 $playlist = $mphpd->queue()->get();                    // current playlist
 
-$db       = $mphpd->db();                                         // or $mphpd->db, depending on the version
+$db       = $mphpd->db();
 $filter   = new \FloFaber\MphpD\Filter( 'Artist', '==', 'Name' );
 $tracks   = $mphpd->db()->search( $filter );
 ```
